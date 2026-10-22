@@ -11,7 +11,8 @@ export default defineConfig({
   password: process.env.DB_PASSWORD,
   dbName: process.env.DB_NAME ?? 'mi_proyecto',
 
-  entities: [],
+  entities: ['./dist/**/*.entity.js'],
+  entitiesTs: ['./src/**/*.entity.ts'],
 
   metadataProvider: ReflectMetadataProvider,
 
