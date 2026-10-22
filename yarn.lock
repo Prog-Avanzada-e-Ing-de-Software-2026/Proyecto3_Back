@@ -1686,7 +1686,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/types@npm:^0.1.28":
+"@swc/types@npm:^0.1.27, @swc/types@npm:^0.1.28":
   version: 0.1.28
   resolution: "@swc/types@npm:0.1.28"
   dependencies:
