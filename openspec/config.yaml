@@ -1,0 +1,49 @@
+schema: spec-driven
+
+context: |
+  Proyecto: backend del MVP de gestión de un gimnasio, construido con NestJS 12,
+  TypeScript estricto (ESM), MikroORM 7 y PostgreSQL. Tests con Vitest.
+
+  Dominio: un único bounded context, "Entrenamiento". Agregados principales: Plan
+  y Entrenamiento. Raíces propias: Alumno y Profesor. Catálogo: ObjetivoPlan,
+  Material, Ejercicio, CategoriaEjercicio y Unidad.
+
+  Fuente de verdad del dominio: docs/preliminar/Analisis de dominio.md.
+  Criterios de aceptación: docs/preliminar/User Stories.md.
+  Decisiones pendientes: D-nn y DW-nn en los documentos de docs/preliminar/.
+
+  Idioma: español para la prosa; encabezados estructurales y palabras clave
+  SHALL/MUST en inglés. Usar el lenguaje ubicuo del dominio sin traducir ni
+  renombrar sus términos.
+
+  Toda funcionalidad debe especificarse como un cambio de OpenSpec antes de
+  implementarse. No inventar comportamiento para decisiones abiertas: registrarlo
+  como supuesto explícito y consultar al usuario cuando afecte el alcance.
+
+rules:
+  proposal:
+    - "Incluir una sección 'Fuera de alcance' explícita."
+    - "Vincular cada requisito a las reglas de negocio (RN-n) y user stories (US-nn) afectadas cuando existan."
+    - "No inventar comportamiento para decisiones abiertas (D-nn, DW-nn): registrarlas como supuestos o preguntas."
+  specs:
+    - "Cada requisito debe usar SHALL o MUST y tener al menos un escenario Given/When/Then."
+    - "Especificar solo comportamiento observable; no incluir detalles de implementación."
+    - "Usar los términos exactos del lenguaje ubicuo del dominio."
+  design:
+    - "Registrar la decisión, las alternativas descartadas y su justificación."
+    - "Indicar módulos, entidades y migraciones afectadas."
+    - "Señalar riesgos, estrategia de rollback y estrategia de pruebas."
+  tasks:
+    - "Una tarea por unidad verificable, con su prueba asociada."
+    - "Ordenar por dependencias; ninguna tarea sin un requisito que la origine."
+
+operations:
+  apply:
+    guidance:
+      - "Implementar en el orden de tasks.md y marcar cada tarea solo después de verificar su resultado."
+      - "Ejecutar yarn typecheck, yarn lint y yarn test antes de declarar una tarea terminada; yarn test:e2e cuando se toque HTTP o base de datos."
+      - "Si aparece alcance no especificado, detenerse y actualizar los artefactos antes de continuar."
+  archive:
+    guidance:
+      - "Archivar solo con todas las tareas completas y openspec validate --strict en verde."
+      - "Verificar que el delta se haya aplicado a openspec/specs/ y que la documentación afectada quede coherente."
