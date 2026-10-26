@@ -11,6 +11,9 @@ context: |
   Fuente de verdad del dominio: docs/preliminar/Analisis de dominio.md.
   Criterios de aceptación: docs/preliminar/User Stories.md.
   Decisiones pendientes: D-nn y DW-nn en los documentos de docs/preliminar/.
+  Convenciones de arquitectura y capas: AGENTS.md §4 y §5 (su fundamento y
+  justificación están en docs/agreements/arquitectura.md; ante discrepancia,
+  manda AGENTS.md).
 
   Idioma: español para la prosa; encabezados estructurales y palabras clave
   SHALL/MUST en inglés. Usar el lenguaje ubicuo del dominio sin traducir ni

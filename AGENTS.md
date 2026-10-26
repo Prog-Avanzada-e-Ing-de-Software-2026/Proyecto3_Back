@@ -63,33 +63,149 @@ Usar nombres en kebab-case, descriptivos y alineados al dominio. Mantener el pat
 
 ### 3.4 Excepción documental
 
-Solo los cambios sin efecto en comportamiento, contratos, esquema o código (typos, aclaraciones en `docs/preliminar/`) pueden hacerse sin un cambio de OpenSpec. La excepción debe declararse explícitamente en la respuesta. Ante la duda, crear el cambio.
+Solo los cambios sin efecto en comportamiento, contratos, esquema o código pueden hacerse sin un cambio de OpenSpec. Quedan comprendidos: typos y aclaraciones en `docs/preliminar/`, y la documentación de convenciones (`AGENTS.md` y `docs/agreements/`), que no altera comportamiento por sí misma. La excepción debe declararse explícitamente en la respuesta. Ante la duda, crear el cambio.
 
 ## 4. Convenciones de código
 
 - **ESM:** `package.json` tiene `"type": "module"` y `tsconfig` usa `nodenext`. Todo import relativo lleva extensión `.js` (`import { AppModule } from './app.module.js'`).
 - **TypeScript estricto:** no relajar `strict` ni usar `@ts-ignore` sin justificación escrita.
-- **NestJS:** un módulo por capacidad. Estructura objetivo para código nuevo:
-  - `src/<capacidad>/domain/` — entidades, value objects, reglas y puertos de repositorio.
-  - `src/<capacidad>/application/` — casos de uso.
-  - `src/<capacidad>/infrastructure/` — controladores, DTOs y persistencia.
-  - `src/<capacidad>/<capacidad>.module.ts` — módulo NestJS.
+- **NestJS:** un módulo por capacidad de negocio. La estructura de carpetas, las capas y las dependencias permitidas están en §5; no se repiten acá.
+- **Validación de entrada:** DTO como clase con `class-validator` y `ValidationPipe` global. Detalle en §5.6.
 - **MikroORM:**
   - Las entidades deben llamarse `*.entity.ts` (el config las busca con `./src/**/*.entity.ts`).
   - Usar los decoradores legacy de `@mikro-orm/decorators/legacy`, consistentes con el `ReflectMetadataProvider` configurado.
   - Las migraciones viven en `src/migrations`.
-  - Toda entidad persistente hereda de la base auditable (ver §5); los campos de auditoría no se declaran entidad por entidad.
+  - Toda entidad persistente hereda de la base auditable (ver §6); los campos de auditoría no se declaran entidad por entidad.
 - **Reglas de dominio:** se validan dentro de la raíz del agregado, no en controladores ni en DTOs. Un VO es inmutable; una entidad conserva identidad.
-- **Errores de dominio:** no exponer detalles de persistencia en la API.
+- **Errores de dominio:** no exponer detalles de persistencia en la API. Los errores semánticos se traducen a HTTP en el límite de presentación, sin filtrar trazas ni detalles internos.
 - **Formato:** Prettier (`singleQuote`, `trailingComma: all`) y oxlint. No introducir reglas nuevas de lint sin justificarlo.
 
-## 5. Auditoría de entidades
+## 5. Arquitectura y límites de módulos
+
+Fundamento y justificación de esta sección: `docs/agreements/arquitectura.md`. Ante discrepancia, manda `AGENTS.md`.
+
+### 5.1 Identidad arquitectónica y regla de simplicidad
+
+- **Estilo:** monolito modular. Una aplicación, un despliegue, módulos NestJS cohesionados por capacidad de negocio.
+- **Partición:** por capacidad primero y capa después; nunca por carpetas globales de `controllers`, `services` y `repositories`.
+- **Capas internas:** presentación, aplicación, dominio e infraestructura.
+- **Modelado:** DDD pragmático — lenguaje ubicuo, raíces de agregado, entidades, value objects e invariantes. El lenguaje ubicuo está en `docs/preliminar/Analisis de dominio.md` y no se traduce ni renombra.
+- **Un solo bounded context:** «Entrenamiento». Dividir el código en módulos NestJS **no** crea contextos adicionales. No proponer microservicios, event bus, CQRS formal ni event sourcing sin requisitos documentados y aprobados.
+- **Puertos y adaptadores:** selectivos. Una abstracción se justifica por desacoplamiento real, testabilidad, varios consumidores o una regla compleja; nunca por plantilla.
+
+**Regla rectora:** aplicar el patrón más simple que proteja la regla y permita probarla. Encadenar interfaces, repositorios delegadores, adaptadores, comandos y handlers sin necesidad concreta es un antipatrón, no rigor.
+
+### 5.2 Estructura de carpetas
+
+```text
+src/
+├── main.ts
+├── app.module.ts
+├── mikro-orm.config.ts
+├── migrations/
+├── common/                  # Solo lo transversal real, usado por dos o más módulos
+│   ├── domain/              # Base auditable, errores comunes
+│   ├── presentation/        # Filtro HTTP global, decorador de actor
+│   └── infrastructure/      # Mecanismo de auditoría
+└── modules/
+    └── <capacidad>/         # alumnos, profesores, planes, entrenamientos, seguimiento, auth
+        ├── <capacidad>.module.ts
+        ├── presentation/
+        │   ├── <capacidad>.controller.ts
+        │   └── dto/
+        ├── application/
+        │   ├── <capacidad>.service.ts
+        │   ├── use-cases/
+        │   └── queries/
+        ├── domain/
+        │   ├── entities/
+        │   ├── value-objects/
+        │   ├── services/
+        │   ├── errors/
+        │   └── ports/
+        └── infrastructure/
+            └── repositories/
+```
+
+- Crear cada subcarpeta **cuando se implemente** la funcionalidad que la necesita. Nunca carpetas vacías ni archivos ficticios para completar el árbol.
+- Las entidades de dominio llevan decoradores de MikroORM. Es una **concesión pragmática** decidida, no independencia del ORM: se declara así y no se promete pureza que no existe.
+- `*.module.ts` es la composition root: registra controladores y providers, vincula contratos con implementaciones e importa/exporta lo necesario. Un `forwardRef()` recurrente delata límites mal trazados.
+
+### 5.3 Catálogo: submódulos obligatorios
+
+`src/modules/catalogo/` es un módulo agrupador. `ejercicios`, `categorias-ejercicio`, `materiales`, `unidades` y `objetivos-plan` tienen cada uno su subcarpeta con controller, service, DTO, entidad y módulo NestJS propios. `CatalogoModule` solo los agrupa e importa: no concentra controladores, CRUD ni repositorios.
+
+**Por qué es una excepción y no ceremonia:** `docs/preliminar/Analisis de dominio.md:94` define cada concepto de catálogo como **raíz de su propio agregado**, y `US-01`..`US-05` los especifican por separado. Un agregado, un submódulo, un cambio de OpenSpec.
+
+Aun así, un CRUD de catálogo se resuelve `Controller → Service → EntityRepository` de MikroORM. No agregar `use-cases/`, `ports/` ni `infrastructure/repositories/` sin motivo.
+
+### 5.4 Responsabilidades y dependencias por capa
+
+- **`presentation/`** — controllers, DTOs, validación de formato, guards y pipes de entrada. Traduce DTO a parámetros de aplicación y obtiene el actor autenticado. **No** decide reglas de negocio, no ejecuta consultas ORM y no define transacciones.
+- **`application/`** — services para operaciones simples, use cases para flujos complejos, query services para lectura agregada. Orquesta, comprueba permisos de operación, recupera agregados, invoca al dominio y coordina transacciones. **No** esconde invariantes que pertenecen al agregado ni duplica reglas.
+- **`domain/`** — entidades, raíces de agregado, value objects inmutables, invariantes, servicios y políticas de dominio, puertos cuando aporten. **No** importa controllers, DTOs, `Request`, `Response`, `HttpException` ni `EntityManager` en reglas puras.
+- **`infrastructure/`** — implementaciones MikroORM, consultas optimizadas y adaptadores externos aprobados. **No** decide reglas de negocio ni esconde efectos de dominio en consultas o subscribers.
+
+**Dirección permitida:** `presentation → application → domain`, con `infrastructure` implementando contratos de dominio o aplicación. En CRUD simple se admite `application → EntityRepository` de MikroORM de forma deliberada y documentada. Prohibido: `domain → presentation`, `domain → infrastructure`, y que un módulo importe archivos internos de otro; se integra por servicios exportados o contratos delimitados.
+
+### 5.5 Matriz de selección de patrones
+
+| Funcionalidad | Implementación por defecto | Escalar solo si |
+| --- | --- | --- |
+| CRUD o consulta de catálogo | Controller + Service + MikroORM | filtros complejos o varias vistas → QueryService |
+| Alta o modificación simple de un agregado | Controller + Service + entidad | invariantes no triviales o coordinación entre agregados |
+| Crear plan completo | Controller + `CrearPlanUseCase` + `Plan` | un puerto mejora la testabilidad de forma comprobable |
+| Iniciar, agregar o finalizar entrenamiento | Use case + métodos de `Entrenamiento` | la concurrencia exige adaptador o restricción adicional |
+| Baja de profesor con desasignación de alumnos | Use case + transacción | nunca evento asíncrono en el MVP sin aprobación |
+| Historial, récord, evolución, asistencias | `QueryService` + proyección | nunca hidratar agregados completos para un informe |
+
+No imponer un `execute()` por cada verbo HTTP ni crear dos capas de delegación cuando una solo reenvía métodos a la otra.
+
+### 5.6 Validación de entrada (DTO)
+
+- Los DTO son **clases** con decoradores de `class-validator`. Los tipos derivados (`PartialType`, `OmitType`, `PickType`, `IntersectionType`) salen de `@nestjs/mapped-types`.
+- Un único `ValidationPipe` global en `src/main.ts` con `{ transform: true, whitelist: true }`. `whitelist` descarta toda propiedad no declarada en el DTO: es el mecanismo que hace cumplir §6.2, regla 3. Las librerías ya están instaladas, pero el pipe **todavía no está registrado**: lo registra el primer cambio de OpenSpec que exponga un endpoint y lo cubra con un test.
+- `forbidNonWhitelisted` queda **desactivado** mientras §6.2, regla 3 establezca que esos campos «se ignoran». Si el equipo prefiere rechazar con 400, se activa la opción y se actualiza esa regla en el mismo cambio.
+- El DTO valida formato y tipos; **no** valida reglas del gimnasio. Las invariantes son de dominio (§4) y no se duplican en el DTO ni en el controller.
+- El DTO no se convierte en entidad de dominio ni se entrega a MikroORM.
+
+### 5.7 Transacciones, integridad y persistencia
+
+- Usar el `EntityManager` contextual y la Unit of Work de MikroORM. No replicar `TypeOrmUnitOfWork` ni decoradores `@Transactional()` ad hoc de otros proyectos.
+- El límite transaccional vive en el service o use case que coordina los cambios (`em.transactional(...)`). Todas las escrituras relacionadas van en el mismo contexto.
+- Para CRUD simple alcanza `@InjectRepository(Entity)`. Puertos propios solo con beneficio comprobable, enlazados por token en `*.module.ts`.
+- No llamar `flush()` desde reglas puras del dominio.
+- Una lectura previa `exists(...)` **no** garantiza una invariante concurrente: diseñar restricción, índice único parcial o bloqueo en PostgreSQL, y demostrarlo con prueba.
+- Los cambios de esquema van solo por migraciones (ver §8), nunca por `schema:update` en producción.
+
+### 5.8 Modelos de lectura
+
+- Distinguir comandos de consultas es semántica, no infraestructura: **no** se agrega `@nestjs/cqrs`, `CommandBus`, `QueryBus` ni handlers.
+- Las lecturas que cruzan agregados van en `application/queries/*-query.service.ts` con proyección de MikroORM.
+- Un query service no muta estado ni llama `flush()`.
+- Récord, última carga y estados temporales del plan se **calculan**; no se persisten como tablas o materializaciones sin justificación aprobada.
+- Una proyección que evita cargar el agregado **conserva igual** las reglas de autorización.
+- Evitar N+1, relaciones innecesarias y consultas sin límite: seleccionar campos y paginar.
+
+### 5.9 Antipatrones prohibidos
+
+- Modelo anémico: entidad sin comportamiento y reglas duplicadas en servicios.
+- God service con orquestación, HTTP, validación, consultas y SQL mezclados.
+- Interfaces `I*Repository` sin propósito seguidas de delegadores vacíos.
+- Reglas de negocio en controller o DTO.
+- Transacciones por repositorio cuando el caso de uso completo debe ser atómico.
+- Persistir datos que el negocio decidió derivar.
+- Exponer entidades ORM con relaciones sensibles o ciclos de serialización.
+- Usar subscribers del ORM como escondite de reglas de negocio.
+- Un `CatalogoController` o `CatalogoService` único con los cinco CRUD.
+
+## 6. Auditoría de entidades
 
 Toda entidad persistente registra **quién** creó, editó y eliminó cada fila. Es un requisito transversal del modelo: no se decide entidad por entidad ni caso de uso por caso de uso. El detalle de implementación (base abstracta, suscriptor sobre el `EntityManager`, interceptor) es una decisión de diseño del cambio de OpenSpec que introduzca la primera entidad; lo que no se negocia son los campos ni las reglas de esta sección.
 
 Esta convención se incorporó por decisión explícita del usuario como documentación: no requiere un cambio de OpenSpec propio, pero obliga a que todo cambio posterior que cree o modifique una entidad la cumpla.
 
-### 5.1 Campos obligatorios
+### 6.1 Campos obligatorios
 
 Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCase; la estrategia de nombres por defecto de MikroORM las mapea a snake_case en la base.
 
@@ -106,7 +222,7 @@ Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCas
 - `deletedAt` y `deletedById` en `null` significan "la fila no está dada de baja". Se completan juntos o no se completa ninguno.
 - `createdById`, `updatedById` y `deletedById` referencian al **actor** (`Usuario`) por identificador, nunca por nombre ni email: un nombre suelto no es auditable.
 
-### 5.2 Reglas de implementación
+### 6.2 Reglas de implementación
 
 1. **Un solo lugar.** Los seis campos se completan en la base auditable y en el mecanismo de persistencia, nunca a mano en cada caso de uso ni en cada controlador.
 2. **El actor sale del contexto de autenticación.** Jamás del body, del query string ni de un DTO. Si no hay actor identificado, la operación se rechaza; no se inventa un usuario "sistema" salvo en procesos internos explícitamente declarados.
@@ -115,37 +231,39 @@ Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCas
 5. **UTC.** Las fechas se persisten en UTC (`timestamptz`) y se serializan en ISO-8601 con zona.
 6. **La auditoría no se edita.** Ningún endpoint ni caso de uso modifica estos campos después de escritos; `createdAt` y `createdById` son inmutables por definición.
 
-### 5.3 Eliminación y trazabilidad
+### 6.3 Eliminación y trazabilidad
 
 - **Baja lógica por defecto.** Cuando la entidad conserva historial o está referenciada por otras (alumno, profesor, plan, entrenamiento), eliminar significa completar `deletedAt` y `deletedById` y excluirla de las consultas. La fila permanece y con ella queda el rastro de quién la dio de baja.
 - **Borrado físico** solo en catálogos sin referencias y cuando la historia no importa (por ejemplo, una máquina nunca usada, `US-01`). Al borrar la fila desaparece su auditoría: si el dominio exige conservarla, la baja debe ser lógica.
 - **Índices únicos sobre entidades con baja lógica:** un `UNIQUE` plano queda bloqueado por la fila dada de baja. Usar índices parciales (`WHERE deleted_at IS NULL`).
 - **Reactivación explícita.** Volver a poner `deletedAt` en `null` es un caso de uso del dominio, no un update genérico, y actualiza `updatedAt` y `updatedById` como cualquier otra edición.
 
-## 6. Testing y verificación
+## 7. Testing y verificación
 
 - Tests unitarios colocados junto al código, con sufijo `.spec.ts`.
 - Tests e2e en `test/`, con sufijo `.e2e-spec.ts`.
 - Todo cambio de comportamiento sigue test-first: primero un test que falla (RED), luego la implementación (GREEN), luego refactor.
 - Cada test debe verificar todos los efectos observables de la regla (salida, error, datos persistidos) y pasar por la interfaz pública.
-- Toda entidad nueva cubre alta, edición y baja verificando los seis campos de auditoría (§5.1) a través de la interfaz pública, incluido que el actor provenga del contexto de autenticación y no del payload.
+- Toda entidad nueva cubre alta, edición y baja verificando los seis campos de auditoría (§6.1) a través de la interfaz pública, incluido que el actor provenga del contexto de autenticación y no del payload.
+- **Qué probar por capa:** dominio → invariantes del agregado (días permitidos, bloques obligatorios, series válidas, entrenamiento finalizado inmutable); aplicación → autorización del actor, solapamientos, atomicidad y rollback; persistencia → restricciones de PostgreSQL, concurrencia y auditoría; consultas → filtros de autorización, récords calculados y paginación; HTTP → DTO, guards, códigos y contratos de error.
+- No dar por probada la integridad transaccional haciendo mocks del ORM. Si un test requiere PostgreSQL real y no está disponible, se reporta como omitido, nunca como verde.
 - Antes de declarar terminada una tarea: `yarn typecheck && yarn lint && yarn test`.
 - Ejecutar `yarn test:e2e` cuando el cambio toque HTTP, base de datos o configuración de la aplicación.
 - No desactivar ni saltear tests para "dejar todo en verde". Si un test falla por una causa preexistente, documentarlo con evidencia.
 
-## 7. Base de datos y migraciones
+## 8. Base de datos y migraciones
 
 - Los cambios de esquema son de alto riesgo: requieren un cambio de OpenSpec con su `design.md` y una estrategia de rollback.
-- Toda migración que crea o altera una entidad incluye las seis columnas de auditoría (§5.1). Su nulabilidad se define en el `design.md` del cambio; una vez que exista la capacidad de identidad, las columnas de alta y edición son `NOT NULL`.
+- Toda migración que crea o altera una entidad incluye las seis columnas de auditoría (§6.1). Su nulabilidad se define en el `design.md` del cambio; una vez que exista la capacidad de identidad, las columnas de alta y edición son `NOT NULL`.
 - Nunca editar una migración ya aplicada. Crear una nueva.
 - Nunca ejecutar operaciones destructivas (`DROP`, `TRUNCATE`, borrado de datos) sin aprobación explícita del usuario.
 - Las credenciales viven en `.env` (ignorado por git). Nunca commitear `.env` ni secretos.
 
-## 8. Conventional Commits
+## 9. Conventional Commits
 
 Todos los commits siguen [Conventional Commits](https://www.conventionalcommits.org/). Los mensajes se escriben en inglés, en modo imperativo.
 
-### 8.1 Formato
+### 9.1 Formato
 
 ```text
 <type>(<scope>): <subject>
@@ -159,7 +277,7 @@ Todos los commits siguen [Conventional Commits](https://www.conventionalcommits.
 - `body`: qué y por qué, no cómo; líneas ≤ 72 caracteres.
 - `footer`: referencias y breaking changes.
 
-### 8.2 Tipos permitidos
+### 9.2 Tipos permitidos
 
 | Tipo | Uso |
 | --- | --- |
@@ -175,11 +293,11 @@ Todos los commits siguen [Conventional Commits](https://www.conventionalcommits.
 | `chore` | Tareas de mantenimiento |
 | `revert` | Reversión de un commit anterior |
 
-### 8.3 Scopes
+### 9.3 Scopes
 
 Usar un scope corto que identifique el área afectada. Ejemplos: `api`, `domain`, `db`, `auth`, `config`, `openspec`, `deps`, `test`.
 
-### 8.4 Reglas
+### 9.4 Reglas
 
 - Un commit = una unidad lógica de trabajo. No mezclar refactors no relacionados ni cambios de formato masivos.
 - El código, sus tests y su documentación van en el mismo commit.
@@ -189,7 +307,7 @@ Usar un scope corto que identifique el área afectada. Ejemplos: `api`, `domain`
 - Sin atribución de IA: nunca agregar `Co-Authored-By` ni trailers equivalentes.
 - No hacer `push`, abrir PR ni mergear sin pedido explícito del usuario.
 
-### 8.5 Ejemplos
+### 9.5 Ejemplos
 
 ```text
 feat(domain): add weekly prescription value object
@@ -219,7 +337,7 @@ feat(db)!: rename plan date columns
 BREAKING CHANGE: migrations and queries must use starts_at/ends_at.
 ```
 
-## 9. Git y revisión
+## 10. Git y revisión
 
 - Cada cambio de OpenSpec se implementa en una rama `change/<change-name>`; no commitear directamente sobre `main`.
 - Antes de commitear: `yarn typecheck && yarn lint && yarn test`.
@@ -227,7 +345,7 @@ BREAKING CHANGE: migrations and queries must use starts_at/ends_at.
 - No usar `--no-verify` para saltear hooks.
 - El push, la creación de PR y el merge son decisiones del usuario.
 
-## 10. CodeGraph
+## 11. CodeGraph
 
 El proyecto tiene un índice de CodeGraph en `.codegraph/` (datos locales, no se commitean).
 
@@ -235,7 +353,7 @@ El proyecto tiene un índice de CodeGraph en `.codegraph/` (datos locales, no se
 - Después de editar código, ejecutar `codegraph sync -q .` antes de confiar en consultas del CLI.
 - Cada worktree necesita su propio índice; nunca copiar ni symlinkear `.codegraph/`.
 
-## 11. Seguridad
+## 12. Seguridad
 
 - No leer ni exponer `.env`, credenciales, claves ni tokens.
 - No ejecutar comandos remotos (`ssh`, `scp`, `rsync`) ni publicar artefactos sin autorización explícita.
