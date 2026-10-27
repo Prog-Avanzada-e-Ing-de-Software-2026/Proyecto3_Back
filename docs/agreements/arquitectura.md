@@ -1,23 +1,24 @@
-# Guía de arquitectura para Codex — Proyecto3_Back
+# Guía de arquitectura — Proyecto3_Back
 
-> **Propósito:** documento de integración para que Codex incorpore las convenciones arquitectónicas del Proyecto 3 al `AGENTS.md` **existente**. No es un reemplazo completo del archivo ni una orden de implementar funcionalidades.
+> **Propósito:** explicar cómo se organiza el backend y por qué. Sirve a dos audiencias: a los **desarrolladores**, que necesitan el mapa del código y los criterios de decisión, y a los **agentes de IA**, que necesitan el protocolo de trabajo y los límites que no deben cruzar por su cuenta.
 >
-> **Estado:** propuesta técnica **ratificada e integrada en `AGENTS.md`** (26/10/2026). `AGENTS.md` es la fuente operativa; este documento es su fundamento y queda subordinado a él ante cualquier discrepancia. Derivada de la definición arquitectónica del documento *Proyecto 3: Desarrollo de un MVP de entrenamiento físico* y contrastada con el repositorio `Prog-Avanzada-e-Ing-de-Software-2026/Proyecto3_Back` (rama `main` remota, revisada el 25/10/2026; el checkout local puede figurar como `master`).
+> **Estado:** convención vigente. `AGENTS.md` es la fuente operativa y sus reglas mandan; este documento aporta el fundamento, el mapa completo y el criterio de diseño. Ante cualquier discrepancia se corrige este documento, no `AGENTS.md`.
 >
-> **Importante:** no editar, hacer commit, push ni abrir PR por el solo hecho de leer este documento. Al integrar la guía, preservar las convenciones de seguridad, OpenSpec, auditoría, testing, migraciones, ramas y autorización humana que ya están vigentes.
+> **Alcance:** derivado de la definición arquitectónica del documento *Proyecto 3: Desarrollo de un MVP de entrenamiento físico* y contrastado con el repositorio `Prog-Avanzada-e-Ing-de-Software-2026/Proyecto3_Back` (rama `main`, revisada el 25/10/2026). Los árboles de carpetas y los nombres de archivo son **convención**, no evidencia de que esas implementaciones existan.
+>
+> **Regla de lectura:** este documento no autoriza cambios por sí mismo. Toda modificación de comportamiento sigue el flujo OpenSpec de `AGENTS.md` §3; commit, push, PR y archivado son decisiones del usuario (`AGENTS.md` §10).
 
-## 0. Instrucciones de integración en AGENTS.md
+## 0. Cómo se usa esta guía
 
-> **Estado de esta sección:** cumplida el 26/10/2026. La convención quedó ratificada en `AGENTS.md` §4 y §5. Esta sección se conserva como registro del procedimiento; para operar, leer `AGENTS.md`.
+| Audiencia | Secciones | Para qué |
+| --- | --- | --- |
+| Desarrollo | §1–§7 | Entender el estilo, el mapa de módulos y dónde vive cada responsabilidad. |
+| Desarrollo | §11 | Ver un ejemplo concreto de módulo con las cuatro capas. |
+| Agentes de IA | §10 y §12 | Protocolo de trabajo y puntos que no se resuelven por suposición. |
 
-Codex debe:
+### Mantenimiento de esta guía
 
-1. Leer el `AGENTS.md` actual, `package.json`, `src/mikro-orm.config.ts`, `openspec/config.yaml` y los documentos de `docs/preliminar/` antes de cambiar convenciones.
-2. **Modificar la sección 4 («Convenciones de código»)** del `AGENTS.md` porque la estructura anterior `src/<capacidad>/...`, que ubicaba controllers y DTO en `infrastructure/`, no representaba las cuatro capas del documento arquitectónico. **Aprobado:** se adoptó `src/modules/<capacidad>/{presentation,application,domain,infrastructure}`, y en el catálogo `src/modules/catalogo/<concepto>/…`.
-3. Añadir al `AGENTS.md` una sección específica «Arquitectura y límites de módulos», tomando como base las secciones 1 a 10 de este documento, **sin duplicar** los apartados existentes sobre auditoría, OpenSpec, Git, testing y seguridad. En las secciones repetidas, usar referencias cruzadas. **Cumplido:** es la sección 5 de `AGENTS.md`.
-4. Mantener intactas las reglas operativas existentes salvo que el equipo apruebe explícitamente una modificación; cuando dos fuentes discrepen, **registrar el conflicto y no resolverlo por suposición**.
-5. Tratar los árboles de carpetas, nombres de archivos y fragmentos de código de esta guía como **convenciones recomendadas**, no como evidencia de que esas implementaciones ya existen.
-6. Entregar al usuario un diff acotado con: secciones añadidas/cambiadas, decisiones pendientes, impacto en futuros módulos y verificaciones realizadas. No crear carpetas vacías ni componentes ficticios para satisfacer un diagrama.
+Cuando una convención cambie, el orden es: se aprueba la decisión, se aplica en `AGENTS.md` y recién entonces se actualiza este documento con el fundamento y la evidencia. Una contradicción de dominio se registra en §12 y **no** se resuelve por inferencia; si se resuelve, se anota la fuente que la resuelve.
 
 ---
 
@@ -42,7 +43,7 @@ Codex debe:
 
 ---
 
-## 2. Estructura objetivo del backend (propuesta para aprobar)
+## 2. Estructura del backend
 
 La estructura sigue la **capacidad de negocio** y después la **capa**, no al revés:
 
@@ -182,15 +183,15 @@ src/modules/catalogo/
 
 ### Mapa de módulos vinculado al dominio documentado
 
-| Módulo NestJS propuesto | Conceptos de dominio | Observaciones |
-| --- | --- | --- |
-| `planes` | `Plan` (aggregate root), `DiaDelPlan`, `EjercicioPlanificado`, `PrescripcionSemanal` | Principal candidato a use cases y puertos de persistencia. |
-| `entrenamientos` | `Entrenamiento` (aggregate root), `EjercicioRealizado`, `Serie`, `Cantidad` | Preservar inmutabilidad al finalizar, no duplicados y ejecución por alumno. |
-| `catalogo` | `Ejercicio`, `CategoriaEjercicio`, `Material`, `Unidad`, `ObjetivoPlan` | Módulo agrupador: **cinco submódulos con carpeta, controller, service, DTO y entidad propios**. CRUD y consultas usualmente sencillas; no exigir ports por entidad. |
-| `alumnos` | `Alumno` | Alta/baja/reactivación; profesor asignado; historial conservado. |
-| `profesores` | `Profesor` | Baja y desvinculación de alumnos: coordinación transaccional entre módulos. |
-| `seguimiento` | Historial, asistencias, última carga, récord y evolución | Es una **organización técnica de lecturas**; alternativa: alojar las consultas en `entrenamientos` y `planes` hasta que crezcan. |
-| `auth` | Identidad, roles y actor autenticado | Detalles funcionales pendientes de diseño; mantener aislado de reglas del entrenamiento. |
+| Módulo NestJS propuesto | Conceptos de dominio |
+| --- | --- |
+| `planes` | `Plan` (aggregate root), `DiaDelPlan`, `EjercicioPlanificado`, `PrescripcionSemanal` |
+| `entrenamientos` | `Entrenamiento` (aggregate root), `EjercicioRealizado`, `Serie`, `Cantidad` |
+| `catalogo` | `Ejercicio`, `CategoriaEjercicio`, `Material`, `Unidad`, `ObjetivoPlan` |
+| `alumnos` | `Alumno` |
+| `profesores` | `Profesor` |
+| `seguimiento` | Historial, asistencias, última carga, récord y evolución |
+| `auth` | Identidad, roles y actor autenticado |
 
 **No crear módulos independientes por cada entidad hija o Value Object de un mismo agregado**. **Para el catálogo sí corresponde un submódulo NestJS por cada concepto catalogable** (`ejercicios`, `categorias-ejercicio`, `materiales`, `unidades`, `objetivos-plan`), todos reunidos bajo `catalogo/`, porque `Analisis de dominio.md:94` define cada uno como raíz de su propio agregado y `US-01`..`US-05` los especifican por separado. Tampoco importar internamente archivos de otros módulos de forma indiscriminada; integrar a través de servicios exportados o contratos bien delimitados.
 
@@ -360,7 +361,7 @@ Reglas:
 - `entities: ['./dist/**/*.entity.js']`, `entitiesTs: ['./src/**/*.entity.ts']` en `src/mikro-orm.config.ts`.
 - Validación de entrada: `class-validator` 0.15, `class-transformer` 0.5 y `@nestjs/mapped-types` 12 (alineado con NestJS 12), **ya instalados** como dependencias de runtime. Sin ellos `ValidationPipe` no funciona: no hay alternativa pendiente de decidir.
 
-### Convenciones para agentes
+### Convenciones de implementación
 
 - Usar `EntityManager` contextual y Unit of Work propio de MikroORM. **No replicar** el `TypeOrmUnitOfWork` ni el decorador `@Transactional()` ad hoc del Proyecto 1.
 - Ubicar los límites transaccionales en el servicio/caso de uso que coordina los cambios, usando `em.transactional(...)` cuando sea necesario. Mantener todas las escrituras relacionadas en el **mismo** contexto transaccional.
@@ -370,9 +371,9 @@ Reglas:
 - Cambiar esquema por migraciones, no por `schema:create`/`schema:update` en producción ni sincronización automática destructiva.
 - Diseñar restricciones en PostgreSQL para invariantes que necesitan garantías concurrentes; una lectura previa `exists(...)` por sí sola no basta.
 
-### Auditoría transversal (NO duplicar en AGENTS.md)
+### Auditoría transversal (ver `AGENTS.md` §6)
 
-Preservar íntegra la sección vigente de `AGENTS.md` sobre `createdAt`, `createdById`, `updatedAt`, `updatedById`, `deletedAt`, `deletedById`; actor autenticado y procedencia; UTC, soft-delete, reactivación explícita y restricciones únicas parciales. El mecanismo exacto de auditoría todavía debe decidirse mediante cambio de OpenSpec; **no asumir que una base abstracta o subscriber ya está implementado**.
+La auditoría se define en `AGENTS.md` §6 y no se repite acá: seis columnas obligatorias (`createdAt`, `createdById`, `updatedAt`, `updatedById`, `deletedAt`, `deletedById`), actor tomado del contexto de autenticación y nunca del payload, UTC, baja lógica, reactivación explícita y restricciones únicas parciales. El mecanismo concreto todavía debe decidirse en el cambio de OpenSpec que introduzca la primera entidad; **no asumir que una base abstracta o un subscriber ya existen**.
 
 ---
 
@@ -385,14 +386,14 @@ Preservar íntegra la sección vigente de `AGENTS.md` sobre `createdAt`, `create
 - El DTO nunca se convierte en entidad de dominio ni se entrega a MikroORM. `class-validator` valida formato y tipos; las reglas del gimnasio son invariantes de dominio (§5.1 y §5.2) y no se duplican en el DTO.
 - El actor actual proviene del mecanismo de autenticación, **nunca** de un `createdById`, `updatedById` o similar enviado por el frontend.
 - Los módulos que exponen información de un alumno deben comprobar identidad, asignación de profesor y autorización conforme a la regla vigente antes de consultar o responder, incluso en endpoints de estadísticas.
-- Mantener contractos de request/response estables para integrar React con NestJS. Documentarlos como el equipo acuerde; no asumir que Swagger ya está instalado porque figura en borradores históricos.
+- Mantener contratos de request/response estables para integrar React con NestJS. Documentarlos como el equipo acuerde; no asumir que Swagger ya está instalado porque figura en borradores históricos.
 - No diseñar integraciones, pagos, reservas, clases o notificaciones fuera del MVP sin especificación aprobada.
 
 ---
 
 ## 9. Pruebas guiadas por reglas e invariantes
 
-**Prevalece íntegramente la sección vigente de `AGENTS.md` sobre OpenSpec obligatorio, RED/GREEN/REFACTOR, Vitest, nombres de archivos, suites y verificaciones.** Esta sección solo especifica **qué** probar desde el punto de vista arquitectónico:
+Las reglas de OpenSpec obligatorio, RED/GREEN/REFACTOR, Vitest, nombres de archivos, suites y verificaciones viven en `AGENTS.md` §3 y §7 y prevalecen sobre esta sección. Acá solo se especifica **qué** probar desde el punto de vista arquitectónico:
 
 | Capa / operación | Pruebas prioritarias |
 | --- | --- |
@@ -408,9 +409,9 @@ Pruebas unitarias cerca de los archivos (`*.spec.ts`); integración con PostgreS
 
 ---
 
-## 10. Protocolo obligatorio para un agente que implemente una funcionalidad
+## 10. Protocolo obligatorio para implementar una funcionalidad
 
-Antes de proponer o tocar código, el agente debe ejecutar mentalmente esta lista de verificación y aplicar el flujo OpenSpec que ya define `AGENTS.md`:
+Antes de proponer o tocar código, recorrer esta lista de verificación y aplicar el flujo OpenSpec que ya define `AGENTS.md`:
 
 1. **Ubicar la capacidad**: ¿a qué módulo pertenece? ¿Es dato de catálogo, agregado, operación de aplicación o consulta? No crear bounded contexts adicionales.
 2. **Verificar vigencia del requisito**: revisar `openspec/specs`, cambios activos, análisis de dominio, reglas e historias y decisiones abiertas. Señalar contradicciones.
@@ -479,11 +480,11 @@ Para cada CRUD de catálogo se recomienda el flujo `Controller -> Service -> Ent
 
 ---
 
-## 12. Conflictos y puntos que Codex NO debe resolver automáticamente
+## 12. Conflictos y puntos que no se resuelven por suposición
 
 **Este apartado sirve para detener suposiciones, no para autorizar cambios de alcance.**
 
-| Tema | Evidencia documental | Comportamiento exigido al agente |
+| Tema | Evidencia documental | Comportamiento exigido |
 | --- | --- | --- |
 | Duración del plan | **Resuelto: RN-10 = 4 semanas**, consistente en `Reglas de negocio.md:10`, `Analisis de dominio.md:119`, el escenario de US-12 y `Arquitectura de pantallas.md:107`. El rango 4-12 del documento integral es divergencia externa al repo, no interna. | Implementar **4 semanas**. Un rango distinto exige un cambio de OpenSpec que modifique RN-10 y el escenario de US-12; no introducirlo por inferencia. |
 | Entrenamiento sin plan | Alcance del SPMP excluye entrenamiento libre, pero análisis describe registro flexible respecto de ejercicios planificados | Distinguir «ejercicios adicionales» de «sesión sin plan»; pedir decisión si el escenario cruza ese límite. |
@@ -496,16 +497,6 @@ Para cada CRUD de catálogo se recomienda el flujo `Controller -> Service -> Ent
 | Evento de dominio | Documento conceptualiza hechos y decide una llamada directa para baja de profesor | No agregar RabbitMQ, buses ni publicación asíncrona sin una necesidad aprobada. |
 | Propuestas futuras | Arquitectura de lectura y módulos recomendados | No convertir sugerencias o backlog futuro en requisitos obligatorios. |
 
-### Decisiones resueltas al ratificar esta guía (26/10/2026)
-
-Estos puntos ya no son conflictos abiertos ni requieren consulta previa:
-
-1. **Estructura de capas** — cuatro capas adoptadas en `AGENTS.md` §4 y §5; `presentation` deja de vivir en `infrastructure`.
-2. **Submódulos de catálogo** — cinco submódulos NestJS, fundados en que cada concepto es raíz de su propio agregado (`Analisis de dominio.md:94`) y en `US-01`..`US-05`.
-3. **Duración del plan** — 4 semanas (RN-10), sin rango.
-4. **Validación de entrada** — `class-validator`, `class-transformer` y `@nestjs/mapped-types` instalados; DTO como clase y `ValidationPipe` global con `whitelist`.
-5. **Rama de trabajo** — el remoto usa `main`; el checkout local puede estar en `master`. Las ramas de trabajo son `change/<nombre>`, creadas desde `origin/main`.
-
 ### Jerarquía de fuentes recomendada para implementación
 
 1. Instrucción explícita y alcance aprobado por el usuario/equipo.
@@ -516,23 +507,3 @@ Estos puntos ya no son conflictos abiertos ni requieren consulta previa:
 6. `docs/agreements/arquitectura.md` — fundamento y justificación de las convenciones de `AGENTS.md`. Responde al «por qué»; ante discrepancia, manda `AGENTS.md`.
 
 Cuando dos fuentes autoritativas discrepen, señalar el desacuerdo; no aplicar una regla nueva por inferencia, ni sustituir documentación del proyecto por analogías externas.
-
----
-
-## 13. Criterios de aceptación para integrar esta guía en `AGENTS.md`
-
-La integración se considera correcta solamente si:
-
-- [ ] La sección de arquitectura especifica **monolito modular + partición por dominio + cuatro capas + DDD pragmático + hexagonal selectiva**.
-- [ ] Se explica que hay **un Bounded Context «Entrenamiento»**, pero múltiples módulos NestJS posibles.
-- [ ] `catalogo/` se define como módulo agrupador con subcarpetas y módulos NestJS propios para **ejercicios, categorías de ejercicio, materiales, unidades y objetivos de plan**; cada uno tiene controller, service, DTO y entidad propios sin exigir repositorios abstractos ni use cases para CRUD simple.
-- [ ] La estructura preferida de código nuevo ya no mezcla HTTP (controllers/DTOs) con persistencia en `infrastructure`.
-- [ ] Se admite tanto CRUD con Service como UseCase para operaciones complejas y QueryService para lecturas; no impone CQRS formal.
-- [ ] Se describen dependencias correctas y responsabilidades de `*.module.ts`.
-- [ ] Se prohíbe introducir puertos, repositorios y capas delegadoras sin necesidad real.
-- [ ] Se mantienen las reglas existentes de OpenSpec, auditoría, Vitest, ESM, migraciones, seguridad y Git.
-- [ ] No se agrega comportamiento no aprobado ni se resuelven contradicciones de dominio por suposición.
-- [ ] El cambio a `AGENTS.md` es un diff reducido y legible, sin reemplazar secciones no afectadas.
-- [ ] No se creó, modificó, commiteó o desplegó código de producción por integrar una guía documental.
-
-**Entrega esperada de Codex:** resumen de la adaptación, diff propuesto o aplicado según la autorización, decisiones pendientes y una breve comprobación de coherencia con el repositorio real.
