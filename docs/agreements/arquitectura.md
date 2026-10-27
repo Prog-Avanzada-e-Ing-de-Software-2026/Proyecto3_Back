@@ -31,13 +31,13 @@ Cuando una convención cambie, el orden es: se aprueba la decisión, se aplica e
 - **Capas conceptuales internas:** presentación, aplicación, dominio e infraestructura.
 - **Modelado:** DDD pragmático: lenguaje ubicuo, raíces de agregado, entidades, value objects, invariantes y servicios de dominio cuando aportan valor.
 - **Puertos/adaptadores e inversión de dependencias:** selectivos. Una abstracción debe justificarse por desacoplamiento, testabilidad, varios consumidores o una regla de negocio compleja; no por una plantilla obligatoria.
-- **CQRS:** el documento distingue explícitamente comandos y modelos de lectura, pero **no exige** `@nestjs/cqrs`, buses, handlers ni bases separadas. Pueden existir servicios de consultas sin CQRS formal.
+- **CQRS:** el documento distingue explícitamente comandos y modelos de lectura, pero **no exige** `@nestjs/cqrs`, buses, handlers ni bases separadas. Pueden existir consultas dedicadas sin CQRS formal.
 - **Bounded Context:** el MVP identifica **uno solo, «Entrenamiento»**. Separar código en módulos NestJS **no crea** bounded contexts adicionales.
 - **Persistencia:** MikroORM sobre PostgreSQL, según la configuración real del repositorio.
 
 ### Regla de diseño
 
-**Priorizar simplicidad y cohesión.** Aplicar el patrón más sencillo que proteja las reglas y permita probarlas. Está prohibido convertir cada operación CRUD en una cadena de interfaces, repositorios delegadores, adaptadores, comandos y handlers sin necesidad concreta.
+**Priorizar simplicidad y cohesión.** Aplicar el patrón más sencillo que proteja las reglas y permita probarlas. Un caso de uso fino no es ceremonia: es el nombre de la intención, el límite transaccional y el test asociado. Está prohibido convertir cada comando en una cadena de interfaces, repositorios delegadores y adaptadores sin necesidad concreta, y está prohibido saltear el caso de uso para «simplificar».
 
 **No proponer microservicios, Event Bus, CQRS integral, Event Sourcing o arquitectura hexagonal estricta como punto de partida** sin requisitos documentados que lo justifiquen.
 
@@ -96,11 +96,10 @@ src/modules/<capacidad>/
 │       ├── update-*.dto.ts
 │       └── *-response.dto.ts            # Solo si es necesario
 ├── application/
-│   ├── <capacidad>.service.ts           # Orquestación simple (si aporta valor)
-│   ├── use-cases/                       # Solo operaciones complejas
-│   │   └── <accion>.use-case.ts
-│   └── queries/                         # Consultas complejas o modelos de lectura
-│       └── <capacidad>-query.service.ts
+│   ├── use-cases/                       # Un caso de uso por comando
+│   │   └── <verbo>-<sustantivo>.use-case.ts
+│   └── queries/                         # Una query por lectura
+│       └── <nombre>.query.ts
 ├── domain/
 │   ├── entities/                        # Aggregate roots y entidades hijas
 │   ├── value-objects/                   # Value objects genuinos
@@ -113,13 +112,13 @@ src/modules/<capacidad>/
     └── external/                        # Integraciones técnicas, si existen
 ```
 
-**No crear estas subcarpetas preventivamente.** Un módulo simple puede comenzar con su controlador, DTO, servicio, entidad y módulo NestJS; evolucionará según la complejidad real. **Excepción organizativa expresamente definida: dentro de `catalogo/` cada concepto catalogable tiene su propia subcarpeta y su propio controller, service, DTO, entidad y módulo NestJS**, aunque se trate de CRUD simple. No reunir todos los controllers, services o DTO del catálogo en archivos únicos compartidos.
+**No crear estas subcarpetas preventivamente.** Un módulo simple puede comenzar con su controlador, DTO, un caso de uso y su entidad; el resto se agrega cuando la funcionalidad lo necesita. **Excepción organizativa expresamente definida: dentro de `catalogo/` cada concepto catalogable tiene su propia subcarpeta y su propio controller, casos de uso, DTO, entidad y módulo NestJS**, aunque su CRUD sea mecánico. No reunir todos los controllers, casos de uso o DTO del catálogo en archivos únicos compartidos.
 
 ### Organización obligatoria de `catalogo/`
 
 `CatalogoModule` es un **módulo agrupador** que reúne los submódulos del catálogo. `Ejercicio`, `CategoriaEjercicio`, `Material`, `Unidad` y `ObjetivoPlan` se implementarán como **capacidades independientes dentro de `catalogo/`**, cada una con su propia organización en capas. Esta división técnica no implica nuevos bounded contexts, microservicios ni exigencia de Ports and Adapters estricta.
 
-**Fundamento de esta excepción (evidencia, no preferencia):** `docs/preliminar/Analisis de dominio.md:94` establece que las entidades de catálogo son *«entidades de catálogo, cada una de las cuales es raíz de su propio agregado»*. Son cinco raíces de agregado distintas, no entidades hijas de un mismo agregado. A eso se suman cinco user stories independientes (`US-01`..`US-05` en `docs/preliminar/User Stories.md`) y `AD-04` en `docs/preliminar/Arquitectura de pantallas.md:71`, que describe explícitamente «Gestionar el catálogo maestro (5 CRUDs)». La excepción no contradice la regla anti-ceremonia de §1: cada submódulo corresponde a **un agregado y a una unidad especificable por separado** en un cambio de OpenSpec. Lo que sigue prohibido es partir un agregado en varios módulos o crear un `CatalogoService` único con los cinco CRUD.
+**Fundamento de esta excepción (evidencia, no preferencia):** `docs/preliminar/Analisis de dominio.md:94` establece que las entidades de catálogo son *«entidades de catálogo, cada una de las cuales es raíz de su propio agregado»*. Son cinco raíces de agregado distintas, no entidades hijas de un mismo agregado. A eso se suman cinco user stories independientes (`US-01`..`US-05` en `docs/preliminar/User Stories.md`) y `AD-04` en `docs/preliminar/Arquitectura de pantallas.md:71`, que describe explícitamente «Gestionar el catálogo maestro (5 CRUDs)». La excepción no contradice la regla anti-ceremonia de §1: cada submódulo corresponde a **un agregado y a una unidad especificable por separado** en un cambio de OpenSpec. Lo que sigue prohibido es partir un agregado en varios módulos o concentrar los cinco agregados del catálogo en un controller único.
 
 ```text
 src/modules/catalogo/
@@ -130,7 +129,7 @@ src/modules/catalogo/
 │   │   ├── ejercicios.controller.ts
 │   │   └── dto/                              # DTO propios de ejercicios
 │   ├── application/
-│   │   └── ejercicios.service.ts
+│   │   └── use-cases/
 │   └── domain/
 │       └── entities/
 │           └── ejercicio.entity.ts
@@ -140,7 +139,7 @@ src/modules/catalogo/
 │   │   ├── categorias-ejercicio.controller.ts
 │   │   └── dto/
 │   ├── application/
-│   │   └── categorias-ejercicio.service.ts
+│   │   └── use-cases/
 │   └── domain/
 │       └── entities/
 │           └── categoria-ejercicio.entity.ts
@@ -150,7 +149,7 @@ src/modules/catalogo/
 │   │   ├── materiales.controller.ts
 │   │   └── dto/
 │   ├── application/
-│   │   └── materiales.service.ts
+│   │   └── use-cases/
 │   └── domain/
 │       └── entities/
 │           └── material.entity.ts
@@ -160,7 +159,7 @@ src/modules/catalogo/
 │   │   ├── unidades.controller.ts
 │   │   └── dto/
 │   ├── application/
-│   │   └── unidades.service.ts
+│   │   └── use-cases/
 │   └── domain/
 │       └── entities/
 │           └── unidad.entity.ts
@@ -170,15 +169,15 @@ src/modules/catalogo/
     │   ├── objetivos-plan.controller.ts
     │   └── dto/
     ├── application/
-    │   └── objetivos-plan.service.ts
+    │   └── use-cases/
     └── domain/
         └── entities/
             └── objetivo-plan.entity.ts
 ```
 
 - Cada submódulo **encapsula sus propios endpoints, DTO, lógica de aplicación y modelo**, con sus providers y `MikroOrmModule.forFeature(...)` registrados en su `*.module.ts` según corresponda.
-- `catalogo.module.ts` **agrupa/importa** esos módulos; no concentra controladores, servicios de CRUD ni repositorios de todas las entidades. Debe exportar solo lo necesario para los consumidores de otros módulos.
-- Dentro de cada submódulo, un CRUD sencillo sigue `Controller → Service → EntityRepository de MikroORM`. La carpeta `infrastructure/`, los puertos, los adaptadores o los use cases **solo se agregan si hay motivos concretos**, sin modificar la separación básica de subcarpetas solicitada.
+- `catalogo.module.ts` **agrupa/importa** esos módulos; no concentra controladores, casos de uso ni repositorios de todas las entidades. Debe exportar solo lo necesario para los consumidores de otros módulos.
+- Dentro de cada submódulo, cada comando sigue `Controller → UseCase → EntityRepository de MikroORM` y cada lectura `Controller → Query → proyección`. La carpeta `infrastructure/`, los puertos y los adaptadores **solo se agregan si hay motivos concretos**, sin modificar la separación básica de subcarpetas solicitada.
 - Crear cada subcarpeta y sus archivos cuando se implemente esa capacidad mediante el flujo OpenSpec aprobado; este esquema no autoriza a generar archivos vacíos de forma anticipada.
 
 ### Mapa de módulos vinculado al dominio documentado
@@ -193,7 +192,7 @@ src/modules/catalogo/
 | `seguimiento` | Historial, asistencias, última carga, récord y evolución |
 | `auth` | Identidad, roles y actor autenticado |
 
-**No crear módulos independientes por cada entidad hija o Value Object de un mismo agregado**. **Para el catálogo sí corresponde un submódulo NestJS por cada concepto catalogable** (`ejercicios`, `categorias-ejercicio`, `materiales`, `unidades`, `objetivos-plan`), todos reunidos bajo `catalogo/`, porque `Analisis de dominio.md:94` define cada uno como raíz de su propio agregado y `US-01`..`US-05` los especifican por separado. Tampoco importar internamente archivos de otros módulos de forma indiscriminada; integrar a través de servicios exportados o contratos bien delimitados.
+**No crear módulos independientes por cada entidad hija o Value Object de un mismo agregado**. **Para el catálogo sí corresponde un submódulo NestJS por cada concepto catalogable** (`ejercicios`, `categorias-ejercicio`, `materiales`, `unidades`, `objetivos-plan`), todos reunidos bajo `catalogo/`, porque `Analisis de dominio.md:94` define cada uno como raíz de su propio agregado y `US-01`..`US-05` los especifican por separado. Tampoco se deberán importar indiscriminadamente archivos internos de otros módulos. La integración deberá realizarse mediante proveedores exportados por sus respectivos módulos.
 
 ---
 
@@ -203,7 +202,7 @@ src/modules/catalogo/
 
 **Incluye:** controllers HTTP, DTO de request/response, validación/sanitización de entrada con `class-validator` y `class-transformer`, pipes y guards propios de la entrada HTTP.
 
-**Puede:** validar formato, tipos, campos obligatorios, transformar DTO en parámetros de aplicación, obtener usuario autenticado, delegar a service/use case y devolver una respuesta.
+**Puede:** validar formato, tipos, campos obligatorios, transformar DTO en parámetros de aplicación, obtener usuario autenticado, delegar a un caso de uso o a una query y devolver una respuesta.
 
 **No puede:** decidir reglas de negocio, ejecutar consultas ORM, diseñar transacciones ni modificar directamente agregados persistentes.
 
@@ -211,16 +210,18 @@ src/modules/catalogo/
 
 ### `application/`
 
-**Incluye:** `*Service` para operaciones sencillas, `*UseCase` para flujos complejos y `*QueryService` para lectura agregada.
+**Incluye:** un `*UseCase` por comando y una `*Query` por lectura. No hay servicios de capacidad en esta capa.
 
 **Puede:** orquestar módulos, comprobar permisos de una operación, recuperar agregados, invocar métodos del dominio, coordinar transacciones, trabajar con contratos de persistencia y construir resultados.
 
-**No puede:** ocultar invariantes que deberían vivir dentro de los agregados, ni duplicar reglas en diversos controladores/servicios.
+**No puede:** ocultar invariantes que deberían vivir dentro de los agregados, ni duplicar reglas en diversos controladores o casos de uso.
 
-- Evitar servicios enormes con muchas responsabilidades.
-- Preferir `CrearPlanUseCase` si hay validación entre entidades, comprobación de permisos, comprobación de solapamiento de fechas y persistencia transaccional.
-- Mantener `EjerciciosService` para una búsqueda/CRUD simple.
-- No imponer `execute()` individual por cada `GET`, `POST`, `PUT` o `DELETE`.
+- Un caso de uso por intención de negocio (`CrearPlanUseCase`, `CrearEjercicioUseCase`), con un único método público `execute()`.
+- El caso de uso es el límite transaccional y el lugar donde se comprueba el actor y el permiso de la operación.
+- Un caso de uso puede ser fino: delegar en el agregado y persistir es una implementación válida. Lo que no se admite es mover esa orquestación al controller.
+- Un caso de uso **no** obliga a crear un puerto de persistencia: usa `@InjectRepository(Entity)` por defecto.
+- No crear `<capacidad>.service.ts` ni `*-query.service.ts`. Si dos casos de uso comparten pasos, esos pasos son regla de dominio o un colaborador con nombre propio, nunca un servicio con el nombre del módulo.
+- No imponer una cadena de delegación donde cada capa solo reenvía métodos a la siguiente.
 
 ### `domain/`
 
@@ -232,7 +233,7 @@ src/modules/catalogo/
 
 - Toda modificación de un agregado debe pasar por su raíz cuando afecte invariantes internas.
 - Un servicio de dominio solo se justifica si la regla genuinamente no pertenece a una entidad o abarca varios conceptos.
-- Las validaciones que requieren DB se coordinan desde aplicación con repositorios/puertos; el resultado preserva la regla de negocio.
+- Las validaciones que requieren DB se coordinan desde aplicación con repositorios o puertos; el resultado preserva la regla de negocio.
 
 ### `infrastructure/`
 
@@ -247,32 +248,37 @@ src/modules/catalogo/
 ```text
 Frontend
   -> HTTP Controller [presentation]
-       -> Service / UseCase / QueryService [application]
+       -> UseCase / Query [application]
             -> Entidades / reglas [domain]
-            -> Puerto de persistencia [domain o application, opcional]
+            -> Puerto de persistencia [domain/ports, opcional]
                   <- implementado por [infrastructure]
                          -> MikroORM -> PostgreSQL
 ```
 
-Es un **esquema conceptual**, no una obligación de incluir puertos en todos los flujos. En CRUD simple se admite `application -> EntityRepository (MikroORM)` de forma deliberada y documentada, mientras las reglas del dominio se mantienen protegidas.
+Es un **esquema conceptual**, no una obligación de incluir puertos en todos los flujos. El caso de uso accede a `EntityRepository` de MikroORM directamente por defecto; el puerto se agrega solo con un motivo comprobable, mientras las reglas del dominio se mantienen protegidas.
 
 NestJS `*.module.ts` es la **composition root** local: registra controladores y proveedores, vincula contratos con implementaciones e importa/exporta las dependencias necesarias. Evitar `forwardRef()` recurrente: suele indicar límites poco claros.
 
 ---
 
-## 4. Selección de patrones: matriz obligatoria de decisión
+## 4. Selección de patrones: ruta obligatoria
 
-| Complejidad de la funcionalidad | Implementación predeterminada | Escalar a… si |
-| --- | --- | --- |
-| Listar/consultar catálogo | Controller + Service + MikroORM | filtros complejos o varias vistas requieren QueryService |
-| Alta/modificación simple | Controller + Service + entidad | invariantes no triviales o coordinación entre agregados |
-| Crear plan completo | Controller + `CrearPlanUseCase` + `Plan` + persistencia | usar puerto si mejora testabilidad/aislamiento |
-| Iniciar/agregar/finalizar entrenamiento | Use case + métodos de `Entrenamiento` | operación transaccional/concurrencia requiere adaptador/índice |
-| Bajar profesor y desvincular alumnos | Use case coordinador + transacción | no hacer evento asíncrono en el MVP sin aprobación |
-| Historial, récord, evolución, asistencias | `QueryService` + proyección de lectura | nunca hidratar agregados gigantes solo para reportes |
-| Servicio externo real | Puerto + adapter | solo si la integración es parte del alcance aprobado |
+| Operación | Implementación obligatoria |
+| --- | --- |
+| Comando (crear, modificar, eliminar o cambiar estado) | `Controller → UseCase → dominio → persistencia` |
+| Consulta (solo lectura) | `Controller → Query → proyección → DTO` |
+| Regla entre agregados o límite transaccional | dentro del `UseCase` que la origina |
+| Lectura agregada (historial, récord, evolución, asistencias) | `Query` con proyección; nunca hidratar agregados completos |
+| Crear plan completo | `CrearPlanUseCase` + `Plan` + persistencia |
+| Iniciar, agregar o finalizar entrenamiento | caso de uso + métodos de `Entrenamiento` |
+| Baja de profesor con desasignación de alumnos | caso de uso coordinador + transacción; nunca evento asíncrono en el MVP sin aprobación |
+| Servicio externo real | caso de uso → puerto → adapter; solo si la integración es parte del alcance aprobado |
 
-**Evitar:** `Controller -> Service -> Repository -> PersistenceAdapter -> ORM` cuando Repository únicamente reenvía métodos al adapter; no crear dos capas de delegación sin responsabilidades distintas.
+**La ruta no depende de la complejidad estimada.** Todo comando pasa por un caso de uso, incluido el CRUD de catálogo, y toda lectura por una query. Una tabla que se decide por «qué tan complejo parece» no es una regla: dos desarrolladores implementan el mismo requisito de dos formas y las dos quedan «bien».
+
+Un caso de uso **no** obliga a crear un puerto de persistencia. El puerto se agrega cuando hay varios consumidores, una integración externa o aislamiento necesario para probar la regla.
+
+**Evitar:** `Controller -> UseCase -> Repository -> PersistenceAdapter -> ORM` cuando el repository únicamente reenvía métodos al adapter; no crear dos capas de delegación sin responsabilidades distintas.
 
 **CQRS ligero:** distinguir semánticamente comandos y consultas es válido; **no** añadir `@nestjs/cqrs`, `CommandBus`, `QueryBus`, `CommandHandler` o modelos de lectura persistidos por defecto.
 
@@ -314,7 +320,7 @@ NestJS `*.module.ts` es la **composition root** local: registra controladores y 
 
 ### 5.4 Catálogo y referencias entre agregados
 
-- Cada concepto de catálogo tiene su propio **submódulo funcional dentro de `catalogo/`**, con controller, service, DTO y entidad propios; no crear un único `CatalogoController` o `CatalogoService` con todas las operaciones CRUD.
+- Cada concepto de catálogo tiene su propio **submódulo funcional dentro de `catalogo/`**, con controller, casos de uso, DTO y entidad propios; no crear un único `CatalogoController` con todas las operaciones CRUD.
 - `Ejercicio` es una definición catalogada, distinta de `EjercicioPlanificado` y `EjercicioRealizado`.
 - `Unidad`, `CategoriaEjercicio`, `Material` y `ObjetivoPlan` son conceptos compartidos de catálogo con identidad propia.
 - Referencias entre agregados podrán exponerse como id y referencia navegable de forma consistente con MikroORM; **no modificar el agregado ajeno** mediante la referencia obtenida desde otro agregado.
@@ -330,19 +336,19 @@ NestJS `*.module.ts` es la **composition root** local: registra controladores y 
 
 ## 6. Modelos de lectura sin CQRS formal
 
-El documento distingue comandos de consultas. Para lecturas cruzando entidades o agregados, se recomienda `application/queries/*-query.service.ts`, que puede utilizar proyecciones desde MikroORM o un repositorio especializado de lectura:
+El documento distingue comandos de consultas. Para lecturas cruzando entidades o agregados, se recomienda `application/queries/*.query.ts`, que puede utilizar proyecciones desde MikroORM o un repositorio especializado de lectura:
 
-- `PlanDeAlumnoQueryService`: plan vigente y prescripción relevante para consulta.
-- `SeguimientoPlanesQueryService`: alumnos sin plan o con plan próximo a finalizar.
-- `HistorialEntrenamientosQueryService`: entrenamientos por alumno y última carga utilizada.
-- `AsistenciasQueryService`: fechas y conteos por semana/mes en rango dado.
-- `EvolucionQueryService`: mejor serie y evolución por ejercicio.
+- `PlanDeAlumnoQuery`: plan vigente y prescripción relevante para consulta.
+- `SeguimientoPlanesQuery`: alumnos sin plan o con plan próximo a finalizar.
+- `HistorialEntrenamientosQuery`: entrenamientos por alumno y última carga utilizada.
+- `AsistenciasQuery`: fechas y conteos por semana/mes en rango dado.
+- `EvolucionQuery`: mejor serie y evolución por ejercicio.
 
-Nombres y agrupación exacta son **ejemplos** que pueden reorganizarse según los módulos existentes; no crear cinco servicios sin funcionalidades que los usen.
+Nombres y agrupación exacta son **ejemplos** que pueden reorganizarse según los módulos existentes; no crear cinco consultas sin funcionalidades que las usen.
 
 Reglas:
 
-1. Los servicios de consulta **no mutan** estado ni guardan `flush()`.
+1. Las queries **no mutan** estado ni guardan `flush()`.
 2. Récord, última carga y estados temporales del plan se **calculan** desde datos existentes, porque así se decidió en el documento; no persistirlos como tablas/materializaciones sin justificación y aprobación.
 3. No perder reglas de autorización cuando se use una proyección que omite la carga del aggregate root.
 4. Evitar el patrón N+1, consultas sin límites o cargar relaciones innecesarias; seleccionar campos y paginar cuando corresponda.
@@ -364,9 +370,9 @@ Reglas:
 ### Convenciones de implementación
 
 - Usar `EntityManager` contextual y Unit of Work propio de MikroORM. **No replicar** el `TypeOrmUnitOfWork` ni el decorador `@Transactional()` ad hoc del Proyecto 1.
-- Ubicar los límites transaccionales en el servicio/caso de uso que coordina los cambios, usando `em.transactional(...)` cuando sea necesario. Mantener todas las escrituras relacionadas en el **mismo** contexto transaccional.
-- Para un CRUD sencillo, usar `@InjectRepository(Entity)` y el repositorio de MikroORM cuando eso resulte suficiente.
-- Crear interfaces/puertos y adaptadores propios **solo** cuando hay un beneficio comprobable; enlazarlos mediante tokens de inyección en `*.module.ts`.
+- Ubicar los límites transaccionales en el caso de uso que coordina los cambios, usando `em.transactional(...)` cuando sea necesario. Mantener todas las escrituras relacionadas en el **mismo** contexto transaccional.
+- Dentro del caso de uso, usar `@InjectRepository(Entity)` y el repositorio de MikroORM; un puerto propio se agrega solo con beneficio comprobable.
+- Crear puertos propios (`domain/ports/*.port.ts`) y adaptadores **solo** cuando hay un beneficio comprobable; enlazarlos mediante tokens de inyección en `*.module.ts`.
 - No lanzar `flush()` incidentalmente desde reglas puras del dominio; persistir en el ámbito definido por aplicación.
 - Cambiar esquema por migraciones, no por `schema:create`/`schema:update` en producción ni sincronización automática destructiva.
 - Diseñar restricciones en PostgreSQL para invariantes que necesitan garantías concurrentes; una lectura previa `exists(...)` por sí sola no basta.
@@ -380,7 +386,7 @@ La auditoría se define en `AGENTS.md` §6 y no se repite acá: seis columnas ob
 ## 8. Errores, autorización y contrato API
 
 - Errores semánticos de dominio: expresarlos de forma estable en dominio/aplicación cuando hagan falta; traducirlos a respuestas HTTP en el límite de presentación (filtro/mapeador) sin filtrar trazas ni detalles internos.
-- DTO: validar contrato de entrada; dominio: validar invariantes. No duplicar la misma regla en controller, DTO, service y repo.
+- DTO: validar contrato de entrada; dominio: validar invariantes. No duplicar la misma regla en controller, DTO, caso de uso y repositorio.
 - **Convención de validación (decidida; ver `AGENTS.md` §5.6).** Los DTO son **clases** con decoradores de `class-validator`; los tipos derivados (`PartialType`, `OmitType`, `PickType`, `IntersectionType`) salen de `@nestjs/mapped-types`. Se registra **un solo** `ValidationPipe` global en `src/main.ts`.
 - Opciones del pipe: `{ transform: true, whitelist: true }`. `whitelist` descarta toda propiedad no declarada en el DTO y es el mecanismo concreto que impide que el cliente cuele `createdById`, `updatedById` o similares. **No** se activa `forbidNonWhitelisted` mientras `AGENTS.md` §6.2 (regla 3) establezca que esos campos «se ignoran»; si el equipo prefiere rechazar la petición con 400, se activa la opción y se actualiza esa regla en el mismo cambio.
 - El DTO nunca se convierte en entidad de dominio ni se entrega a MikroORM. `class-validator` valida formato y tipos; las reglas del gimnasio son invariantes de dominio (§5.1 y §5.2) y no se duplican en el DTO.
@@ -415,7 +421,7 @@ Antes de proponer o tocar código, recorrer esta lista de verificación y aplica
 
 1. **Ubicar la capacidad**: ¿a qué módulo pertenece? ¿Es dato de catálogo, agregado, operación de aplicación o consulta? No crear bounded contexts adicionales.
 2. **Verificar vigencia del requisito**: revisar `openspec/specs`, cambios activos, análisis de dominio, reglas e historias y decisiones abiertas. Señalar contradicciones.
-3. **Elegir la menor complejidad suficiente**: CRUD con Service; UseCase para operación compleja; QueryService para lecturas compuestas; Policy/DomainService solo para regla verdadera; puerto solo cuando lo justifique.
+3. **Elegir la ruta por tipo de operación**: comando → `UseCase`; lectura → `Query`; Policy/DomainService solo para regla verdadera; puerto solo cuando lo justifique. No existe «es simple, va directo al controller».
 4. **Definir límites de modificación**: qué raíz de agregado protege cada regla; qué otros agregados se consultan sin mutarlos; quién es responsable de la transacción.
 5. **Identificar garantías de persistencia**: concurrencia, índices, FK, nulabilidad, histórico, soft-delete, auditoría y migración.
 6. **Respetar arquitectura de carpetas**: transporte en `presentation`; coordinación en `application`; reglas en `domain`; ORM/SQL en `infrastructure` cuando exista ese adaptador.
@@ -427,7 +433,7 @@ Antes de proponer o tocar código, recorrer esta lista de verificación y aplica
 ### Antipatrones a evitar
 
 - **Anemic Domain Model** donde la entidad es solo campos y toda regla se duplica en servicios.
-- **God Service** con orquestación, queries, HTTP, validación y SQL mezclados.
+- **God Service** o caso de uso con orquestación, queries, HTTP, validación y SQL mezclados; `<capacidad>.service.ts` en `application/`.
 - Interfaces «I*Repository» sin propósito, seguidas de delegadores vacíos.
 - Encadenar servicios entre módulos hasta necesitar `forwardRef()` en múltiples direcciones.
 - Reglas de negocio dentro del controller o de los DTO.
@@ -455,7 +461,7 @@ src/modules/planes/
 │   ├── use-cases/
 │   │   └── crear-plan.use-case.ts
 │   └── queries/
-│       └── planes-query.service.ts
+│       └── plan-de-alumno.query.ts
 ├── domain/
 │   ├── entities/
 │   │   ├── plan.entity.ts
@@ -472,11 +478,11 @@ src/modules/planes/
 
 **Flujo de escritura:** `PlanesController -> CrearPlanUseCase -> Plan (invariantes) + PlanRepositoryPort -> MikroOrmPlanRepository -> PostgreSQL`.
 
-**Flujo de lectura:** `PlanesController -> PlanesQueryService -> consulta proyectada de MikroORM -> DTO de respuesta`.
+**Flujo de lectura:** `PlanesController -> PlanDeAlumnoQuery -> consulta proyectada de MikroORM -> DTO de respuesta`.
 
 **Diferencia deliberada:** el flujo de lectura no exige atravesar `Plan` como aggregate root cuando solo se quiere mostrar información. Debe seguir preservando permisos y consistencia.
 
-Para cada CRUD de catálogo se recomienda el flujo `Controller -> Service -> EntityRepository de MikroORM`, **dentro de su subcarpeta específica** (por ejemplo, `catalogo/materiales/` contiene `MaterialesController`, `MaterialesService`, los DTO, `Material` y `MaterialesModule`). No añadir `use-cases/`, `ports/` ni `infrastructure/repositories/` extra salvo que la funcionalidad lo justifique. `CatalogoModule` solamente agrupa los submódulos.
+Para cada CRUD de catálogo aplica la misma ruta que a cualquier comando: `Controller -> UseCase -> EntityRepository de MikroORM`, **dentro de su subcarpeta específica** (por ejemplo, `catalogo/materiales/` contiene `MaterialesController`, `use-cases/crear-material.use-case.ts`, los DTO, `Material` y `MaterialesModule`). La baja consulta referencias antes de decidir, así que el caso de uso también es su límite transaccional. No añadir `ports/` ni `infrastructure/repositories/` extra salvo que la funcionalidad lo justifique. `CatalogoModule` solamente agrupa los submódulos.
 
 ---
 
