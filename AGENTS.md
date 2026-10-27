@@ -6,6 +6,8 @@ Guía operativa para agentes de IA en este repositorio. La documentación y los 
 
 Backend de una aplicación de gestión de gimnasio: los profesores arman planes de entrenamiento y los alumnos registran sus entrenamientos. Está construido con NestJS 12, TypeScript estricto (ESM), MikroORM 7 y PostgreSQL, y se prueba con Vitest 4, oxlint y Prettier sobre Yarn 4.18.1 y Node 24. La documentación de dominio vive en `docs/preliminar/`: es preliminar, puede cambiar y se puede corregir y refinar. Todo cambio que altere comportamiento debe reflejarse además en un cambio de OpenSpec. Mantener el **lenguaje ubicuo** del dominio: no traducir ni renombrar sus términos en el código sin justificación.
 
+La arquitectura —estructura de carpetas, capas, límites entre módulos, modelado, convenciones de persistencia y qué probar por capa— está definida en `docs/agreements/arquitectura.md`. Ese documento es de **cumplimiento obligatorio**: se lee y se sigue antes de proponer o implementar un cambio que toque esas materias, y no se aparta de él por conveniencia ni por analogía con otros proyectos. Ante discrepancia con este archivo manda `AGENTS.md`, y la discrepancia se reporta para corregir la guía; nunca se elige en silencio la versión más cómoda.
+
 ## 2. Comandos
 
 | Objetivo | Comando |
@@ -82,7 +84,7 @@ Solo los cambios sin efecto en comportamiento, contratos, esquema o código pued
 
 ## 5. Arquitectura y límites de módulos
 
-Fundamento y justificación de esta sección: `docs/agreements/arquitectura.md`. Ante discrepancia, manda `AGENTS.md`.
+Fundamento y justificación de esta sección: `docs/agreements/arquitectura.md`, de cumplimiento obligatorio según §1. Ante discrepancia, manda `AGENTS.md`.
 
 ### 5.1 Identidad arquitectónica y regla de simplicidad
 
@@ -249,7 +251,7 @@ Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCas
 - Todo cambio de comportamiento sigue test-first: primero un test que falla (RED), luego la implementación (GREEN), luego refactor.
 - Cada test debe verificar todos los efectos observables de la regla (salida, error, datos persistidos) y pasar por la interfaz pública.
 - Toda entidad nueva cubre alta, edición y baja verificando los seis campos de auditoría (§6.1) a través de la interfaz pública, incluido que el actor provenga del contexto de autenticación y no del payload.
-- **Qué probar por capa:** dominio → invariantes del agregado (días permitidos, bloques obligatorios, series válidas, entrenamiento finalizado inmutable); aplicación → autorización del actor, solapamientos, atomicidad y rollback; persistencia → restricciones de PostgreSQL, concurrencia y auditoría; consultas → filtros de autorización, récords calculados y paginación; HTTP → DTO, guards, códigos y contratos de error.
+- **Qué probar por capa:** dominio → invariantes del agregado (días permitidos, bloques obligatorios, series válidas, entrenamiento finalizado inmutable); aplicación → autorización del actor, solapamientos, atomicidad y rollback; persistencia → restricciones de PostgreSQL, índices declarados en migraciones, concurrencia y auditoría; consultas → filtros de autorización, récords calculados y paginación; HTTP → DTO, guards, códigos y contratos de error.
 - No dar por probada la integridad transaccional haciendo mocks del ORM. Si un test requiere PostgreSQL real y no está disponible, se reporta como omitido, nunca como verde.
 - Antes de declarar terminada una tarea: `yarn typecheck && yarn lint && yarn test`.
 - Ejecutar `yarn test:e2e` cuando el cambio toque HTTP, base de datos o configuración de la aplicación.
@@ -259,6 +261,9 @@ Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCas
 
 - Los cambios de esquema son de alto riesgo: requieren un cambio de OpenSpec con su `design.md` y una estrategia de rollback.
 - Toda migración que crea o altera una entidad incluye las seis columnas de auditoría (§6.1). Su nulabilidad se define en el `design.md` del cambio; una vez que exista la capacidad de identidad, las columnas de alta y edición son `NOT NULL`.
+- Toda tabla cuenta con al menos un índice, y el que PostgreSQL genera para la clave primaria alcanza. Los índices adicionales sobre claves foráneas y sobre campos usados con frecuencia en búsquedas, filtros y ordenamientos se evalúan según las consultas reales de la capacidad y el rendimiento esperado, no por una lista genérica de columnas candidatas.
+- Los índices se definen en las migraciones de MikroORM, igual que el resto del esquema; un índice derivado de decoradores o del snapshot se incorpora a la migración correspondiente y nunca se crea por `schema:update`.
+- No crear índices redundantes o innecesarios: los que repiten el prefijo de otro índice, duplican lo que ya garantiza un `UNIQUE` o no tienen consulta que los justifique incrementan el costo de `INSERT`, `UPDATE` y `DELETE`. Los índices únicos parciales de §6.3 no se reemplazan por índices planos.
 - Nunca editar una migración ya aplicada. Crear una nueva.
 - Nunca ejecutar operaciones destructivas (`DROP`, `TRUNCATE`, borrado de datos) sin aprobación explícita del usuario.
 - Las credenciales viven en `.env` (ignorado por git). Nunca commitear `.env` ni secretos.

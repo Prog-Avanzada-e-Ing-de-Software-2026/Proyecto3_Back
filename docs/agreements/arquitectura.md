@@ -2,11 +2,11 @@
 
 > **Propósito:** explicar cómo se organiza el backend y por qué. Sirve a dos audiencias: a los **desarrolladores**, que necesitan el mapa del código y los criterios de decisión, y a los **agentes de IA**, que necesitan el protocolo de trabajo y los límites que no deben cruzar por su cuenta.
 >
-> **Estado:** convención vigente. `AGENTS.md` es la fuente operativa y sus reglas mandan; este documento aporta el fundamento, el mapa completo y el criterio de diseño. Ante cualquier discrepancia se corrige este documento, no `AGENTS.md`.
+> **Estado:** convención vigente y de **cumplimiento obligatorio** en las materias que cubre. `AGENTS.md` es la fuente operativa y sus reglas mandan; este documento aporta el fundamento, el mapa completo y el criterio de diseño, y se sigue tal como está establecido. Ante cualquier discrepancia se corrige este documento, no `AGENTS.md`.
 >
 > **Alcance:** derivado de la definición arquitectónica del documento *Proyecto 3: Desarrollo de un MVP de entrenamiento físico* y contrastado con el repositorio `Prog-Avanzada-e-Ing-de-Software-2026/Proyecto3_Back` (rama `main`, revisada el 25/10/2026). Los árboles de carpetas y los nombres de archivo son **convención**, no evidencia de que esas implementaciones existan.
 >
-> **Regla de lectura:** este documento no autoriza cambios por sí mismo. Toda modificación de comportamiento sigue el flujo OpenSpec de `AGENTS.md` §3; commit, push, PR y archivado son decisiones del usuario (`AGENTS.md` §10).
+> **Regla de lectura:** este documento no autoriza cambios por sí mismo —no reemplaza al flujo OpenSpec ni al alcance aprobado—, pero su contenido no es opcional: no se aparta de él por conveniencia. Toda modificación de comportamiento sigue el flujo OpenSpec de `AGENTS.md` §3; commit, push, PR y archivado son decisiones del usuario (`AGENTS.md` §10).
 
 ## 0. Cómo se usa esta guía
 
@@ -14,7 +14,7 @@
 | --- | --- | --- |
 | Desarrollo | §1–§7 | Entender el estilo, el mapa de módulos y dónde vive cada responsabilidad. |
 | Desarrollo | §11 | Ver un ejemplo concreto de módulo con las cuatro capas. |
-| Agentes de IA | §10 y §12 | Protocolo de trabajo y puntos que no se resuelven por suposición. |
+| Agentes de IA | §1–§7, §10 y §12 | Estilo, mapa y responsabilidades de cumplimiento obligatorio; protocolo de trabajo y puntos que no se resuelven por suposición. |
 
 ### Mantenimiento de esta guía
 
@@ -378,6 +378,16 @@ Reglas:
 - Cambiar esquema por migraciones, no por `schema:create`/`schema:update` en producción ni sincronización automática destructiva.
 - Diseñar restricciones en PostgreSQL para invariantes que necesitan garantías concurrentes; una lectura previa `exists(...)` por sí sola no basta.
 
+### Índices de base de datos
+
+La regla operativa vive en `AGENTS.md` §8; acá queda el criterio y el fundamento.
+
+- **Toda tabla cuenta con al menos un índice**, y alcanza con el que PostgreSQL genera automáticamente para su clave primaria. No se agrega un índice adicional solo para cumplir la regla.
+- **Se evalúa la incorporación de índices adicionales** sobre claves foráneas, columnas usadas con frecuencia en búsquedas, filtros y ordenamientos, y sobre las columnas que las consultas `Query` de §6 usan para acotar resultados, de acuerdo con las necesidades de consulta y rendimiento del sistema. La evaluación se apoya en las consultas reales de la capacidad, no en una lista genérica de columnas candidatas.
+- **La definición de índices se realiza mediante las migraciones de MikroORM** en `src/migrations`, igual que el resto del esquema. Un índice derivado de decoradores o del snapshot se incorpora a la migración correspondiente; no se crea ni modifica por `schema:update` ni por sincronización automática.
+- **Se evitan índices redundantes o innecesarios**: los que repiten el prefijo de otro índice o duplican lo que ya garantiza una restricción `UNIQUE`, y los que no tienen una consulta que los justifique, porque cada uno incrementa el costo de `INSERT`, `UPDATE` y `DELETE`.
+- Los índices únicos parciales que sostienen la baja lógica se rigen por `AGENTS.md` §6.3; no se reemplazan por índices planos.
+
 ### Auditoría transversal (ver `AGENTS.md` §6)
 
 La auditoría se define en `AGENTS.md` §6 y no se repite acá: seis columnas obligatorias (`createdAt`, `createdById`, `updatedAt`, `updatedById`, `deletedAt`, `deletedById`), actor tomado del contexto de autenticación y nunca del payload, UTC, baja lógica, reactivación explícita y restricciones únicas parciales. El mecanismo concreto todavía debe decidirse en el cambio de OpenSpec que introduzca la primera entidad; **no asumir que una base abstracta o un subscriber ya existen**.
@@ -408,7 +418,7 @@ Las reglas de OpenSpec obligatorio, RED/GREEN/REFACTOR, Vitest, nombres de archi
 | Dominio (`Entrenamiento`) | Series válidas, ejercicio repetido, estado finalizado inmutable. |
 | Aplicación (`CrearPlanUseCase`) | Alumno activo, actor autorizado, solapamientos, transacción. |
 | Aplicación (baja profesor) | Desasignación atómica de alumnos, errores y rollback. |
-| Persistencia | Relaciones entre agregados, migraciones, restricciones de DB, concurrencia y auditoría. |
+| Persistencia | Relaciones entre agregados, migraciones, restricciones de DB, índices declarados en migraciones y su ausencia de redundancia, concurrencia y auditoría. |
 | Consultas | Filtros de autorización, récords calculados, último peso, evolución y paginación. |
 | HTTP | DTO, guards, códigos/contratos de error y correspondencia con criterios de aceptación. |
 
@@ -424,7 +434,7 @@ Antes de proponer o tocar código, recorrer esta lista de verificación y aplica
 2. **Verificar vigencia del requisito**: revisar `openspec/specs`, cambios activos, análisis de dominio, reglas e historias y decisiones abiertas. Señalar contradicciones.
 3. **Elegir la ruta por tipo de operación**: comando → `UseCase`; lectura → `Query`; Policy/DomainService solo para regla verdadera; interfaz propia solo cuando lo justifique. No existe «es simple, va directo al controller».
 4. **Definir límites de modificación**: qué raíz de agregado protege cada regla; qué otros agregados se consultan sin mutarlos; quién es responsable de la transacción.
-5. **Identificar garantías de persistencia**: concurrencia, índices, FK, nulabilidad, histórico, soft-delete, auditoría y migración.
+5. **Identificar garantías de persistencia**: concurrencia, índices (al menos el de la clave primaria por tabla, más los adicionales justificados por consultas, todos por migración: ver §7), FK, nulabilidad, histórico, soft-delete, auditoría y migración.
 6. **Respetar arquitectura de carpetas**: transporte en `presentation`; coordinación en `application`; reglas en `domain`; ORM/SQL en `infrastructure` cuando exista ese adaptador.
 7. **Escribir primero las pruebas** sobre invariantes, permisos, interacción y efecto observable, siguiendo el gate aprobado de OpenSpec.
 8. **Implementar sin efectos colaterales**: no reformatear todo el repo ni mover módulos ajenos a la tarea; no agregar dependencias sin justificación.
@@ -511,6 +521,6 @@ Para cada CRUD de catálogo aplica la misma ruta que a cualquier comando: `Contr
 3. `AGENTS.md`, código y pruebas efectivamente presentes en la rama de trabajo (para reglas operativas y stack).
 4. Documentación de dominio y reglas de negocio aceptadas por el equipo, incluidos los cambios más recientes.
 5. Documento integral del Proyecto 3 — arquitectura y alcance, teniendo presente que algunas secciones siguen siendo borradores o heredadas.
-6. `docs/agreements/arquitectura.md` — fundamento y justificación de las convenciones de `AGENTS.md`. Responde al «por qué»; ante discrepancia, manda `AGENTS.md`.
+6. `docs/agreements/arquitectura.md` — convenciones arquitectónicas de cumplimiento obligatorio y su fundamento. Para hechos de dominio y alcance rige el orden anterior; en estructura de carpetas, capas, límites entre módulos, modelado, persistencia y pruebas por capa, este documento y `AGENTS.md` mandan por encima de las fuentes 4 y 5, y `AGENTS.md` prevalece ante discrepancia.
 
 Cuando dos fuentes autoritativas discrepen, señalar el desacuerdo; no aplicar una regla nueva por inferencia, ni sustituir documentación del proyecto por analogías externas.
