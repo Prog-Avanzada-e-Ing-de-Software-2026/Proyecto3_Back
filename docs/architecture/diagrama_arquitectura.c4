@@ -1,0 +1,185 @@
+// HercFit / Proyecto 3 — Arquitectura del BACKEND (vistas de convención).
+// Referencia: docs/agreements/arquitectura.md y AGENTS.md del Proyecto3_Back.
+// Arquitectura OBJETIVO: describe la convención acordada, no componentes ya implementados.
+// Las capas son lógicas y se repiten dentro de cada módulo por capacidad.
+// No modela frontend interno, despliegue, microservicios ni DER.
+
+specification {
+  element webapp {
+    notation 'Externo'
+    style {
+      shape browser
+      color gray
+    }
+  }
+
+  element component {
+    notation 'Backend'
+    style {
+      shape rectangle
+    }
+  }
+
+  element database {
+    notation 'Base de datos'
+    style {
+      shape cylinder
+      color gray
+    }
+  }
+
+  relationship implements {
+    technology 'Inversión de dependencias'
+    line dashed
+    color gray
+  }
+}
+
+model {
+  frontend = webapp 'Aplicación web' {
+    technology 'React'
+    summary 'Fuera del alcance del backend'
+    description 'Consumidor de la API. El frontend interno no forma parte de este diagrama.'
+  }
+
+  controllers = component 'Controllers HTTP' {
+    technology 'NestJS'
+    summary 'DTO y guards'
+    description 'Presentación: transporte, validación de formato y autorización de entrada.'
+    style {
+      color blue
+    }
+  }
+
+  usecases = component 'Casos de uso' {
+    technology 'NestJS'
+    summary 'Uno por comando'
+    description 'Un caso de uso por comando: orquestación, permisos y límite transaccional.'
+    style {
+      color indigo
+    }
+  }
+
+  queries = component 'Queries' {
+    technology 'MikroORM'
+    summary 'Una por lectura'
+    description 'Una query por lectura: modelos de lectura y proyecciones.'
+    style {
+      color indigo
+    }
+  }
+
+  aggregates = component 'Agregados' {
+    technology 'TypeScript'
+    summary 'Entidades y VO'
+    description 'Bounded Context Entrenamiento: invariantes y servicios de dominio cuando corresponden.'
+    style {
+      color green
+    }
+  }
+
+  interfaces = component 'Interfaces' {
+    technology 'TypeScript'
+    summary 'Contratos opcionales'
+    description 'Contratos del borde en domain/interfaces/*.interface.ts, por ejemplo IPlanRepository.'
+    style {
+      color green
+      border dashed
+    }
+  }
+
+  repositories = component 'Repositories' {
+    technology 'MikroORM'
+    summary 'Adapters opcionales'
+    description 'Implementaciones de las interfaces, por ejemplo MikroOrmPlanRepository en mikro-orm-plan.repository.ts.'
+    style {
+      color amber
+      border dashed
+    }
+  }
+
+  entityRepository = component 'EntityRepository' {
+    technology 'MikroORM 7'
+    summary 'EntityManager · Unit of Work'
+    description 'Repositorio que provee MikroORM: se inyecta con @InjectRepository y aporta el EntityManager y la Unit of Work.'
+    style {
+      color amber
+    }
+  }
+
+  postgres = database 'PostgreSQL' {
+    summary 'DER pendiente'
+    description 'Base de datos relacional.'
+  }
+
+  frontend -> controllers 'HTTP / JSON'
+
+  controllers -> usecases 'comando'
+  controllers -> queries 'lectura'
+
+  usecases -> aggregates 'invariantes'
+  usecases -> interfaces 'opcional'
+  usecases -> entityRepository 'persiste'
+
+  queries -> entityRepository 'proyección'
+
+  repositories -[implements]-> interfaces 'implementa'
+  repositories -> entityRepository 'persiste'
+
+  entityRepository -> postgres 'SQL'
+}
+
+views {
+  view index {
+    title 'Proyecto 3 — Arquitectura del backend'
+    description 'Monolito modular NestJS 12 con DDD pragmático: un caso de uso por comando y una query por lectura. La ruta con interfaces de persistencia se detalla en la vista «persistencia».'
+    routing ortho
+
+    include frontend
+
+    group 'Backend' {
+      group 'Presentación' {
+        include controllers
+      }
+      group 'Aplicación' {
+        include usecases
+        include queries
+      }
+      group 'Dominio' {
+        include aggregates
+      }
+      group 'Infraestructura' {
+        include entityRepository
+      }
+    }
+
+    include postgres
+
+    rank source {
+      frontend
+    }
+    rank sink {
+      postgres
+    }
+
+    autoLayout TopBottom 150 120
+  }
+
+  view persistencia {
+    title 'Persistencia — ruta con interfaces'
+    description 'El caso de uso depende de IPlanRepository cuando la abstracción se justifica; MikroOrmPlanRepository la implementa y persiste con MikroORM.'
+    routing ortho
+
+    include usecases
+    include interfaces
+
+    group 'Infraestructura' {
+      include repositories
+      include entityRepository
+    }
+
+    exclude usecases -> entityRepository
+
+    autoLayout TopBottom 170 140
+  }
+}
