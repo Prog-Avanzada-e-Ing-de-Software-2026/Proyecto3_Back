@@ -4,7 +4,7 @@ Guía operativa para agentes de IA en este repositorio. La documentación y los 
 
 ## 1. Contexto del proyecto
 
-Backend de una aplicación de gestión de gimnasio: los profesores arman planes de entrenamiento y los alumnos registran sus entrenamientos. Está construido con NestJS 12, TypeScript estricto (ESM), MikroORM 7 y PostgreSQL, y se prueba con Vitest 4, oxlint y Prettier sobre Yarn 4.18.1 y Node 24.16. La documentación de dominio vive en `docs/preliminar/`: es preliminar, puede cambiar y se puede corregir y refinar. Todo cambio que altere comportamiento debe reflejarse además en un cambio de OpenSpec. Mantener el **lenguaje ubicuo** del dominio: no traducir ni renombrar sus términos en el código sin justificación.
+Backend de una aplicación de gestión de gimnasio: los profesores arman planes de entrenamiento y los alumnos registran sus entrenamientos. Está construido con NestJS 12, TypeScript estricto (ESM), MikroORM 7 y PostgreSQL, y se prueba con Vitest 4, oxlint y Prettier sobre Yarn 4.18.1 y Node 24. La documentación de dominio vive en `docs/preliminar/`: es preliminar, puede cambiar y se puede corregir y refinar. Todo cambio que altere comportamiento debe reflejarse además en un cambio de OpenSpec. Mantener el **lenguaje ubicuo** del dominio: no traducir ni renombrar sus términos en el código sin justificación.
 
 ## 2. Comandos
 
@@ -339,7 +339,7 @@ BREAKING CHANGE: migrations and queries must use starts_at/ends_at.
 
 ## 10. Git y revisión
 
-- Cada cambio de OpenSpec se implementa en una rama `change/<change-name>`; no commitear directamente sobre `main`.
+- La rama principal del repositorio es `main`. Cada cambio de OpenSpec se implementa en una rama `change/<change-name>` creada desde `main`; no commitear directamente sobre `main`.
 - Antes de commitear: `yarn typecheck && yarn lint && yarn test`.
 - Revisar `git diff` completo antes de cada commit; no commitear archivos generados ni secretos.
 - No usar `--no-verify` para saltear hooks.
