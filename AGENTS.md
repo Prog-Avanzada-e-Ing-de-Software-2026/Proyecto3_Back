@@ -91,7 +91,7 @@ Fundamento y justificación de esta sección: `docs/agreements/arquitectura.md`.
 - **Capas internas:** presentación, aplicación, dominio e infraestructura.
 - **Modelado:** DDD pragmático — lenguaje ubicuo, raíces de agregado, entidades, value objects e invariantes. El lenguaje ubicuo está en `docs/preliminar/Analisis de dominio.md` y no se traduce ni renombra.
 - **Un solo bounded context:** «Entrenamiento». Dividir el código en módulos NestJS **no** crea contextos adicionales. No proponer microservicios, event bus, CQRS formal ni event sourcing sin requisitos documentados y aprobados.
-- **Puertos y adaptadores:** selectivos. Una abstracción se justifica por desacoplamiento real, testabilidad, varios consumidores o una regla compleja; nunca por plantilla.
+- **Contratos e implementaciones:** selectivos. Una interfaz propia se justifica por desacoplamiento real, testabilidad, varios consumidores o una regla compleja; nunca por plantilla.
 
 **Regla rectora:** aplicar el patrón más simple que proteja la regla y permita probarla. Un caso de uso fino no es ceremonia: es el nombre de la intención, el límite transaccional y el test asociado. Encadenar interfaces, repositorios delegadores, adaptadores y handlers sin necesidad concreta sí es un antipatrón, no rigor.
 
@@ -121,7 +121,7 @@ src/
         │   ├── value-objects/
         │   ├── services/           # Servicios de dominio, no de aplicación
         │   ├── errors/
-        │   └── ports/
+        │   └── interfaces/         # Contratos del borde (IPlanRepository)
         └── infrastructure/
             └── repositories/
 ```
@@ -136,16 +136,16 @@ src/
 
 **Por qué es una excepción y no ceremonia:** `docs/preliminar/Analisis de dominio.md:94` define cada concepto de catálogo como **raíz de su propio agregado**, y `US-01`..`US-05` los especifican por separado. Un agregado, un submódulo, un cambio de OpenSpec.
 
-El CRUD de catálogo no habilita una ruta distinta: cada comando es un caso de uso y cada lectura una query, igual que en cualquier otro agregado. Lo que el submódulo propio aporta es aislamiento, no una capa de aplicación más delgada. No agregar `ports/` ni `infrastructure/repositories/` sin motivo.
+El CRUD de catálogo no habilita una ruta distinta: cada comando es un caso de uso y cada lectura una query, igual que en cualquier otro agregado. Lo que el submódulo propio aporta es aislamiento, no una capa de aplicación más delgada. No agregar `domain/interfaces/` ni `infrastructure/repositories/` sin motivo.
 
 ### 5.4 Responsabilidades y dependencias por capa
 
 - **`presentation/`** — controllers, DTOs, validación de formato, guards y pipes de entrada. Traduce DTO a parámetros de aplicación y obtiene el actor autenticado. **No** decide reglas de negocio, no ejecuta consultas ORM y no define transacciones.
 - **`application/`** — un caso de uso por comando y una query por lectura; no existe `<capacidad>.service.ts`. Orquesta, comprueba permisos de operación, recupera agregados, invoca al dominio y coordina transacciones. **No** esconde invariantes que pertenecen al agregado ni duplica reglas.
-- **`domain/`** — entidades, raíces de agregado, value objects inmutables, invariantes, servicios y políticas de dominio, puertos cuando aporten. **No** importa controllers, DTOs, `Request`, `Response`, `HttpException` ni `EntityManager` en reglas puras.
+- **`domain/`** — entidades, raíces de agregado, value objects inmutables, invariantes, servicios y políticas de dominio, interfaces propias cuando aporten. **No** importa controllers, DTOs, `Request`, `Response`, `HttpException` ni `EntityManager` en reglas puras.
 - **`infrastructure/`** — implementaciones MikroORM, consultas optimizadas y adaptadores externos aprobados. **No** decide reglas de negocio ni esconde efectos de dominio en consultas o subscribers.
 
-**Dirección permitida:** `presentation → application → domain`, con `infrastructure` implementando contratos de dominio o aplicación. El caso de uso accede a `EntityRepository` de MikroORM directamente por defecto. Prohibido: `domain → presentation`, `domain → infrastructure`, y que un módulo importe archivos internos de otro; la integración se realiza mediante proveedores exportados por sus respectivos módulos.
+**Dirección permitida:** `presentation → application → domain`, con `infrastructure` implementando las interfaces de dominio o aplicación. El caso de uso accede a `EntityRepository` de MikroORM directamente por defecto. Prohibido: `domain → presentation`, `domain → infrastructure`, y que un módulo importe archivos internos de otro; la integración se realiza mediante proveedores exportados por sus respectivos módulos.
 
 ### 5.5 Ruta obligatoria por tipo de operación
 
@@ -155,11 +155,13 @@ El CRUD de catálogo no habilita una ruta distinta: cada comando es un caso de u
 | Consulta (solo lectura) | `Controller → Query → proyección → DTO` |
 | Regla entre agregados o límite transaccional | dentro del `UseCase` que la origina |
 | Lectura agregada (historial, récord, evolución, asistencias) | `Query` con proyección; nunca hidratar agregados completos |
-| Integración externa | `UseCase → puerto → adapter`, solo si está en el alcance aprobado |
+| Integración externa | `UseCase → interfaz → adapter`, solo si está en el alcance aprobado |
 
 La ruta no depende de la complejidad estimada: todo comando pasa por un caso de uso, incluido el CRUD de catálogo, y toda lectura por una query. Un caso de uso puede ser fino; su valor es el nombre de la intención, el límite transaccional y el test que lo cubre.
 
-Un caso de uso persiste con `@InjectRepository(Entity)` por defecto. Solo agrega un puerto en `domain/ports/` cuando haya varios consumidores, integración externa o aislamiento necesario para probar la regla. **Un caso de uso no obliga a crear un puerto.**
+Un caso de uso persiste con `@InjectRepository(Entity)` por defecto. Solo agrega una interfaz en `domain/interfaces/` cuando haya varios consumidores, integración externa o aislamiento necesario para probar la regla. **Un caso de uso no obliga a crear una interfaz.**
+
+Las interfaces llevan prefijo `I` y viven en `<nombre>.interface.ts`: `IPlanRepository` en `plan.repository.interface.ts`. El prefijo es la convención de nombres del proyecto, no el defecto: lo que se evalúa es si la interfaz tiene propósito.
 
 No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni dos capas de delegación cuando una solo reenvía métodos a la otra.
 
@@ -175,7 +177,7 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 
 - Usar el `EntityManager` contextual y la Unit of Work de MikroORM. No replicar `TypeOrmUnitOfWork` ni decoradores `@Transactional()` ad hoc de otros proyectos.
 - El límite transaccional vive en el caso de uso que coordina los cambios (`em.transactional(...)`). Todas las escrituras relacionadas van en el mismo contexto.
-- Alcanza `@InjectRepository(Entity)` dentro del caso de uso. Puertos propios solo con beneficio comprobable, enlazados por token en `*.module.ts`.
+- Alcanza `@InjectRepository(Entity)` dentro del caso de uso. Interfaces propias solo con beneficio comprobable, enlazadas por token en `*.module.ts`.
 - No llamar `flush()` desde reglas puras del dominio.
 - Una lectura previa `exists(...)` **no** garantiza una invariante concurrente: diseñar restricción, índice único parcial o bloqueo en PostgreSQL, y demostrarlo con prueba.
 - Los cambios de esquema van solo por migraciones (ver §8), nunca por `schema:update` en producción.
@@ -193,7 +195,7 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 
 - Modelo anémico: entidad sin comportamiento y reglas duplicadas en servicios.
 - God service o caso de uso con orquestación, HTTP, validación, consultas y SQL mezclados; `<capacidad>.service.ts` en `application/`.
-- Interfaces `I*Repository` sin propósito seguidas de delegadores vacíos.
+- Interfaz sin propósito: envuelve el `EntityRepository` sin agregar comportamiento, o existe sin implementación alternativa ni consumidor que la necesite, seguida de un adaptador que solo reenvía métodos. El prefijo `I` es convención de nombres (`IPlanRepository`), no un pase libre.
 - Reglas de negocio en controller o DTO.
 - Transacciones por repositorio cuando el caso de uso completo debe ser atómico.
 - Persistir datos que el negocio decidió derivar.

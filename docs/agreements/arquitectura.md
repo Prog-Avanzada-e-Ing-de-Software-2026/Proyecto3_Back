@@ -30,7 +30,7 @@ Cuando una convención cambie, el orden es: se aprueba la decisión, se aplica e
 - **Partición:** por responsabilidades del negocio (*feature-first / domain-first*), no por una carpeta global de `controllers`, otra de `services` y otra de `repositories`.
 - **Capas conceptuales internas:** presentación, aplicación, dominio e infraestructura.
 - **Modelado:** DDD pragmático: lenguaje ubicuo, raíces de agregado, entidades, value objects, invariantes y servicios de dominio cuando aportan valor.
-- **Puertos/adaptadores e inversión de dependencias:** selectivos. Una abstracción debe justificarse por desacoplamiento, testabilidad, varios consumidores o una regla de negocio compleja; no por una plantilla obligatoria.
+- **Contratos e implementaciones:** selectivos. Una interfaz propia debe justificarse por desacoplamiento, testabilidad, varios consumidores o una regla de negocio compleja; no por una plantilla obligatoria.
 - **CQRS:** el documento distingue explícitamente comandos y modelos de lectura, pero **no exige** `@nestjs/cqrs`, buses, handlers ni bases separadas. Pueden existir consultas dedicadas sin CQRS formal.
 - **Bounded Context:** el MVP identifica **uno solo, «Entrenamiento»**. Separar código en módulos NestJS **no crea** bounded contexts adicionales.
 - **Persistencia:** MikroORM sobre PostgreSQL, según la configuración real del repositorio.
@@ -106,7 +106,7 @@ src/modules/<capacidad>/
 │   ├── services/                        # Reglas de dominio que no caben en una entidad
 │   ├── policies/                        # Opcionales; reglas claramente identificadas
 │   ├── errors/                          # Errores semánticos de dominio
-│   └── ports/                           # Solo contratos necesarios
+│   └── interfaces/                      # Contratos del borde (IPlanRepository)
 └── infrastructure/
     ├── repositories/                    # Implementaciones/adaptadores concretos
     └── external/                        # Integraciones técnicas, si existen
@@ -177,7 +177,7 @@ src/modules/catalogo/
 
 - Cada submódulo **encapsula sus propios endpoints, DTO, lógica de aplicación y modelo**, con sus providers y `MikroOrmModule.forFeature(...)` registrados en su `*.module.ts` según corresponda.
 - `catalogo.module.ts` **agrupa/importa** esos módulos; no concentra controladores, casos de uso ni repositorios de todas las entidades. Debe exportar solo lo necesario para los consumidores de otros módulos.
-- Dentro de cada submódulo, cada comando sigue `Controller → UseCase → EntityRepository de MikroORM` y cada lectura `Controller → Query → proyección`. La carpeta `infrastructure/`, los puertos y los adaptadores **solo se agregan si hay motivos concretos**, sin modificar la separación básica de subcarpetas solicitada.
+- Dentro de cada submódulo, cada comando sigue `Controller → UseCase → EntityRepository de MikroORM` y cada lectura `Controller → Query → proyección`. Las carpetas `infrastructure/`, `domain/interfaces/` y los adaptadores **solo se agregan si hay motivos concretos**, sin modificar la separación básica de subcarpetas solicitada.
 - Crear cada subcarpeta y sus archivos cuando se implemente esa capacidad mediante el flujo OpenSpec aprobado; este esquema no autoriza a generar archivos vacíos de forma anticipada.
 
 ### Mapa de módulos vinculado al dominio documentado
@@ -219,13 +219,13 @@ src/modules/catalogo/
 - Un caso de uso por intención de negocio (`CrearPlanUseCase`, `CrearEjercicioUseCase`), con un único método público `execute()`.
 - El caso de uso es el límite transaccional y el lugar donde se comprueba el actor y el permiso de la operación.
 - Un caso de uso puede ser fino: delegar en el agregado y persistir es una implementación válida. Lo que no se admite es mover esa orquestación al controller.
-- Un caso de uso **no** obliga a crear un puerto de persistencia: usa `@InjectRepository(Entity)` por defecto.
+- Un caso de uso **no** obliga a crear una interfaz de persistencia: usa `@InjectRepository(Entity)` por defecto.
 - No crear `<capacidad>.service.ts` ni `*-query.service.ts`. Si dos casos de uso comparten pasos, esos pasos son regla de dominio o un colaborador con nombre propio, nunca un servicio con el nombre del módulo.
 - No imponer una cadena de delegación donde cada capa solo reenvía métodos a la siguiente.
 
 ### `domain/`
 
-**Incluye:** entidades, raíces de agregado, VO inmutables, invariantes y reglas, servicios y políticas del dominio, puertos cuando procedan.
+**Incluye:** entidades, raíces de agregado, VO inmutables, invariantes y reglas, servicios y políticas del dominio, interfaces propias cuando procedan.
 
 **Puede:** expresar reglas sobre estados y cambios, impedir operaciones inválidas, calcular resultados de negocio desde los datos necesarios.
 
@@ -233,13 +233,14 @@ src/modules/catalogo/
 
 - Toda modificación de un agregado debe pasar por su raíz cuando afecte invariantes internas.
 - Un servicio de dominio solo se justifica si la regla genuinamente no pertenece a una entidad o abarca varios conceptos.
-- Las validaciones que requieren DB se coordinan desde aplicación con repositorios o puertos; el resultado preserva la regla de negocio.
+- Las interfaces llevan prefijo `I` y viven en `domain/interfaces/<nombre>.interface.ts`: `IPlanRepository` en `plan.repository.interface.ts`. La implementación concreta no lleva prefijo: `MikroOrmPlanRepository` en `infrastructure/repositories/mikro-orm-plan.repository.ts`. El prefijo es convención de nombres, no el defecto: lo que se evalúa es si la interfaz tiene propósito.
+- Las validaciones que requieren DB se coordinan desde aplicación con repositorios o interfaces propias; el resultado preserva la regla de negocio.
 
 ### `infrastructure/`
 
 **Incluye:** implementaciones con MikroORM, consultas optimizadas, adapters de servicios externos si se aprueban, utilidades técnicas específicas de persistencia.
 
-**Puede:** materializar y guardar entidades, ejecutar SQL parametrizado, traducir excepciones de persistencia, implementar contratos de aplicación/dominio.
+**Puede:** materializar y guardar entidades, ejecutar SQL parametrizado, traducir excepciones de persistencia, implementar las interfaces de aplicación o dominio.
 
 **No puede:** decidir reglas de negocio por su cuenta ni esconder efectos de dominio en consultas o subscribers del ORM.
 
@@ -250,12 +251,12 @@ Frontend
   -> HTTP Controller [presentation]
        -> UseCase / Query [application]
             -> Entidades / reglas [domain]
-            -> Puerto de persistencia [domain/ports, opcional]
+            -> Interfaz de persistencia [domain/interfaces, opcional]
                   <- implementado por [infrastructure]
                          -> MikroORM -> PostgreSQL
 ```
 
-Es un **esquema conceptual**, no una obligación de incluir puertos en todos los flujos. El caso de uso accede a `EntityRepository` de MikroORM directamente por defecto; el puerto se agrega solo con un motivo comprobable, mientras las reglas del dominio se mantienen protegidas.
+Es un **esquema conceptual**, no una obligación de incluir interfaces en todos los flujos. El caso de uso accede a `EntityRepository` de MikroORM directamente por defecto; la interfaz del borde se agrega solo con un motivo comprobable, mientras las reglas del dominio se mantienen protegidas.
 
 NestJS `*.module.ts` es la **composition root** local: registra controladores y proveedores, vincula contratos con implementaciones e importa/exporta las dependencias necesarias. Evitar `forwardRef()` recurrente: suele indicar límites poco claros.
 
@@ -272,11 +273,11 @@ NestJS `*.module.ts` es la **composition root** local: registra controladores y 
 | Crear plan completo | `CrearPlanUseCase` + `Plan` + persistencia |
 | Iniciar, agregar o finalizar entrenamiento | caso de uso + métodos de `Entrenamiento` |
 | Baja de profesor con desasignación de alumnos | caso de uso coordinador + transacción; nunca evento asíncrono en el MVP sin aprobación |
-| Servicio externo real | caso de uso → puerto → adapter; solo si la integración es parte del alcance aprobado |
+| Servicio externo real | caso de uso → interfaz → adapter; solo si la integración es parte del alcance aprobado |
 
 **La ruta no depende de la complejidad estimada.** Todo comando pasa por un caso de uso, incluido el CRUD de catálogo, y toda lectura por una query. Una tabla que se decide por «qué tan complejo parece» no es una regla: dos desarrolladores implementan el mismo requisito de dos formas y las dos quedan «bien».
 
-Un caso de uso **no** obliga a crear un puerto de persistencia. El puerto se agrega cuando hay varios consumidores, una integración externa o aislamiento necesario para probar la regla.
+Un caso de uso **no** obliga a crear una interfaz de persistencia. La interfaz se agrega cuando hay varios consumidores, una integración externa o aislamiento necesario para probar la regla.
 
 **Evitar:** `Controller -> UseCase -> Repository -> PersistenceAdapter -> ORM` cuando el repository únicamente reenvía métodos al adapter; no crear dos capas de delegación sin responsabilidades distintas.
 
@@ -371,8 +372,8 @@ Reglas:
 
 - Usar `EntityManager` contextual y Unit of Work propio de MikroORM. **No replicar** el `TypeOrmUnitOfWork` ni el decorador `@Transactional()` ad hoc del Proyecto 1.
 - Ubicar los límites transaccionales en el caso de uso que coordina los cambios, usando `em.transactional(...)` cuando sea necesario. Mantener todas las escrituras relacionadas en el **mismo** contexto transaccional.
-- Dentro del caso de uso, usar `@InjectRepository(Entity)` y el repositorio de MikroORM; un puerto propio se agrega solo con beneficio comprobable.
-- Crear puertos propios (`domain/ports/*.port.ts`) y adaptadores **solo** cuando hay un beneficio comprobable; enlazarlos mediante tokens de inyección en `*.module.ts`.
+- Dentro del caso de uso, usar `@InjectRepository(Entity)` y el repositorio de MikroORM; una interfaz propia se agrega solo con beneficio comprobable.
+- Crear interfaces propias (`domain/interfaces/*.interface.ts`) y adaptadores **solo** cuando hay un beneficio comprobable; enlazarlos mediante tokens de inyección en `*.module.ts`.
 - No lanzar `flush()` incidentalmente desde reglas puras del dominio; persistir en el ámbito definido por aplicación.
 - Cambiar esquema por migraciones, no por `schema:create`/`schema:update` en producción ni sincronización automática destructiva.
 - Diseñar restricciones en PostgreSQL para invariantes que necesitan garantías concurrentes; una lectura previa `exists(...)` por sí sola no basta.
@@ -421,7 +422,7 @@ Antes de proponer o tocar código, recorrer esta lista de verificación y aplica
 
 1. **Ubicar la capacidad**: ¿a qué módulo pertenece? ¿Es dato de catálogo, agregado, operación de aplicación o consulta? No crear bounded contexts adicionales.
 2. **Verificar vigencia del requisito**: revisar `openspec/specs`, cambios activos, análisis de dominio, reglas e historias y decisiones abiertas. Señalar contradicciones.
-3. **Elegir la ruta por tipo de operación**: comando → `UseCase`; lectura → `Query`; Policy/DomainService solo para regla verdadera; puerto solo cuando lo justifique. No existe «es simple, va directo al controller».
+3. **Elegir la ruta por tipo de operación**: comando → `UseCase`; lectura → `Query`; Policy/DomainService solo para regla verdadera; interfaz propia solo cuando lo justifique. No existe «es simple, va directo al controller».
 4. **Definir límites de modificación**: qué raíz de agregado protege cada regla; qué otros agregados se consultan sin mutarlos; quién es responsable de la transacción.
 5. **Identificar garantías de persistencia**: concurrencia, índices, FK, nulabilidad, histórico, soft-delete, auditoría y migración.
 6. **Respetar arquitectura de carpetas**: transporte en `presentation`; coordinación en `application`; reglas en `domain`; ORM/SQL en `infrastructure` cuando exista ese adaptador.
@@ -434,7 +435,7 @@ Antes de proponer o tocar código, recorrer esta lista de verificación y aplica
 
 - **Anemic Domain Model** donde la entidad es solo campos y toda regla se duplica en servicios.
 - **God Service** o caso de uso con orquestación, queries, HTTP, validación y SQL mezclados; `<capacidad>.service.ts` en `application/`.
-- Interfaces «I*Repository» sin propósito, seguidas de delegadores vacíos.
+- Interfaz sin propósito: envuelve el `EntityRepository` sin agregar comportamiento, o existe sin implementación alternativa ni consumidor que la necesite, seguida de un adaptador que solo reenvía métodos. El prefijo `I` es convención de nombres (`IPlanRepository`), no un pase libre.
 - Encadenar servicios entre módulos hasta necesitar `forwardRef()` en múltiples direcciones.
 - Reglas de negocio dentro del controller o de los DTO.
 - Transacciones definidas en cada repositorio que deberían abarcar un caso de uso completo.
@@ -469,20 +470,20 @@ src/modules/planes/
 │   ├── value-objects/
 │   │   ├── ejercicio-planificado.vo.ts
 │   │   └── prescripcion-semanal.vo.ts
-│   └── ports/
-│       └── plan.repository.port.ts
+│   └── interfaces/
+│       └── plan.repository.interface.ts    # IPlanRepository
 └── infrastructure/
     └── repositories/
         └── mikro-orm-plan.repository.ts
 ```
 
-**Flujo de escritura:** `PlanesController -> CrearPlanUseCase -> Plan (invariantes) + PlanRepositoryPort -> MikroOrmPlanRepository -> PostgreSQL`.
+**Flujo de escritura:** `PlanesController -> CrearPlanUseCase -> Plan (invariantes) + IPlanRepository -> MikroOrmPlanRepository -> PostgreSQL`.
 
 **Flujo de lectura:** `PlanesController -> PlanDeAlumnoQuery -> consulta proyectada de MikroORM -> DTO de respuesta`.
 
 **Diferencia deliberada:** el flujo de lectura no exige atravesar `Plan` como aggregate root cuando solo se quiere mostrar información. Debe seguir preservando permisos y consistencia.
 
-Para cada CRUD de catálogo aplica la misma ruta que a cualquier comando: `Controller -> UseCase -> EntityRepository de MikroORM`, **dentro de su subcarpeta específica** (por ejemplo, `catalogo/materiales/` contiene `MaterialesController`, `use-cases/crear-material.use-case.ts`, los DTO, `Material` y `MaterialesModule`). La baja consulta referencias antes de decidir, así que el caso de uso también es su límite transaccional. No añadir `ports/` ni `infrastructure/repositories/` extra salvo que la funcionalidad lo justifique. `CatalogoModule` solamente agrupa los submódulos.
+Para cada CRUD de catálogo aplica la misma ruta que a cualquier comando: `Controller -> UseCase -> EntityRepository de MikroORM`, **dentro de su subcarpeta específica** (por ejemplo, `catalogo/materiales/` contiene `MaterialesController`, `use-cases/crear-material.use-case.ts`, los DTO, `Material` y `MaterialesModule`). La baja consulta referencias antes de decidir, así que el caso de uso también es su límite transaccional. No añadir `domain/interfaces/` ni `infrastructure/repositories/` extra salvo que la funcionalidad lo justifique. `CatalogoModule` solamente agrupa los submódulos.
 
 ---
 
