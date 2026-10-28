@@ -132,7 +132,7 @@ src/
         ├── domain/
         │   ├── entities/
         │   ├── value-objects/
-        │   ├── services/           # Servicios de dominio, no de aplicación
+        │   ├── services/           # Reglas de dominio que no caben en una entidad o abarcan varios agregados
         │   ├── errors/
         │   └── interfaces/         # Contratos del borde (IPlanRepository)
         └── infrastructure/
@@ -166,11 +166,15 @@ El CRUD de catálogo no habilita una ruta distinta: cada comando es un caso de u
 | --- | --- |
 | Comando (crea, modifica, elimina o cambia estado) | `Controller → UseCase → dominio → persistencia` |
 | Consulta (solo lectura) | `Controller → Query → proyección → DTO` |
-| Regla entre agregados o límite transaccional | dentro del `UseCase` que la origina |
+| Regla interna de un agregado (invariante, cálculo, transición de estado) | dentro de la entidad o de la raíz del agregado que la posee |
+| Regla de negocio que involucra varios agregados, o que una entidad no puede resolver con su información | servicio de dominio en `domain/services/`, invocado por el `UseCase` |
+| Coordinación de operaciones y límite transaccional | dentro del `UseCase` que la origina |
 | Lectura agregada (historial, récord, evolución, asistencias) | `Query` con proyección; nunca hidratar agregados completos |
 | Integración externa | `UseCase → interfaz → adapter`, solo si está en el alcance aprobado |
 
 La ruta no depende de la complejidad estimada: todo comando pasa por un caso de uso, incluido el CRUD de catálogo, y toda lectura por una query. Un caso de uso puede ser fino; su valor es el nombre de la intención, el límite transaccional y el test que lo cubre.
+
+Las reglas propias de una entidad o agregado pertenecen a su dominio. Un servicio de dominio se justifica por una regla de negocio que no cabe en una entidad, no por coordinar varios agregados: el `UseCase` coordina, recupera información, invoca entidades o servicios de dominio y delimita la transacción sin redefinir la regla. Controllers, queries y persistencia no definen ni duplican reglas de negocio.
 
 Un caso de uso persiste con `@InjectRepository(Entity)` por defecto. Solo agrega una interfaz en `domain/interfaces/` cuando haya varios consumidores, integración externa o aislamiento necesario para probar la regla. **Un caso de uso no obliga a crear una interfaz.**
 
@@ -210,6 +214,8 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 - God service o caso de uso con orquestación, HTTP, validación, consultas y SQL mezclados; `<capacidad>.service.ts` en `application/`.
 - Interfaz sin propósito: envuelve el `EntityRepository` sin agregar comportamiento, o existe sin implementación alternativa ni consumidor que la necesite, seguida de un adaptador que solo reenvía métodos. El prefijo `I` es convención de nombres (`IPlanRepository`), no un pase libre.
 - Reglas de negocio en controller o DTO.
+- Servicio de dominio por coordinación: crearlo porque la operación toca varios agregados, sin una regla de negocio que justifique la abstracción.
+- Regla de negocio duplicada en una query: reescribir en la proyección una fórmula o criterio que el dominio ya expresa.
 - Transacciones por repositorio cuando el caso de uso completo debe ser atómico.
 - Persistir datos que el negocio decidió derivar.
 - Exponer entidades ORM con relaciones sensibles o ciclos de serialización.

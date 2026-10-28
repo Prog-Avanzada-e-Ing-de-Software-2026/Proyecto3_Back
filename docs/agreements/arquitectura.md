@@ -103,7 +103,7 @@ src/modules/<capacidad>/
 ├── domain/
 │   ├── entities/                        # Aggregate roots y entidades hijas
 │   ├── value-objects/                   # Value objects genuinos
-│   ├── services/                        # Reglas de dominio que no caben en una entidad
+│   ├── services/                        # Reglas de dominio que no caben en una entidad o abarcan varios agregados
 │   ├── policies/                        # Opcionales; reglas claramente identificadas
 │   ├── errors/                          # Errores semánticos de dominio
 │   └── interfaces/                      # Contratos del borde (IPlanRepository)
@@ -212,9 +212,9 @@ src/modules/catalogo/
 
 **Incluye:** un `*UseCase` por comando y una `*Query` por lectura. No hay servicios de capacidad en esta capa.
 
-**Puede:** orquestar módulos, comprobar permisos de una operación, recuperar agregados, invocar métodos del dominio, coordinar transacciones, trabajar con contratos de persistencia y construir resultados.
+**Puede:** orquestar módulos, comprobar permisos de una operación, recuperar agregados, invocar entidades y servicios de dominio, coordinar transacciones, trabajar con contratos de persistencia y construir resultados.
 
-**No puede:** ocultar invariantes que deberían vivir dentro de los agregados, ni duplicar reglas en diversos controladores o casos de uso.
+**No puede:** ocultar invariantes que deberían vivir dentro de los agregados, duplicar reglas en diversos controladores o casos de uso, ni presentar como regla de negocio la mera coordinación entre agregados.
 
 - Un caso de uso por intención de negocio (`CrearPlanUseCase`, `CrearEjercicioUseCase`), con un único método público `execute()`.
 - El caso de uso es el límite transaccional y el lugar donde se comprueba el actor y el permiso de la operación.
@@ -232,9 +232,9 @@ src/modules/catalogo/
 **No debe:** importar controllers, DTO HTTP, `Request`, `Response`, `HttpException`, `EntityManager` o herramientas de infraestructura **en sus reglas puras**. Las entidades persistidas podrán llevar decoradores MikroORM como **concesión pragmática** aprobada; no presentar eso como independencia absoluta del ORM.
 
 - Toda modificación de un agregado debe pasar por su raíz cuando afecte invariantes internas.
-- Un servicio de dominio solo se justifica si la regla genuinamente no pertenece a una entidad o abarca varios conceptos.
+- Un servicio de dominio solo se justifica si la regla genuinamente no pertenece a una entidad, abarca varios agregados o una entidad no puede resolverla con la información que posee. Coordinar agregados, por sí solo, no lo justifica.
 - Las interfaces llevan prefijo `I` y viven en `domain/interfaces/<nombre>.interface.ts`: `IPlanRepository` en `plan.repository.interface.ts`. La implementación concreta no lleva prefijo: `MikroOrmPlanRepository` en `infrastructure/repositories/mikro-orm-plan.repository.ts`. El prefijo es convención de nombres, no el defecto: lo que se evalúa es si la interfaz tiene propósito.
-- Las validaciones que requieren DB se coordinan desde aplicación con repositorios o interfaces propias; el resultado preserva la regla de negocio.
+- Las validaciones que requieren consultar la base se coordinan desde aplicación con repositorios o interfaces propias; el criterio sigue siendo del dominio y la consulta a la persistencia no lo redefine.
 
 ### `infrastructure/`
 
@@ -268,12 +268,22 @@ NestJS `*.module.ts` es la **composition root** local: registra controladores y 
 | --- | --- |
 | Comando (crear, modificar, eliminar o cambiar estado) | `Controller → UseCase → dominio → persistencia` |
 | Consulta (solo lectura) | `Controller → Query → proyección → DTO` |
-| Regla entre agregados o límite transaccional | dentro del `UseCase` que la origina |
+| Regla interna de un agregado (invariante, cálculo, transición de estado) | dentro de la entidad o de la raíz del agregado que la posee |
+| Regla de negocio que involucra varios agregados, o que una entidad no puede resolver con su información | servicio de dominio en `domain/services/`, invocado por el `UseCase` |
+| Coordinación de operaciones y límite transaccional | dentro del `UseCase` que la origina |
 | Lectura agregada (historial, récord, evolución, asistencias) | `Query` con proyección; nunca hidratar agregados completos |
 | Crear plan completo | `CrearPlanUseCase` + `Plan` + persistencia |
 | Iniciar, agregar o finalizar entrenamiento | caso de uso + métodos de `Entrenamiento` |
 | Baja de profesor con desasignación de alumnos | caso de uso coordinador + transacción; nunca evento asíncrono en el MVP sin aprobación |
 | Servicio externo real | caso de uso → interfaz → adapter; solo si la integración es parte del alcance aprobado |
+
+**Reglas de negocio y coordinación son responsabilidades distintas.** La separación no depende de cuántos agregados participen, sino de qué se está expresando:
+
+- Las reglas propias de una entidad o agregado pertenecen a su dominio; no se mudan a aplicación, queries ni persistencia.
+- Las reglas de negocio que involucran varios agregados, o que una entidad no puede resolver con la información que posee, se encapsulan en un servicio de dominio cuando corresponde.
+- Coordinar varios agregados **no** obliga a crear un servicio de dominio: la abstracción se justifica por una regla de negocio, no por la cantidad de participantes.
+- Los `UseCase` coordinan la operación, recuperan la información, invocan entidades o servicios de dominio y administran el límite transaccional; no redefinen la regla.
+- Controllers, queries y mecanismos de persistencia no definen ni duplican reglas de negocio.
 
 **La ruta no depende de la complejidad estimada.** Todo comando pasa por un caso de uso, incluido el CRUD de catálogo, y toda lectura por una query. Una tabla que se decide por «qué tan complejo parece» no es una regla: dos desarrolladores implementan el mismo requisito de dos formas y las dos quedan «bien».
 
@@ -297,7 +307,7 @@ Un caso de uso **no** obliga a crear una interfaz de persistencia. La interfaz s
 - `EjercicioPlanificado` y `PrescripcionSemanal` están conceptualizados como VO; `DiaDelPlan` como entidad dependiente del agregado.
 - Los planes de un mismo alumno **no pueden solapar fechas**, pero se admiten planes futuros.
 - Al alumno de baja no se le pueden crear planes.
-- Crear un plan puede implicar coordinación entre `Profesor`, `Alumno`, catálogo y `Plan`; ubicar esa coordinación en aplicación, no en el controller.
+- Crear un plan puede implicar coordinación entre `Profesor`, `Alumno`, catálogo y `Plan`; ubicar esa coordinación en aplicación, no en el controller. Las comprobaciones que son reglas de negocio —alumno habilitado, solapamiento de fechas, ejercicios obligatorios— se expresan en dominio (§4); la aplicación coordina y delimita la transacción.
 - La validación previa de solapamiento **por sí sola no evita carreras concurrentes**. Evaluar en el diseño de persistencia transacción, bloqueo y/o restricción adecuada de PostgreSQL; demostrar el comportamiento con pruebas.
 - **Duración del plan: 4 semanas (RN-10), requisito vigente y no un conflicto abierto.** La documentación del repositorio es consistente en cuatro lugares: `docs/preliminar/Reglas de negocio.md:10` (RN-10), `docs/preliminar/Analisis de dominio.md:119`, `docs/preliminar/User Stories.md:306-309` —US-12 tiene un escenario de aceptación dedicado, «Duración fija de 4 semanas»— y `docs/preliminar/Arquitectura de pantallas.md:107`. No hay ambigüedad interna que investigar: **4 semanas es la especificación de registro**. El documento integral del Proyecto 3 menciona un rango de 4 a 12 semanas; si el equipo adopta ese rango, es un **cambio de requisito** que modifica RN-10 y el escenario de US-12 mediante un cambio de OpenSpec, y solo entonces se ajusta la constante. Hasta que ese cambio exista y esté aprobado, se implementa 4 semanas y no se codifica el rango.
 
@@ -324,8 +334,9 @@ Un caso de uso **no** obliga a crear una interfaz de persistencia. La interfaz s
 - Cada concepto de catálogo tiene su propio **submódulo funcional dentro de `catalogo/`**, con controller, casos de uso, DTO y entidad propios; no crear un único `CatalogoController` con todas las operaciones CRUD.
 - `Ejercicio` es una definición catalogada, distinta de `EjercicioPlanificado` y `EjercicioRealizado`.
 - `Unidad`, `CategoriaEjercicio`, `Material` y `ObjetivoPlan` son conceptos compartidos de catálogo con identidad propia.
-- Referencias entre agregados podrán exponerse como id y referencia navegable de forma consistente con MikroORM; **no modificar el agregado ajeno** mediante la referencia obtenida desde otro agregado.
-- Evitar que un agregado se cargue recursivamente entero para un formulario o informe; usar lecturas proyectadas.
+- **Referencias entre agregados — convención establecida:** una referencia a otro agregado expone el **identificador** y la **referencia al objeto relacionado**. La referencia al objeto se utiliza para lectura; toda modificación del agregado referenciado se realiza exclusivamente mediante su propia raíz, preservando sus invariantes.
+- Ambos atributos representan **una única relación persistida**: no se duplican en columnas independientes ni se mantiene una segunda copia del identificador. Existe una sola representación persistente y coherente de la relación, para que no haya dos fuentes que puedan divergir. Cómo se mapea esa relación se decide al diseñar el agregado con las capacidades de MikroORM; esta guía no prescribe decoradores ni APIs concretas.
+- Exponer la referencia navegable **no** implica cargar automáticamente todas las relaciones en cada consulta: la carga se decide por consulta, y los formularios e informes usan lecturas proyectadas (§6) en lugar de cargar el agregado entero de forma recursiva.
 
 ### 5.5 Value Objects y almacenamiento
 
@@ -347,13 +358,18 @@ El documento distingue comandos de consultas. Para lecturas cruzando entidades o
 
 Nombres y agrupación exacta son **ejemplos** que pueden reorganizarse según los módulos existentes; no crear cinco consultas sin funcionalidades que las usen.
 
+El cálculo derivado no cambia de dueño: la `Query` recupera y proyecta los datos, el dominio expresa el criterio.
+
 Reglas:
 
 1. Las queries **no mutan** estado ni guardan `flush()`.
-2. Récord, última carga y estados temporales del plan se **calculan** desde datos existentes, porque así se decidió en el documento; no persistirlos como tablas/materializaciones sin justificación y aprobación.
-3. No perder reglas de autorización cuando se use una proyección que omite la carga del aggregate root.
-4. Evitar el patrón N+1, consultas sin límites o cargar relaciones innecesarias; seleccionar campos y paginar cuando corresponda.
-5. No atribuir las decisiones de presentación del frontend al dominio.
+2. Las queries **recuperan y proyectan** información; no definen ni duplican reglas de negocio.
+3. Cuando un resultado derivado dependa de una regla de negocio, se **reutiliza el comportamiento del dominio** que la expresa: fórmulas y criterios —récord, última carga, estado temporal del plan— no se reescriben en cada query. La agregación y proyección puramente técnicas (conteos, sumas, filtros, ordenamientos, paginación) pueden resolverse en la consulta optimizada, siempre que no redefinan una regla del negocio.
+4. Calcular un resultado derivado **no exige hidratar el agregado completo**: alcanza con proyectar los datos que la regla necesita.
+5. Récord, última carga y estados temporales del plan se **calculan** desde datos existentes, porque así se decidió en el documento; no persistirlos como tablas/materializaciones sin justificación y aprobación.
+6. No perder reglas de autorización cuando se use una proyección que omite la carga del aggregate root.
+7. Evitar el patrón N+1, consultas sin límites o cargar relaciones innecesarias; seleccionar campos y paginar cuando corresponda.
+8. No atribuir las decisiones de presentación del frontend al dominio.
 
 ---
 
@@ -432,8 +448,8 @@ Antes de proponer o tocar código, recorrer esta lista de verificación y aplica
 
 1. **Ubicar la capacidad**: ¿a qué módulo pertenece? ¿Es dato de catálogo, agregado, operación de aplicación o consulta? No crear bounded contexts adicionales.
 2. **Verificar vigencia del requisito**: revisar `openspec/specs`, cambios activos, análisis de dominio, reglas e historias y decisiones abiertas. Señalar contradicciones.
-3. **Elegir la ruta por tipo de operación**: comando → `UseCase`; lectura → `Query`; Policy/DomainService solo para regla verdadera; interfaz propia solo cuando lo justifique. No existe «es simple, va directo al controller».
-4. **Definir límites de modificación**: qué raíz de agregado protege cada regla; qué otros agregados se consultan sin mutarlos; quién es responsable de la transacción.
+3. **Elegir la ruta por tipo de operación**: comando → `UseCase`; lectura → `Query`; servicio de dominio solo para una regla de negocio real que no cabe en una entidad, nunca solo para coordinar agregados; interfaz propia solo cuando lo justifique. No existe «es simple, va directo al controller».
+4. **Definir límites de modificación**: qué raíz de agregado protege cada regla; qué regla entre agregados necesita un servicio de dominio; qué otros agregados se consultan sin mutarlos; quién es responsable de la transacción.
 5. **Identificar garantías de persistencia**: concurrencia, índices (al menos el de la clave primaria por tabla, más los adicionales justificados por consultas, todos por migración: ver §7), FK, nulabilidad, histórico, soft-delete, auditoría y migración.
 6. **Respetar arquitectura de carpetas**: transporte en `presentation`; coordinación en `application`; reglas en `domain`; ORM/SQL en `infrastructure` cuando exista ese adaptador.
 7. **Escribir primero las pruebas** sobre invariantes, permisos, interacción y efecto observable, siguiendo el gate aprobado de OpenSpec.
@@ -448,6 +464,8 @@ Antes de proponer o tocar código, recorrer esta lista de verificación y aplica
 - Interfaz sin propósito: envuelve el `EntityRepository` sin agregar comportamiento, o existe sin implementación alternativa ni consumidor que la necesite, seguida de un adaptador que solo reenvía métodos. El prefijo `I` es convención de nombres (`IPlanRepository`), no un pase libre.
 - Encadenar servicios entre módulos hasta necesitar `forwardRef()` en múltiples direcciones.
 - Reglas de negocio dentro del controller o de los DTO.
+- **Servicio de dominio por coordinación**: crear uno porque la operación toca varios agregados, sin una regla de negocio que justifique la abstracción.
+- **Regla de negocio duplicada en una query**: reescribir en la proyección una fórmula o criterio que el dominio ya expresa.
 - Transacciones definidas en cada repositorio que deberían abarcar un caso de uso completo.
 - Persistir récords, últimas cargas o estados temporales que el negocio decidió derivar.
 - Exponer directamente entidades ORM con relaciones sensibles o ciclos de serialización.
