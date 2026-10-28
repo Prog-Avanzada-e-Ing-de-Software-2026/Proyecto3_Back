@@ -8,6 +8,10 @@ Backend de una aplicación de gestión de gimnasio: los profesores arman planes 
 
 La arquitectura —estructura de carpetas, capas, límites entre módulos, modelado, convenciones de persistencia y qué probar por capa— está definida en `docs/agreements/arquitectura.md`. Ese documento es de **cumplimiento obligatorio**: se lee y se sigue antes de proponer o implementar un cambio que toque esas materias, y no se aparta de él por conveniencia ni por analogía con otros proyectos. Ante discrepancia con este archivo manda `AGENTS.md`, y la discrepancia se reporta para corregir la guía; nunca se elige en silencio la versión más cómoda.
 
+Las buenas prácticas de desarrollo —principios de trabajo, contratos HTTP y validación, Swagger/OpenAPI, persistencia e integridad, logging y trazabilidad, pruebas, el modelo de ramas GitFlow y contenido mínimo de PR— se documentan en `docs/agreements/buenas_practicas.md`. Es un documento de **orientación vigente**, no una norma: no sustituye a este archivo, a `docs/agreements/arquitectura.md`, a la especificación OpenSpec aprobada, a los contratos ni al código vigente, y no habilita por sí solo cambios, commits, push, PR, merges ni despliegues. Se consulta como complemento cuando este archivo o la arquitectura remiten a él. Jerarquía ante discrepancia: `AGENTS.md` → `docs/agreements/arquitectura.md` → `docs/agreements/buenas_practicas.md`; la discrepancia se reporta para corregir la guía y nunca se resuelve en silencio.
+
+Ese documento ya está alineado con GitFlow, adoptado según §10, y su §4 describe Swagger/OpenAPI, cuya dependencia ya está instalada. `@nestjs/swagger` está en `package.json`, pero todavía **no está registrado** en `src/main.ts`: no hay documento OpenAPI ni ruta de documentación. Registrar el `SwaggerModule` y decorar los endpoints es comportamiento de la aplicación y se hace en el cambio de OpenSpec que exponga el primer endpoint, no antes.
+
 ## 2. Comandos
 
 | Objetivo | Comando |
@@ -40,7 +44,7 @@ La arquitectura —estructura de carpetas, capas, límites entre módulos, model
 | 2 | Artefactos | `openspec status --change <name> --json`, `openspec instructions <artifact> --change <name> --json` | `proposal.md`, `specs/**/spec.md`, `design.md` (cuando aplique) y `tasks.md` completos |
 | 3 | Validar planificación | `openspec validate <name> --strict` | Sale con código 0 |
 | 4 | Aprobación humana | — | El usuario pide explícitamente implementar |
-| 5 | Implementar | `/opsx-apply <name>` o skill `openspec-apply-change` | Todas las tareas `[x]` y suites en verde |
+| 5 | Implementar | `/opsx-apply <name>` o skill `openspec-apply-change` | Rama `feature/<change-name>` creada desde `develop` (§10); todas las tareas `[x]` y suites en verde |
 | 6 | Verificar | `openspec validate <name> --strict` + suites | Cada escenario demostrado con evidencia |
 | 7 | Archivar | `openspec archive <name>` | Tareas completas, validación en verde y aprobación del usuario |
 
@@ -348,7 +352,14 @@ BREAKING CHANGE: migrations and queries must use starts_at/ends_at.
 
 ## 10. Git y revisión
 
-- La rama principal del repositorio es `main`. Cada cambio de OpenSpec se implementa en una rama `change/<change-name>` creada desde `main`; no commitear directamente sobre `main`.
+El repositorio sigue **GitFlow** adaptado al flujo de OpenSpec. `main` conserva las versiones estables y `develop` integra el trabajo en desarrollo; ninguna de las dos recibe commits directos.
+
+- **`main`:** versiones estables. Solo recibe merges de `develop` y de `hotfix/*`.
+- **`develop`:** integración del trabajo en desarrollo. Es la rama base de `feature/*` y `fix/*`.
+- **`feature/<change-name>`:** funcionalidad, creada desde `develop` y devuelta a `develop` mediante PR. `<change-name>` es el nombre en kebab-case del cambio de OpenSpec, así la rama y el cambio comparten identidad (`feature/add-plan-builder`).
+- **`fix/<change-name>`:** corrección durante el desarrollo, creada desde `develop` y devuelta a `develop` mediante PR. Si altera comportamiento, necesita su cambio de OpenSpec igual que una funcionalidad.
+- **`hotfix/<nombre>`:** incidencia urgente sobre una versión estable. Nace de `main` y se integra a `main` y a `develop`, para que la corrección no se pierda en la próxima versión. No exime del flujo de OpenSpec ni de las verificaciones de §7.
+- Mantener cada rama acotada a su cambio y sincronizada con su rama base antes de abrir el PR.
 - Antes de commitear: `yarn typecheck && yarn lint && yarn test`.
 - Revisar `git diff` completo antes de cada commit; no commitear archivos generados ni secretos.
 - No usar `--no-verify` para saltear hooks.
