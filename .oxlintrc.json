@@ -1,10 +1,67 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "rules": {
-    "typescript/no-explicit-any": "off",
-    "typescript/no-floating-promises": "error"
-  },
+  "plugins": ["unicorn", "oxc", "typescript", "import"],
   "env": {
     "node": true
-  }
+  },
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "typescript/no-floating-promises": "error",
+    "import/no-cycle": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@nestjs/cqrs",
+            "message": "AGENTS.md 5.8: comandos y consultas se separan por semantica, sin @nestjs/cqrs ni CommandBus/QueryBus."
+          }
+        ],
+        "patterns": [
+          {
+            "group": ["@nestjs/cqrs/**"],
+            "message": "AGENTS.md 5.8: no se usa @nestjs/cqrs, tampoco por subrutas."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/modules/*/domain/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@nestjs/cqrs",
+                "message": "AGENTS.md 5.8: comandos y consultas se separan por semantica, sin @nestjs/cqrs ni CommandBus/QueryBus."
+              },
+              {
+                "name": "@nestjs/common",
+                "importNames": [
+                  "HttpException",
+                  "BadRequestException",
+                  "UnauthorizedException",
+                  "ForbiddenException",
+                  "NotFoundException",
+                  "ConflictException",
+                  "UnprocessableEntityException",
+                  "InternalServerErrorException"
+                ],
+                "message": "AGENTS.md 5.4: el dominio no conoce HTTP; el error de dominio se traduce a HTTP en presentation."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["@nestjs/cqrs/**"],
+                "message": "AGENTS.md 5.8: no se usa @nestjs/cqrs, tampoco por subrutas."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

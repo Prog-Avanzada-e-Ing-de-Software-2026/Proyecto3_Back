@@ -85,6 +85,13 @@ Solo los cambios sin efecto en comportamiento, contratos, esquema o código pued
 - **Reglas de dominio:** se validan dentro de la raíz del agregado, no en controladores ni en DTOs. Un VO es inmutable; una entidad conserva identidad.
 - **Errores de dominio:** no exponer detalles de persistencia en la API. Los errores semánticos se traducen a HTTP en el límite de presentación, sin filtrar trazas ni detalles internos.
 - **Formato:** Prettier (`singleQuote`, `trailingComma: all`) y oxlint. No introducir reglas nuevas de lint sin justificarlo.
+- **Guardas de arquitectura en oxlint:** `.oxlintrc.json` hace cumplir automáticamente cuatro reglas, verificadas contra `yarn lint`:
+  - `import/no-cycle` detecta ciclos entre módulos, síntoma de límites mal trazados (§5.4).
+  - `no-restricted-imports` prohíbe `@nestjs/cqrs` y sus subrutas, que §5.8 descarta.
+  - En `src/modules/*/domain/**`, `no-restricted-imports` prohíbe las excepciones de `@nestjs/common` (`HttpException` y derivadas): el dominio no conoce HTTP (§5.4).
+  - `typescript/no-explicit-any` cierra el `any` implícito de facto, coherente con «no relajar `strict`».
+
+  El campo `plugins` de oxlint **reemplaza** el conjunto base, por eso el archivo lista explícitamente `unicorn`, `oxc`, `typescript` e `import`. Lo que ninguna regla cubre —nombre de archivo `<capacidad>.service.ts`, un caso de uso por comando, procedencia del actor de auditoría— sigue siendo responsabilidad de revisión y pruebas, no del linter.
 
 ## 5. Arquitectura y límites de módulos
 
