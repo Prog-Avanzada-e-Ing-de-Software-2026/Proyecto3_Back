@@ -16,7 +16,7 @@
 - **SRP y SoC:** una responsabilidad principal por componente y límites claros entre presentación, aplicación, dominio y persistencia.
 - **Encapsulamiento:** exponer operaciones de negocio en vez de permitir cambios arbitrarios del estado interno.
 - **Bajo acoplamiento / alta cohesión:** módulos centrados en capacidades de negocio, con dependencias controladas.
-- **Abstracciones justificadas:** los **puertos de persistencia son obligatorios** en casos de uso y consultas (§2.1); cualquier otra interfaz, adaptador o patrón se añade solo si resuelve un problema concreto.
+- **Abstracciones justificadas:** los **puertos de persistencia son obligatorios** en los casos de uso —comandos y lecturas— y en los Query Objects cuando existan (§2.1): acceden a los datos a través de un contrato y nunca del ORM. No se exige una interfaz independiente por operación. Cualquier otra interfaz, adaptador o patrón se añade solo si resuelve un problema concreto.
 - **Entidades con comportamiento:** una entidad no es solo un contenedor de atributos; expresa las reglas que mantienen sus invariantes.
 - **Pruebas trazables:** cada test describe el comportamiento observado e identifica el caso de prueba formal cuando exista.
 
@@ -24,7 +24,7 @@ Evitar tanto el **modelo anémico** como el **servicio que concentra todas las r
 
 ## 2. Arquitectura y distribución de responsabilidades
 
-La arquitectura específica definida en `docs/agreements/arquitectura.md` y `AGENTS.md` es un **monolito modular**, particionado **por capacidad de negocio y luego por capas**, con DDD pragmático, **puertos de persistencia obligatorios** y el resto de las abstracciones selectivas. La separación semántica de comandos y consultas **no obliga a usar `@nestjs/cqrs`**.
+La arquitectura específica definida en `docs/agreements/arquitectura.md` y `AGENTS.md` es un **monolito modular**, particionado **por capacidad de negocio y luego por capas**, con DDD pragmático y abstracciones selectivas. Esta sección resume el criterio práctico; el fundamento y el detalle están en esos documentos. La separación semántica de comandos y consultas **no obliga a usar `@nestjs/cqrs`**.
 
 ```text
 src/modules/<capacidad>/
@@ -33,12 +33,11 @@ src/modules/<capacidad>/
 │   ├── <capacidad>.controller.ts
 │   └── dto/
 ├── application/
-│   ├── use-cases/                     # Comandos / cambios de estado
-│   │   ├── <verbo>-<sustantivo>.use-case.ts
-│   │   └── <verbo>-<sustantivo>.input.ts   # Entrada de aplicación
-│   └── queries/                       # Query Objects y proyecciones
-│       ├── <nombre>.query.ts
-│       ├── <nombre>.query.interface.ts     # Puerto de lectura
+│   └── use-cases/                     # Casos de uso: comandos y lecturas
+│       ├── <verbo>-<sustantivo>.use-case.ts
+│       ├── <verbo>-<sustantivo>.input.ts   # Entrada de aplicación
+│       ├── <nombre>.query.ts               # Opcional: Query Object para lecturas complejas
+│       ├── <nombre>.query.interface.ts     # Puerto de lectura, si se crea
 │       └── <nombre>.result.ts              # Proyección, si corresponde
 ├── domain/
 │   ├── entities/
@@ -48,7 +47,7 @@ src/modules/<capacidad>/
 │   └── interfaces/                    # Puertos de escritura (IPlanRepository)
 └── infrastructure/
     ├── repositories/                  # Implementación MikroORM de escritura
-    └── queries/                       # Implementación de lectura (QueryBuilder)
+    └── queries/                       # Consultas especializadas (proyecciones, joins)
 ```
 
 Árbol **conceptual**, no obligación de crear subcarpetas vacías. En el catálogo, la arquitectura específica dispone submódulos para cada concepto catalogable; se respetará esa decisión cuando se implementen.
@@ -56,36 +55,37 @@ src/modules/<capacidad>/
 | Capa | Responsabilidad | No debe hacer |
 | --- | --- | --- |
 | `presentation/` | recibir HTTP, DTO, validar formato, identificar actor, construir el Input y delegar | lógica de negocio, consultas ORM o transacciones |
-| `application/` | coordinar casos de uso y Query Objects, permisos operativos y la unidad de trabajo **a través de sus puertos** | duplicar invariantes de entidades; importar `@mikro-orm/*` |
+| `application/` | coordinar casos de uso (comandos y lecturas) y, cuando existan, Query Objects; permisos operativos y la unidad de trabajo **a través de sus puertos** | duplicar invariantes de entidades; importar `@mikro-orm/*` |
 | `domain/` | entidades, agregados, VOs, reglas de negocio y puertos de escritura | depender de HTTP o de detalles técnicos en sus reglas puras |
-| `infrastructure/` | implementar los puertos con MikroORM, `QueryBuilder`, joins y traducción de excepciones técnicas | decidir reglas del dominio por su cuenta; recibir DTO |
+| `infrastructure/` | implementar los puertos con MikroORM, consultas especializadas y traducción de excepciones técnicas | decidir reglas del dominio por su cuenta; recibir DTO |
 
 **Comando:** `Controller → Input → UseCase → dominio → I<Agregado>Repository → MikroOrm<Agregado>Repository`.
 
-**Consulta:** `Controller → Query → I<Nombre>Reader → lector MikroORM → proyección → respuesta`.
+**Consulta:** `Controller → UseCase → puerto de persistencia → lector MikroORM → proyección → respuesta`. Si la consulta lo justifica, el caso de uso se reemplaza por un **Query Object** con su puerto de lectura.
 
-Ningún caso de uso ni Query Object inyecta `EntityRepository`, `EntityManager` ni `QueryBuilder`: reciben su puerto por constructor y lo vincula el `*.module.ts`. Si hay una regla de negocio de una entidad, invocar sus operaciones desde el UseCase. Un servicio de dominio se justifica cuando la regla no pertenece claramente a una sola entidad.
+Ningún caso de uso ni Query Object inyecta `EntityRepository`, `EntityManager` ni `QueryBuilder`: reciben su contrato por constructor y lo vincula el `*.module.ts`. Si hay una regla de negocio de una entidad, invocar sus operaciones desde el caso de uso. Un servicio de dominio se justifica cuando la regla no pertenece claramente a una sola entidad.
 
-### 2.1. Frontera de datos: puertos, Query Objects y Inputs
+### 2.1. Frontera de datos: puertos, Query Objects e Inputs
 
 Reglas de convivencia entre capas; el detalle y el fundamento están en `AGENTS.md` §5 y `docs/agreements/arquitectura.md`.
 
-- **Interfaces de persistencia:** obligatorias y sin excepciones por tamaño del caso de uso. Un puerto, una implementación; no apilar un repositorio sobre otro.
-- **Query Objects:** cada lectura se encapsula en `application/queries/*.query.ts` con nombre de intención y `execute(input)`; el Input transporta criterios de búsqueda, filtrado, ordenamiento y paginación.
-- **Proyecciones:** cuando no hace falta el agregado completo, el puerto de lectura devuelve una proyección (`*.result.ts`) en lugar de hidratar entidades.
+- **Interfaces de persistencia:** el acceso a datos siempre pasa por un contrato, y un contrato puede agrupar operaciones relacionadas de lectura y escritura. Un puerto, una implementación; no apilar un repositorio sobre otro ni declarar una interfaz nueva por operación si la existente cubre lo necesario.
+- **Query Objects:** son **opcionales**. Un caso de uso resuelve la lectura; se agrega un Query Object en `application/use-cases/<nombre>.query.ts` cuando la consulta lo justifica —varias entidades, filtros dinámicos, ordenamiento, paginación o agregaciones— con nombre de intención y `execute(input)`. No se crea uno por lectura.
+- **Proyecciones:** cuando no hace falta el agregado completo, el contrato de lectura devuelve una proyección (`*.result.ts`) en lugar de hidratar entidades.
 - **DTO → Input → entidad:** el DTO es contrato HTTP; el Input, la entrada de aplicación; la entidad, el objeto con invariantes. El controller construye el Input y el caso de uso no conoce el DTO.
+- **Input de aplicación:** puede ser un tipo, una interfaz o una clase según lo que la intención necesite; no se crea un archivo o una abstracción adicional cuando no aporta valor.
 - **El DTO nunca llega a un repositorio ni a MikroORM**, ni directo ni envuelto en un `Partial`/`any`.
 - **Factory o método de creación:** solo cuando aporta —datos de varias fuentes, valores por defecto que deben aplicarse siempre o un nombre de negocio de armado—. No se crea una Factory por entidad ni una que esquive invariantes.
 
 | Artefacto | Vive en | Qué valida |
 | --- | --- | --- |
 | DTO HTTP | `presentation/dto/` | Formato, tipos y campos obligatorios (`class-validator`) |
-| Input de aplicación | junto a su caso de uso o query | Nada: ya viene validado |
+| Input de aplicación | junto a su caso de uso | Nada: ya viene validado |
 | Entidad / agregado | `domain/entities/` | Invariantes del gimnasio |
 
 ## 3. Contratos HTTP, validaciones y seguridad
 
-- **Controladores livianos:** recibir la solicitud y delegar al caso de uso/query; no contener SQL, ORM ni decisiones de negocio.
+- **Controladores livianos:** recibir la solicitud y delegar al caso de uso; no contener SQL, ORM ni decisiones de negocio.
 - **Tipado explícito:** declarar los tipos de parámetros y retornos de los métodos de controller, usando DTO o tipos de respuesta adecuados.
 - **DTO de entrada y salida:** representar contratos HTTP, no entidades de dominio; no exponer directamente entidades ni información sensible.
 - **Frontera de datos:** el controller transforma el DTO en un Input de aplicación antes de invocar el caso de uso; el DTO no se convierte en entidad ni se entrega a un repositorio (§2.1).
@@ -114,9 +114,9 @@ Al crear o modificar un endpoint, revisar:
 ## 5. Persistencia, integridad y auditoría
 
 - Persistir con **MikroORM y PostgreSQL**, respetando el `EntityManager` contextual y el límite transaccional que **decide el caso de uso**; la ejecución de la transacción vive en la implementación del puerto, no en `application/`.
-- Los **puertos de escritura reciben y devuelven agregados o entidades** del dominio, nunca DTOs ni Inputs de aplicación. Los **puertos de lectura pueden devolver proyecciones** cuando no hace falta cargar la entidad completa.
-- **Consultas complejas:** `QueryBuilder` en `infrastructure/queries/`, con joins y `LEFT JOIN` cuando la relación es opcional, filtros dinámicos y proyección de campos. Evitar N+1, joins que nadie consume y consultas sin límite; paginar con ordenamiento estable.
-- **Baja lógica:** el filtro de registros activos (`deletedAt IS NULL`) lo aplica la implementación del puerto de lectura, no cada consulta a mano; la baja y la reactivación son casos de uso propios y no saltean la auditoría (§6 de `AGENTS.md`).
+- Los **puertos de escritura reciben y devuelven agregados o entidades** del dominio, nunca DTOs ni Inputs de aplicación. Los **contratos de lectura pueden devolver proyecciones** cuando no hace falta cargar la entidad completa.
+- **Consultas especializadas:** cuando la consulta lo justifica, la implementación vive en `infrastructure/queries/` y puede usar `QueryBuilder` con joins, `LEFT JOIN` cuando la relación es opcional, filtros dinámicos y proyección de campos. `QueryBuilder` es una herramienta a evaluar: si las operaciones del ORM alcanzan, no se agrega. Evitar N+1, joins que nadie consume y consultas sin límite; paginar con ordenamiento estable.
+- **Baja lógica:** el filtro de registros activos (`deletedAt IS NULL`) lo aplica la implementación del contrato de lectura, no cada consulta a mano; la baja y la reactivación son casos de uso propios y no saltean la auditoría (§6 de `AGENTS.md`).
 - Diseñar relaciones y restricciones en base de datos, no confiar solo en comprobaciones previas como `exists(...)` ante concurrencia.
 - Usar migraciones para evolucionar el esquema; no sincronizar ni modificar el esquema destructivamente por fuera del procedimiento acordado.
 - Todas las tablas deben contar al menos con el índice asociado a su clave primaria (u otro índice correspondiente); evaluar índices adicionales a partir de búsquedas, filtros, joins, ordenamientos y necesidades reales, evitando redundancias.
@@ -136,8 +136,8 @@ Al crear o modificar un endpoint, revisar:
 
 ## 7. Pruebas y calidad
 
-- **Unitarias:** casos de uso, Query Objects, entidades, VOs y reglas; pruebas cerca del archivo fuente usando el sufijo vigente del backend, `.spec.ts`. Casos de uso y queries se prueban contra un **doble del puerto**, verificando el Input recibido y el agregado o proyección devuelto.
-- **Integración:** persistencia, relaciones, migraciones, restricciones, índices, auditoría, baja lógica, transacciones y consultas con `QueryBuilder`/joins; usar PostgreSQL real cuando resulte necesario.
+- **Unitarias:** casos de uso de escritura y de lectura, entidades, VOs y reglas; pruebas cerca del archivo fuente usando el sufijo vigente del backend, `.spec.ts`. Los casos de uso —y los Query Objects, cuando existan— se prueban contra un **doble del contrato**, verificando el Input recibido y el agregado o proyección devuelto. No se exigen pruebas de Query Objects si la lectura se resolvió con un caso de uso.
+- **Integración:** persistencia, relaciones, migraciones, restricciones, índices, auditoría, baja lógica, transacciones y consultas especializadas con `QueryBuilder`/joins cuando se hayan implementado; usar PostgreSQL real cuando resulte necesario.
 - **E2E:** endpoints, validación de DTO, construcción del Input, autorización, errores y efectos observables; respetar la estructura y el sufijo `.e2e-spec.ts` definidos en `AGENTS.md`.
 - **Trazabilidad:** títulos claros para cada `describe`/`it`; cuando exista caso formal de prueba, reflejar su nombre o identificador.
 - **Correspondencia:** preferir un archivo unitario asociado a cada archivo fuente probado. Integración y E2E pueden agruparse por flujo o funcionalidad.
@@ -242,8 +242,8 @@ No incluir secretos, credenciales, tokens ni información personal en los PR ni 
 1. Leer `AGENTS.md`, `docs/agreements/arquitectura.md`, las especificaciones vigentes y el código real.
 2. Identificar el requerimiento, la capacidad de negocio, el actor autorizado y las invariantes afectadas.
 3. Seguir el **flujo OpenSpec** establecido por `AGENTS.md` para cambios de comportamiento; no pasar a implementación sin la aprobación que exige.
-4. Escoger `UseCase` para comandos y Query Object para lecturas, cada uno con su **puerto de persistencia**; servicios de dominio solo para reglas que lo justifiquen y Factory solo si aporta valor.
-5. Definir el artefacto de cada borde: DTO HTTP en presentación, Input de aplicación en el caso de uso o query, entidad en dominio. El DTO no llega a la persistencia.
+4. Implementar cada comando y cada lectura con un **caso de uso**; agregar un Query Object solo si la consulta lo justifica. El acceso a datos pasa por un contrato de persistencia, reutilizando el existente cuando ya cubre la operación. Servicios de dominio solo para reglas que lo justifiquen y Factory solo si aporta valor.
+5. Definir el artefacto de cada borde: DTO HTTP en presentación, Input de aplicación junto al caso de uso —tipo, interfaz o clase, según lo que aporte—, entidad en dominio. El DTO no llega a la persistencia.
 6. Determinar garantías de persistencia, auditoría, índices, migraciones, baja lógica, efectos de concurrencia y pruebas necesarias.
 7. No inventar rutas, esquemas, permisos, eventos ni infraestructura que no consten en fuentes aprobadas.
 
@@ -251,8 +251,9 @@ No incluir secretos, credenciales, tokens ni información personal en los PR ni 
 
 - [ ] Controller liviano, entradas/salidas tipadas, DTO validado y transformado en Input antes de invocar el caso de uso.
 - [ ] Invariantes de negocio dentro del dominio; orquestación en aplicación y unidad de trabajo ejecutada por la implementación del puerto.
-- [ ] Puertos en uso: sin `EntityRepository`, `EntityManager` ni `QueryBuilder` en `application/`; los repositorios de escritura reciben agregados y los de lectura devuelven proyecciones cuando corresponde.
-- [ ] Consultas complejas resueltas en `infrastructure/queries/` con `QueryBuilder`; sin N+1, joins innecesarios ni consultas sin límite.
+- [ ] Puertos en uso: sin `EntityRepository`, `EntityManager` ni `QueryBuilder` en `application/`; los contratos de escritura reciben agregados y los de lectura devuelven proyecciones cuando corresponde, sin crear una interfaz por operación.
+- [ ] Consultas especializadas resueltas en `infrastructure/queries/` cuando la consulta lo justifica; `QueryBuilder` solo si las operaciones del ORM no alcanzan, sin N+1, joins innecesarios ni consultas sin límite.
+- [ ] Query Objects creados solo donde la lectura lo justifica; ninguna lectura obligada a tener uno.
 - [ ] Baja lógica: registros dados de baja excluidos en las lecturas habituales y reactivación como caso de uso explícito.
 - [ ] `try/catch` solo donde aporta; excepciones técnicas traducidas en infraestructura y respuesta de error centralizada.
 - [ ] Cambios de DB respaldados por migraciones y pruebas pertinentes.
