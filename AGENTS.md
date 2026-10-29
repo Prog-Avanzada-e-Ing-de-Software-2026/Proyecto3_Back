@@ -222,7 +222,7 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 
 - Usar el `EntityManager` contextual y la Unit of Work de MikroORM. No replicar `TypeOrmUnitOfWork` ni decoradores `@Transactional()` ad hoc de otros proyectos.
 - El límite transaccional coincide con el caso de uso que coordina los cambios: él decide qué operaciones forman una unidad. La ejecución —`em.transactional(...)`— pertenece a la implementación del puerto, no a `application/`. Todas las escrituras relacionadas van en el mismo contexto.
-- El caso de uso y, cuando exista, el Query Object reciben su **puerto** por constructor. `@InjectRepository(Entity)` y `MikroOrmModule.forFeature([...])` se usan dentro de la implementación del puerto; el vínculo puerto → implementación se declara por token en `*.module.ts`.
+- El caso de uso y, cuando exista, el Query Object reciben su **puerto** por constructor. `MikroOrmModule.forFeature([...])` se configura en el módulo NestJS (`*.module.ts`) y `@InjectRepository(Entity)` se usa en las clases concretas de `infrastructure/`; ninguno de los dos aparece en los casos de uso. El vínculo puerto → implementación se declara por token en `*.module.ts`.
 - Si un comando modifica varios agregados, el puerto expone una **operación con nombre propio** (`crearConDesasignacion(...)`) y su implementación la envuelve en `em.transactional(...)`. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
 - Los métodos de escritura del puerto reciben y devuelven **agregados o entidades de dominio**. Recibir un DTO HTTP o un Input de aplicación es un error de diseño.
 - No llamar `flush()` desde reglas puras del dominio.

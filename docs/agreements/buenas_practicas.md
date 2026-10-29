@@ -35,7 +35,7 @@ src/modules/<capacidad>/
 ├── application/
 │   └── use-cases/                     # Casos de uso: comandos y lecturas
 │       ├── <verbo>-<sustantivo>.use-case.ts
-│       ├── <verbo>-<sustantivo>.input.ts   # Entrada de aplicación
+│       ├── <verbo>-<sustantivo>.input.ts   # Opcional: tipo, interfaz o clase
 │       ├── <nombre>.query.ts               # Opcional: Query Object para lecturas complejas
 │       ├── <nombre>.query.interface.ts     # Puerto de lectura, si se crea
 │       └── <nombre>.result.ts              # Proyección, si corresponde

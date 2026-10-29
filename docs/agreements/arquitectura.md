@@ -382,7 +382,7 @@ Tres artefactos con dueños distintos, que no se reemplazan entre sí:
 | **Entidad o agregado** (`Plan`) | `domain/entities/` | Invariantes del gimnasio | Su propio estado y sus reglas. Nunca se construye desde el payload sin pasar por sus validaciones. |
 
 - El controller transforma el DTO en Input y lo entrega al `execute(input)` del caso de uso. El caso de uso no importa `class-validator`, `@nestjs/common` para validación, ni el DTO.
-- El DTO **no** se convierte en entidad ni se entrega a MikroORM (`§8`). El Input **tampoco**: el puerto de escritura recibe agregados.
+- El DTO **no** se convierte en entidad ni se entrega a MikroORM (§7). El Input **tampoco**: el puerto de escritura recibe agregados.
 - La conversión DTO → Input puede ser mecánica. Si exige reglas, esas reglas son del dominio y no se esconden en el mapper.
 
 **Factory de dominio.** Se incorpora cuando la construcción de la entidad lo justifica:
@@ -452,7 +452,7 @@ El detalle operativo de persistencia, integridad y migraciones vive en `AGENTS.m
 - Usar `EntityManager` contextual y Unit of Work propio de MikroORM. **No replicar** el `TypeOrmUnitOfWork` ni el decorador `@Transactional()` ad hoc del Proyecto 1.
 - El límite transaccional coincide con el caso de uso que coordina los cambios: él decide qué operaciones forman una unidad, no el repositorio ni el controller. Todas las escrituras relacionadas van en el **mismo** contexto transaccional.
 - El **caso de uso y el Query Object, cuando existe,** declaran su dependencia de persistencia como interfaz —`IPlanRepository`, `IHistorialEntrenamientosReader`— y la reciben por constructor. No se declara una interfaz nueva por operación si un contrato existente ya cubre lo necesario. `EntityRepository`, `EntityManager` y `QueryBuilder` aparecen **solo** dentro de `infrastructure/`.
-- `@InjectRepository(Entity)` y `MikroOrmModule.forFeature([...])` se usan **dentro de la implementación del puerto**, no en el caso de uso ni en el Query Object. El vínculo puerto → implementación se declara en `*.module.ts` con un token explícito.
+- `MikroOrmModule.forFeature([...])` se configura en el módulo NestJS (`*.module.ts`) y `@InjectRepository(Entity)` se usa en las clases concretas de `infrastructure/`; ninguno de los dos aparece en el caso de uso ni en el Query Object. El vínculo puerto → implementación se declara en `*.module.ts` con un token explícito.
 - Todo puerto de escritura recibe y devuelve **agregados o entidades de dominio**. Recibir un DTO HTTP o un Input de aplicación es un error de diseño, no una comodidad.
 - La unidad de trabajo la decide el caso de uso y la ejecuta la implementación: si un comando modifica varios agregados, el puerto expone una operación con nombre propio (`crearConDesasignacion(...)`) y su implementación la envuelve en `em.transactional(...)`. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
 - No lanzar `flush()` incidentalmente desde reglas puras del dominio; persistir en el ámbito definido por aplicación.
