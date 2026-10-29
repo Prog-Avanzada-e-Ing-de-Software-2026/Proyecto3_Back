@@ -1,7 +1,9 @@
 # Arquitectura de pantallas — Gym MVP
 
 Define cómo se divide la aplicación en superficies y pantallas antes de dibujar wireframes.
-Base: `docs/User Stories.md` (US-01..US-19) y `docs/Reglas de negocio.md` (RN-1..RN-26).
+Base: `docs/dominio/User Stories.md` (`HU 1`..`HU 29`) y `docs/dominio/Reglas de negocio.md` (`RN-01`..`RN-42`).
+
+> **Nota de vigencia:** este documento se redactó contra el análisis preliminar, que numeraba las historias como `US-01`..`US-19` y las reglas como `RN-1`..`RN-26`. Las tablas siguientes conservan esa numeración. Antes de implementar cualquiera de estas pantallas hay que remapear sus referencias a las historias `HU` y a las reglas `RN-nn` vigentes.
 Se apoya en los principios de producto de OpenPencil (purpose-first, región dominante, jerarquía de
 acciones, estados de sistema) y en los patrones del design-system para *Fitness/Gym App*.
 
@@ -104,7 +106,7 @@ S-01 Acceso ──rol──┬─► SHELL ALUMNO (bottom nav)
    usada** (todas las series previas). El alumno puede agregar cualquier ejercicio del catálogo (RN-26).
 2. **Armar un plan (profesor)** — P-04 → P-05.
    El flujo más complejo. Requiere: elegir días (1–5), armar bloques movilidad/core (compartidos)
-   y fuerza (por día), definir progresión semanal (4 semanas), validar las tres partes obligatorias.
+   y fuerza (por día), definir progresión semanal (entre 4 y 12 semanas), validar las tres partes obligatorias.
 3. **Detectar alumnos que necesitan plan (profesor)** — P-01 → P-02 → P-05.
    Arranca en el Panel con las alertas de `US-19`.
 4. **Alta/baja de persona (administrador)** — AD-01 / AD-02 → AD-03 si corresponde.

@@ -4,7 +4,7 @@ Guía operativa para agentes de IA en este repositorio. La documentación y los 
 
 ## 1. Contexto del proyecto
 
-Backend de una aplicación de gestión de gimnasio: los profesores arman planes de entrenamiento y los alumnos registran sus entrenamientos. Está construido con NestJS 12, TypeScript estricto (ESM), MikroORM 7 y PostgreSQL, y se prueba con Vitest 4, oxlint y Prettier sobre Yarn 4.18.1 y Node 24. La documentación de dominio vive en `docs/preliminar/`: es preliminar, puede cambiar y se puede corregir y refinar. Todo cambio que altere comportamiento debe reflejarse además en un cambio de OpenSpec. Mantener el **lenguaje ubicuo** del dominio: no traducir ni renombrar sus términos en el código sin justificación.
+Backend de una aplicación de gestión de gimnasio: los profesores arman planes de entrenamiento y los alumnos registran sus entrenamientos. Está construido con NestJS 12, TypeScript estricto (ESM), MikroORM 7 y PostgreSQL, y se prueba con Vitest 4, oxlint y Prettier sobre Yarn 4.18.1 y Node 24. La documentación de dominio vive en `docs/dominio/` y es normativa: `Reglas de negocio.md` (42 reglas, `RN-01`..`RN-42`) y `User Stories.md` (29 historias, `HU 1`..`HU 29`) son la fuente de verdad vigente y se mantienen sincronizadas con el alcance del MVP. Todo cambio que altere comportamiento debe reflejarse además en un cambio de OpenSpec. Mantener el **lenguaje ubicuo** del dominio: no traducir ni renombrar sus términos en el código sin justificación.
 
 La arquitectura —estructura de carpetas, capas, límites entre módulos, modelado, convenciones de persistencia y qué probar por capa— está definida en `docs/agreements/arquitectura.md`. Ese documento es de **cumplimiento obligatorio**: se lee y se sigue antes de proponer o implementar un cambio que toque esas materias, y no se aparta de él por conveniencia ni por analogía con otros proyectos. Ante discrepancia con este archivo manda `AGENTS.md`, y la discrepancia se reporta para corregir la guía; nunca se elige en silencio la versión más cómoda.
 
@@ -69,7 +69,7 @@ Usar nombres en kebab-case, descriptivos y alineados al dominio. Mantener el pat
 
 ### 3.4 Excepción documental
 
-Solo los cambios sin efecto en comportamiento, contratos, esquema o código pueden hacerse sin un cambio de OpenSpec. Quedan comprendidos: typos y aclaraciones en `docs/preliminar/`, y la documentación de convenciones (`AGENTS.md` y `docs/agreements/`), que no altera comportamiento por sí misma. La excepción debe declararse explícitamente en la respuesta. Ante la duda, crear el cambio.
+Solo los cambios sin efecto en comportamiento, contratos, esquema o código pueden hacerse sin un cambio de OpenSpec. Quedan comprendidos: typos y aclaraciones en `docs/dominio/`, y la documentación de convenciones (`AGENTS.md` y `docs/agreements/`), que no altera comportamiento por sí misma. La excepción debe declararse explícitamente en la respuesta. Ante la duda, crear el cambio.
 
 ## 4. Convenciones de código
 
@@ -103,7 +103,7 @@ Fundamento y justificación de esta sección: `docs/agreements/arquitectura.md`,
 - **Estilo:** monolito modular. Una aplicación, un despliegue, módulos NestJS cohesionados por capacidad de negocio.
 - **Partición:** por capacidad primero y capa después; nunca por carpetas globales de `controllers`, `services` y `repositories`.
 - **Capas internas:** presentación, aplicación, dominio e infraestructura.
-- **Modelado:** DDD pragmático — lenguaje ubicuo, raíces de agregado, entidades, value objects e invariantes. El lenguaje ubicuo está en `docs/preliminar/Analisis de dominio.md` y no se traduce ni renombra.
+- **Modelado:** DDD pragmático — lenguaje ubicuo, raíces de agregado, entidades, value objects e invariantes. El lenguaje ubicuo está en `docs/dominio/Analisis de dominio.md` y no se traduce ni renombra.
 - **Un solo bounded context:** «Entrenamiento». Dividir el código en módulos NestJS **no** crea contextos adicionales. No proponer microservicios, event bus, CQRS formal ni event sourcing sin requisitos documentados y aprobados.
 - **Puertos de persistencia:** obligatorios en el borde de aplicación. Los casos de uso —comandos y lecturas— y los Query Objects, cuando existan, acceden a los datos a través de una interfaz y nunca de `EntityRepository`, `EntityManager` ni `QueryBuilder`. La interfaz no se crea por operación: se reutiliza el contrato existente que ya cubre la lectura o la escritura necesaria. La implementación concreta vive en `infrastructure/` y se vincula mediante inyección de dependencias de NestJS.
 - **Resto de abstracciones:** selectivas. Fuera de ese borde, una interfaz, un adapter, un servicio de dominio o una Factory se justifican por desacoplamiento real, testabilidad, varios consumidores o una regla compleja; nunca por plantilla. No se exige una Factory por entidad.
@@ -157,7 +157,7 @@ src/
 
 `src/modules/catalogo/` es un módulo agrupador. `ejercicios`, `categorias-ejercicio`, `materiales`, `unidades` y `objetivos-plan` tienen cada uno su subcarpeta con controller, casos de uso, DTO, entidad y módulo NestJS propios. `CatalogoModule` solo los agrupa e importa: no concentra controladores, CRUD ni repositorios.
 
-**Por qué es una excepción y no ceremonia:** `docs/preliminar/Analisis de dominio.md:94` define cada concepto de catálogo como **raíz de su propio agregado**, y `US-01`..`US-05` los especifican por separado. Un agregado, un submódulo, un cambio de OpenSpec.
+**Por qué es una excepción y no ceremonia:** `docs/dominio/Analisis de dominio.md:94` define cada concepto de catálogo como **raíz de su propio agregado**, y las historias de catálogo (`HU 2`, `HU 26`, `HU 27`, `HU 28` y `HU 29`) los especifican por separado. Un agregado, un submódulo, un cambio de OpenSpec.
 
 El CRUD de catálogo no habilita una ruta distinta: cada comando y cada lectura se implementan como caso de uso, igual que en cualquier otro agregado; un Query Object se agrega solo cuando la lectura lo justifica. Lo que el submódulo propio aporta es aislamiento, no una capa de aplicación más delgada. La implementación de persistencia y el contrato que la operación usa **son obligatorios** en cada submódulo; lo que no se agrega sin motivo son `infrastructure/queries/`, `factories/`, `services/` y `external/`.
 
@@ -299,7 +299,7 @@ Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCas
 
 - **Baja lógica por defecto.** Cuando la entidad conserva historial o está referenciada por otras (alumno, profesor, plan, entrenamiento), eliminar significa completar `deletedAt` y `deletedById` y actualizar `updatedAt` y `updatedById` en la misma escritura. La fila permanece y con ella queda el rastro de quién la dio de baja.
 - **Exclusión en las consultas habituales.** Los registros dados de baja no aparecen en listados, búsquedas, reportes ni validaciones de existencia. El filtro `deletedAt IS NULL` lo aplica la implementación del puerto de lectura (§5.8), no cada consulta a mano; incluir el histórico se pide explícitamente. Las comprobaciones de negocio también excluyen: no se crea un plan sobre un alumno dado de baja.
-- **Borrado físico** solo en catálogos sin referencias y cuando la historia no importa (por ejemplo, una máquina nunca usada, `US-01`). Al borrar la fila desaparece su auditoría: si el dominio exige conservarla, la baja debe ser lógica.
+- **Borrado físico** solo en catálogos sin referencias y cuando la historia no importa (por ejemplo, una máquina nunca usada, `HU 28`). Al borrar la fila desaparece su auditoría: si el dominio exige conservarla, la baja debe ser lógica.
 - **Índices únicos sobre entidades con baja lógica:** un `UNIQUE` plano queda bloqueado por la fila dada de baja. Usar índices parciales (`WHERE deleted_at IS NULL`).
 - **Reactivación explícita.** Volver a poner `deletedAt` y `deletedById` en `null` es un caso de uso del dominio con nombre propio, no un update genérico, y actualiza `updatedAt` y `updatedById` como cualquier otra edición. La reactivación conserva el historial previo.
 

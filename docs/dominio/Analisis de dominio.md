@@ -110,31 +110,9 @@ Atributos: id, nombre, descripción.
 
 ## ***Reglas de negocio***
 
-| N.º | Agregado/s | Regla |
-| :---- | :---- | :---- |
-| 1 | Planes | El plan se separa en bloques de movilidad, core y fuerza (este último incluye la parte principal del entrenamiento, todo lo que no sea movilidad o core). |
-| 2 | Planes | El plan debe si o si tener ejercicios para todas las partes (no puede no tener core o movilidad). |
-| 3 | Planes | Los bloques de movilidad y core son iguales para todos los días del plan, mientras que el bloque de fuerza es particular de cada día. |
-| 4 | Planes | El plan no puede ser para más de 5 días (el gym solo abre 5 días a la semana) y debe ser para al menos 1\. |
-| 5 | Planes | Un plan es para 4 semanas. |
-| 6 | Planes | Un ejercicio no se puede repetir dentro del mismo día del plan. |
-| 7 | Planes | Todos los ejercicios comparten la misma progresión semanal, si se quiere indicar algo diferente para uno se hace como comentario. |
-| 8 | Planes | Solo los profesores pueden armar los planes de entrenamiento. |
-| 9 | Planes | Un plan personalizado se puede crear copiando otro plan personalizado que haya creado ese profesor anteriormente. Los planes personalizados tambien se pueden crear desde 0\. |
-| 10 | Planes | Un alumno no puede tener planes cuyas fechas se solapen, pero un profesor puede cargar planes “futuros” (es decir, con una fecha de inicio posterior a la fecha de fin de su plan actual) para un alumno. |
-| 11 | Planes | El plan que se le muestra a un alumno para guiarlo es el que abarca la fecha actual. |
-| 12 | Planes | No se le puede hacer un plan a un alumno dado de baja. |
-| 13 | Entrenamientos | Un entrenamiento se asocia al plan activo del alumno y a un día de ese plan, pero el alumno puede registrar cualquier ejercicio del catálogo, esté o no en el plan y no es obligatorio registrar todos los ejercicios del día del plan. |
-| 14 | Entrenamientos | Los ejercicios del día se deben ofrecer como guia, junto con la carga de trabajo que corresponde a la semana. |
-| 15 | Entrenamientos | Un alumno tiene un único entrenamiento en curso a la vez. |
-| 16 | Entrenamientos | Un ejercicio no se puede repetir dentro del mismo entrenamiento. |
-| 17 | Entrenamientos | Una serie debe tener Cantidad ≥ 1 y peso ≥ 0 (o ausente) |
-| 18 | Entrenamientos | Un entrenamiento finalizado es inmutable. |
-| 19 | Alumnos y Profesor | Al dar de baja un profesor, sus alumnos quedan sin profesor asignado, pudiendo luego ser reasignados. |
-| 20 | Profesor | Un profesor dado de baja no puede acceder a la aplicación. |
-| 21 | Alumno | Un alumno dado de baja no puede registrar entrenamientos, pero su historial se conserva. |
-| 22 | Alumno | Un alumno dado de baja puede volver a darse de alta y el seguimiento de progreso debe continuarse donde quedó. |
-| 23 | Plan, Entrenamiento, Alumno y Profesor | El plan y entrenamientos de un alumno son visibles para los profesores y solo para ese alumno. |
+Las reglas de negocio del dominio se especifican en **[Reglas de negocio.md](Reglas%20de%20negocio.md)**, que es la única fuente de verdad. Son **42 reglas** con identificador estable `RN-01` a `RN-42`, agrupadas por concepto y clasificadas como críticas o no críticas.
+
+Este documento describe el modelo de dominio; no duplica las reglas para evitar divergencias entre dos listados. La lista preliminar de 23 reglas que vivía en esta sección quedó reemplazada por la versión 2.0 del documento normativo.
 
 ## ***Comportamientos del dominio***
 

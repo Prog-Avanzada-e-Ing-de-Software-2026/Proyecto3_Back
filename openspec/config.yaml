@@ -8,9 +8,10 @@ context: |
   y Entrenamiento. Raíces propias: Alumno y Profesor. Catálogo: ObjetivoPlan,
   Material, Ejercicio, CategoriaEjercicio y Unidad.
 
-  Fuente de verdad del dominio: docs/preliminar/Analisis de dominio.md.
-  Criterios de aceptación: docs/preliminar/User Stories.md.
-  Decisiones pendientes: D-nn y DW-nn en los documentos de docs/preliminar/.
+  Fuente de verdad del dominio: docs/dominio/Analisis de dominio.md.
+  Reglas de negocio: docs/dominio/Reglas de negocio.md (42 reglas, RN-01..RN-42).
+  Criterios de aceptación: docs/dominio/User Stories.md (HU 1..HU 29).
+  Decisiones pendientes: D-nn y DW-nn en los documentos de docs/dominio/.
   Convenciones de arquitectura y capas: AGENTS.md §4 y §5 (su fundamento y
   justificación están en docs/agreements/arquitectura.md; ante discrepancia,
   manda AGENTS.md).
@@ -26,7 +27,7 @@ context: |
 rules:
   proposal:
     - "Incluir una sección 'Fuera de alcance' explícita."
-    - "Vincular cada requisito a las reglas de negocio (RN-n) y user stories (US-nn) afectadas cuando existan."
+    - "Vincular cada requisito a las reglas de negocio (RN-nn) y user stories (HU-n) afectadas cuando existan."
     - "No inventar comportamiento para decisiones abiertas (D-nn, DW-nn): registrarlas como supuestos o preguntas."
   specs:
     - "Cada requisito debe usar SHALL o MUST y tener al menos un escenario Given/When/Then."

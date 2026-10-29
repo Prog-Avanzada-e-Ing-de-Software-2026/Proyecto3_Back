@@ -2,8 +2,10 @@
 
 Estado al 18 oct 2026. Reúne las decisiones pendientes que surgieron de revisar
 `desing/gym-mvp-wireframes.op` (página *Dirección v2*) contra los documentos de dominio.
-Complementa el resumen de `docs/User Stories.md` (§ *Decisiones abiertas*) y no lo reemplaza:
+Complementa el resumen de `docs/dominio/User Stories.md` (§ *Decisiones abiertas*) y no lo reemplaza:
 las decisiones ya listadas allí conservan su ID y aparecen acá referenciadas.
+
+> **Nota de vigencia:** las referencias `RN-n` de este documento usan la numeración del análisis preliminar (26 reglas). La fuente de verdad vigente es `docs/dominio/Reglas de negocio.md` v2.0 (`RN-01`..`RN-42`); remapear cada referencia antes de implementar la decisión afectada.
 
 **Convención de IDs:** `DW-nn` identifica una decisión abierta. La columna *ID doc* indica que la
 decisión ya existía en la documentación; la fila lleva el ID original y no se renumera.
