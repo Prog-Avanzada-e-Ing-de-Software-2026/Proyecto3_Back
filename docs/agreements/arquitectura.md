@@ -99,7 +99,7 @@ src/modules/<capacidad>/
 ├── application/
 │   └── use-cases/                       # Casos de uso: comandos y lecturas
 │       ├── <verbo>-<sustantivo>.use-case.ts
-│       ├── <verbo>-<sustantivo>.input.ts # Input de aplicación del caso de uso
+│       ├── <verbo>-<sustantivo>.input.ts # Opcional: tipo, interfaz o clase
 │       ├── <nombre>.query.ts            # Opcional: Query Object para lecturas complejas
 │       ├── <nombre>.query.interface.ts  # Puerto de lectura (I<Nombre>Reader), cuando se crea
 │       └── <nombre>.result.ts           # Proyección de lectura, cuando corresponde
@@ -284,11 +284,11 @@ NestJS `*.module.ts` es la **composition root** local: registra controladores y 
 
 ## 4. Selección de patrones: ruta obligatoria
 
-| Operación | Implementación obligatoria |
+| Operación | Implementación |
 | --- | --- |
 | Comando (crear, modificar, eliminar o cambiar estado) | `Controller → Input → UseCase → dominio → I<Agregado>Repository → MikroOrm<Agregado>Repository` |
 | Consulta simple (una entidad o agregado, filtros fijos) | `Controller → UseCase → puerto de persistencia (existente o propio) → lector MikroORM → proyección → DTO` |
-| Consulta compleja (varias entidades, filtros dinámicos, búsqueda, ordenamiento, paginación, agregaciones) | `Controller → Query Object → I<Nombre>Reader`; la implementación usa `QueryBuilder`, joins y proyección en `infrastructure/queries/` |
+| Consulta compleja (varias entidades, filtros dinámicos, búsqueda, ordenamiento, paginación, agregaciones) | `Controller → UseCase` (o un Query Object si aporta valor) `→ puerto de persistencia`; si las operaciones del ORM no alcanzan, la implementación usa `QueryBuilder`, joins y proyección en `infrastructure/queries/` |
 | Construcción de una entidad con datos de varias fuentes o con una invariante de armado | Factory en `domain/factories/` cuando la construcción lo justifica; si no, el constructor o un método estático de la raíz |
 | Regla interna de un agregado (invariante, cálculo, transición de estado) | dentro de la entidad o de la raíz del agregado que la posee |
 | Regla de negocio que involucra varios agregados, o que una entidad no puede resolver con su información | servicio de dominio en `domain/services/`, invocado por el `UseCase` |
@@ -309,6 +309,8 @@ NestJS `*.module.ts` es la **composition root** local: registra controladores y 
 - Controllers, consultas y mecanismos de persistencia no definen ni duplican reglas de negocio.
 
 **La ruta no depende de la complejidad estimada.** Todo comando pasa por un caso de uso, incluido el CRUD de catálogo, y toda lectura tiene también una operación de aplicación con nombre; el Query Object se agrega solo cuando la consulta lo justifica. Una ruta que se decide por «qué tan complejo parece» produce dos implementaciones distintas para el mismo tipo de operación y las dos quedan «bien».
+
+Toda lectura puede resolverse con un caso de uso y el puerto de persistencia disponible. El **Query Object** y el **`QueryBuilder`** en `infrastructure/queries/` son herramientas opcionales: se usan únicamente cuando aportan valor —consultas con varias entidades, filtros dinámicos, agregaciones o paginación que las operaciones del ORM no cubren bien—, nunca por reflejo.
 
 La interfaz de persistencia **es obligatoria y no se evalúa caso por caso**: el acceso a datos siempre pasa por un contrato. Lo que no se admite es apilar capas por encima de él ni crear un puerto nuevo cuando ya existe uno con la operación necesaria.
 
@@ -376,7 +378,7 @@ Tres artefactos con dueños distintos, que no se reemplazan entre sí:
 | Artefacto | Vive en | Valida | Conoce |
 | --- | --- | --- | --- |
 | **DTO HTTP** (`CreatePlanDto`) | `presentation/dto/` | Formato, tipos y campos obligatorios, con `class-validator` | El contrato del transporte. Nada del dominio. |
-| **Input de aplicación** (`CrearPlanInput`) | junto a su caso de uso, `application/use-cases/<verbo>-<sustantivo>.input.ts` | Nada: es un tipo de parámetros ya validado | Lo que la intención de negocio necesita, con tipos del dominio cuando aplica (`planId: PlanId`). Sin decoradores de transporte ni dependencias de Nest/HTTP. |
+| **Input de aplicación** (`CrearPlanInput`) | junto a su caso de uso: tipo, interfaz o clase; `<verbo>-<sustantivo>.input.ts` solo si se crea un archivo | Nada: es un tipo de parámetros ya validado | Lo que la intención de negocio necesita, con tipos del dominio cuando aplica (`planId: PlanId`). Sin decoradores de transporte ni dependencias de Nest/HTTP. |
 | **Entidad o agregado** (`Plan`) | `domain/entities/` | Invariantes del gimnasio | Su propio estado y sus reglas. Nunca se construye desde el payload sin pasar por sus validaciones. |
 
 - El controller transforma el DTO en Input y lo entrega al `execute(input)` del caso de uso. El caso de uso no importa `class-validator`, `@nestjs/common` para validación, ni el DTO.
@@ -580,7 +582,7 @@ src/modules/planes/
 ├── application/
 │   └── use-cases/
 │       ├── crear-plan.use-case.ts
-│       ├── crear-plan.input.ts
+│       ├── crear-plan.input.ts                 # Opcional: tipo, interfaz o clase
 │       ├── plan-de-alumno.query.ts             # Opcional: la lectura lo justifica
 │       ├── plan-de-alumno.query.interface.ts   # IPlanDeAlumnoReader
 │       └── plan-de-alumno.result.ts            # Proyección de lectura

@@ -61,7 +61,7 @@ src/modules/<capacidad>/
 
 **Comando:** `Controller → Input → UseCase → dominio → I<Agregado>Repository → MikroOrm<Agregado>Repository`.
 
-**Consulta:** `Controller → UseCase → puerto de persistencia → lector MikroORM → proyección → respuesta`. Si la consulta lo justifica, el caso de uso se reemplaza por un **Query Object** con su puerto de lectura.
+**Consulta:** `Controller → UseCase → puerto de persistencia → lector MikroORM → proyección → respuesta`. Si la consulta lo justifica, un **Query Object** en `application/use-cases/` es una alternativa opcional para implementarla, con su puerto de lectura.
 
 Ningún caso de uso ni Query Object inyecta `EntityRepository`, `EntityManager` ni `QueryBuilder`: reciben su contrato por constructor y lo vincula el `*.module.ts`. Si hay una regla de negocio de una entidad, invocar sus operaciones desde el caso de uso. Un servicio de dominio se justifica cuando la regla no pertenece claramente a una sola entidad.
 

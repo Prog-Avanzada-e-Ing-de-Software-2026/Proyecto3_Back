@@ -131,7 +131,7 @@ src/
         ├── application/
         │   └── use-cases/          # Casos de uso: comandos y lecturas
         │       ├── <verbo>-<sustantivo>.use-case.ts
-        │       ├── <verbo>-<sustantivo>.input.ts   # Input de aplicación
+        │       ├── <verbo>-<sustantivo>.input.ts   # Opcional: tipo, interfaz o clase
         │       ├── <nombre>.query.ts               # Opcional: Query Object para lecturas complejas
         │       ├── <nombre>.query.interface.ts     # Puerto de lectura (I<Nombre>Reader), cuando se crea
         │       └── <nombre>.result.ts              # Proyección, cuando corresponde
@@ -172,11 +172,11 @@ El CRUD de catálogo no habilita una ruta distinta: cada comando y cada lectura 
 
 ### 5.5 Ruta obligatoria por tipo de operación
 
-| Operación | Implementación obligatoria |
+| Operación | Implementación |
 | --- | --- |
 | Comando (crea, modifica, elimina o cambia estado) | `Controller → Input → UseCase → dominio → I<Agregado>Repository → MikroOrm<Agregado>Repository` |
 | Consulta simple (una entidad o agregado, filtros fijos) | `Controller → UseCase → puerto de persistencia (existente o propio) → lector MikroORM → proyección → DTO` |
-| Consulta compleja (varias entidades, filtros dinámicos, búsqueda, ordenamiento, paginación, agregaciones) | `Controller → Query Object → I<Nombre>Reader`; la implementación usa `QueryBuilder`, joins y proyección en `infrastructure/queries/` |
+| Consulta compleja (varias entidades, filtros dinámicos, búsqueda, ordenamiento, paginación, agregaciones) | `Controller → UseCase` (o un Query Object si aporta valor) `→ puerto de persistencia`; si las operaciones del ORM no alcanzan, la implementación usa `QueryBuilder`, joins y proyección en `infrastructure/queries/` |
 | Construcción de una entidad con datos de varias fuentes o con una invariante de armado | Factory en `domain/factories/` cuando la construcción lo justifica; si no, el constructor o un método estático de la raíz |
 | Regla interna de un agregado (invariante, cálculo, transición de estado) | dentro de la entidad o de la raíz del agregado que la posee |
 | Regla de negocio que involucra varios agregados, o que una entidad no puede resolver con su información | servicio de dominio en `domain/services/`, invocado por el `UseCase` |
@@ -186,6 +186,8 @@ El CRUD de catálogo no habilita una ruta distinta: cada comando y cada lectura 
 | Integración externa | `UseCase → interfaz → adapter`, solo si está en el alcance aprobado |
 
 La ruta no depende de la complejidad estimada: todo comando pasa por un caso de uso, incluido el CRUD de catálogo, y toda lectura tiene también una operación de aplicación con nombre; el Query Object se agrega solo cuando la consulta lo justifica. Un caso de uso puede ser fino; su valor es el nombre de la intención, el límite transaccional y el test que lo cubre.
+
+Toda lectura puede resolverse con un caso de uso y el puerto de persistencia disponible. El **Query Object** y el **`QueryBuilder`** en `infrastructure/queries/` son opcionales: se usan solo cuando aportan valor, nunca por reflejo.
 
 Las reglas propias de una entidad o agregado pertenecen a su dominio. Un servicio de dominio se justifica por una regla de negocio que no cabe en una entidad, no por coordinar varios agregados: el `UseCase` coordina, recupera información, invoca entidades o servicios de dominio y delimita la transacción sin redefinir la regla. Controllers, consultas y persistencia no definen ni duplican reglas de negocio.
 
@@ -202,13 +204,14 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 - `forbidNonWhitelisted` queda **desactivado** mientras §6.2, regla 3 establezca que esos campos «se ignoran». Si el equipo prefiere rechazar con 400, se activa la opción y se actualiza esa regla en el mismo cambio.
 - El DTO valida formato y tipos; **no** valida reglas del gimnasio. Las invariantes son de dominio (§4) y no se duplican en el DTO ni en el controller.
 - El DTO no se convierte en entidad de dominio ni se entrega a MikroORM.
+- El **Input de aplicación** puede representarse como **tipo, interfaz o clase** según lo que la intención necesite. No se exige un archivo `<verbo>-<sustantivo>.input.ts` por operación: se crea solo cuando aporta claridad o reutilización.
 
 **Tres artefactos, tres dueños.** No se reemplazan entre sí y ninguno se salta:
 
 | Artefacto | Vive en | Valida | Conoce |
 | --- | --- | --- | --- |
 | **DTO HTTP** (`CreatePlanDto`) | `presentation/dto/` | Formato, tipos y campos obligatorios con `class-validator` | El contrato del transporte. Nada del dominio. |
-| **Input de aplicación** (`CrearPlanInput`) | junto a su caso de uso: `application/use-cases/<verbo>-<sustantivo>.input.ts` | Nada: ya viene validado | Lo que la intención necesita, con tipos del dominio cuando aplica. Sin decoradores de transporte ni dependencias de Nest/HTTP. |
+| **Input de aplicación** (`CrearPlanInput`) | junto a su caso de uso: tipo, interfaz o clase; `<verbo>-<sustantivo>.input.ts` solo si se crea un archivo | Nada: ya viene validado | Lo que la intención necesita, con tipos del dominio cuando aplica. Sin decoradores de transporte ni dependencias de Nest/HTTP. |
 | **Entidad o agregado** (`Plan`) | `domain/entities/` | Invariantes del gimnasio | Su propio estado y sus reglas. |
 
 - El controller transforma el DTO en Input y lo pasa al `execute(input)`. El caso de uso no importa el DTO ni `class-validator`.
