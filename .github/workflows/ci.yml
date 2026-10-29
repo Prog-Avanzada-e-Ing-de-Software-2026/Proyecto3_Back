@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      enforce_all_rules:
+        description: 'Exigir el 100% de las 42 reglas (usar cerca del despliegue final)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Unit tests with JSON report
+        run: yarn vitest run --reporter=default --reporter=json --outputFile=.vitest-results.json
+
+      - name: Rule coverage gate
+        env:
+          VITEST_RESULTS: .vitest-results.json
+        run: |
+          if [ "${{ inputs.enforce_all_rules }}" = "true" ]; then
+            node scripts/check-rules.mjs --all
+          else
+            node scripts/check-rules.mjs
+          fi
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-results
+          path: .vitest-results.json
+          if-no-files-found: ignore
+          retention-days: 7

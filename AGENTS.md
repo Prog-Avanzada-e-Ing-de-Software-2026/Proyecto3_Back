@@ -418,6 +418,7 @@ El repositorio sigue **GitFlow** adaptado al flujo de OpenSpec. `main` conserva 
 - Antes de commitear: `yarn typecheck && yarn lint && yarn test`.
 - Revisar `git diff` completo antes de cada commit; no commitear archivos generados ni secretos.
 - No usar `--no-verify` para saltear hooks.
+- **Trazabilidad de reglas en el PR:** todo Pull Request declara las reglas de negocio que implementa en una línea `Reglas: RN-01, RN-05`. El gate de CI (`scripts/check-rules.mjs`) exige que cada regla declarada tenga al menos un test que pase, identificado en el nombre del test con el tag `[RN-nn]`. Con `workflow_dispatch` y `enforce_all_rules` se exige el 100% de las 42 reglas antes del despliegue final.
 - El push, la creación de PR y el merge son decisiones del usuario.
 
 ## 11. CodeGraph
