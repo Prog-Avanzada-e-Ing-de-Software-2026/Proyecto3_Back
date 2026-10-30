@@ -25,13 +25,13 @@ Antes de implementar una prueba, el agente **DEBE**:
 | Runner y aserciones | **Vitest** (`describe`, `it`/`test`, `expect`, `vi`) |
 | Entorno del backend | **NestJS**, TypeScript y **ESM** |
 | Acceso a datos | **MikroORM** |
-| Base de datos | **PostgreSQL** |
+| Base de datos | **PostgreSQL 18** |
 | Infraestructura real para integración | **Testcontainers + Docker** cuando corresponda |
 | Contrato HTTP | Pruebas contra la aplicación NestJS inicializada; utilizar **Supertest** si ya está configurado para ello |
 | Gestión de dependencias y ejecución | **Yarn**; utilizar los scripts efectivamente declarados en `package.json` |
 
 - **NO** crear tests nuevos con Jest (`jest.fn`, `jest.mock` o su configuración). Usar las utilidades equivalentes de Vitest.
-- **NO** sustituir PostgreSQL por MySQL, SQLite ni una base en memoria para verificar consultas o persistencia reales.
+- **NO** sustituir PostgreSQL por MySQL, SQLite ni una base en memoria para verificar consultas o persistencia reales, ni usar una versión mayor distinta de la de producción (ver §4).
 - **NO** agregar dependencias, modificar la arquitectura ni crear infraestructura de testing paralela sin necesidad demostrable.
 - **NO** suponer rutas, nombres de clases, scripts ni APIs internas que no estén presentes en el repositorio. Inspeccionarlos antes de escribir tests.
 
@@ -84,7 +84,7 @@ Si un endpoint interactúa con persistencia y la prueba pretende verificar ese c
 
 ### 3.4 Persistencia / infraestructura — integración selectiva
 
-**Nivel:** integración contra **PostgreSQL real** usando **MikroORM** y **Testcontainers**.
+**Nivel:** integración contra **PostgreSQL 18 real** usando **MikroORM** y **Testcontainers**.
 
 Priorizar:
 
@@ -107,7 +107,7 @@ Priorizar:
 
 ### Integración
 
-- Levantar PostgreSQL temporal mediante Testcontainers para los tests que necesitan una base real, sin apuntar a desarrollo, producción ni una base compartida.
+- Levantar PostgreSQL temporal mediante Testcontainers para los tests que necesitan una base real, sin apuntar a desarrollo, producción ni una base compartida. La versión mayor es **18**, la misma que producción: la imagen se declara una sola vez en el setup compartido de integración con el tag mayor (`postgres:18-alpine`), y cada suite lo consume desde ahí en lugar de repetir el literal.
 - Conectar MikroORM a la instancia temporal y preparar el esquema por el mecanismo compatible con el repositorio (migraciones si se valida su aplicación; otra preparación aislada solo cuando esté justificada).
 - Preparar datos por caso y restaurar el aislamiento mediante limpieza, transacciones reversibles u otra estrategia correcta para el módulo. No permitir dependencia entre casos.
 - Liberar conexiones, aplicaciones NestJS, recursos del ORM y contenedores al finalizar, incluso ante errores.
