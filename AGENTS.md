@@ -1,6 +1,6 @@
 # AGENTS.md — proyecto3_back
 
-Guía operativa para agentes de IA en este repositorio. La documentación y los artefactos de OpenSpec se escriben en español; el código, los identificadores técnicos y los mensajes de commit se escriben en inglés.
+Guía operativa para agentes de IA en este repositorio. La documentación y los artefactos de OpenSpec se escriben en español; los identificadores técnicos y los mensajes de commit se escriben en inglés. En el código, el verbo va en inglés y el concepto de dominio conserva el español del lenguaje ubicuo (§4).
 
 ## 1. Contexto del proyecto
 
@@ -76,6 +76,14 @@ Solo los cambios sin efecto en comportamiento, contratos, esquema o código pued
 
 ## 4. Convenciones de código
 
+- **Idioma de los identificadores:** el **verbo va en inglés** y el **concepto de dominio va en español**, con la grafía exacta del lenguaje ubicuo de `docs/dominio/Analisis de dominio.md`. El código no traduce ni renombra términos del dominio (§5.1).
+  - Verbos técnicos y de intención en inglés: `createEntrenamiento()`, `findPlanById()`, `listAlumnos()`, `CreatePlanUseCase`, `FindPlanByIdQuery`, `CreatePlanDto`.
+  - Entidades, value objects, atributos, enums y conceptos en español, sin traducir: `Plan`, `Entrenamiento`, `Alumno`, `Profesor`, `fechaDesde`, `cantidadObjetivo`, `prescripcionesSemanales`.
+  - Comportamientos del dominio en español, tal como figuran en el lenguaje ubicuo: `estaActivo()`, `abarcaRangoDeFechas()`, `darDeAlta()`, `obtenerRecordDeEjercicio()`. Un método de entidad nombra un comportamiento del negocio, no una operación de CRUD.
+  - Identificadores transversales técnicos en inglés: `createdAt`, `updatedById`, `deletedAt` (§6.1), `execute`, `input`, `result`.
+  - Archivos y carpetas: verbo en inglés y sustantivo de dominio en español, con el guion de §5.2: `create-plan.use-case.ts`, `plan.entity.ts`, `plan.repository.interface.ts`, `micro-orm-plan.repository.ts`.
+  - **La frontera entre las dos reglas es la naturaleza del nombre:** si describe una regla del gimnasio, queda en español aunque sea un método; si describe una operación técnica sobre los datos, va en inglés. `createEntrenamiento()` crea una fila; `darDeAlta()` cambia el estado de negocio de un `Alumno`.
+  - Renombrar un concepto de dominio es una decisión de alcance: se cambia primero en `docs/dominio/` mediante un cambio de OpenSpec, nunca solo en el código.
 - **ESM:** `package.json` tiene `"type": "module"` y `tsconfig` usa `nodenext`. Todo import relativo lleva extensión `.js` (`import { AppModule } from './app.module.js'`).
 - **TypeScript estricto:** no relajar `strict` ni usar `@ts-ignore` sin justificación escrita.
 - **NestJS:** un módulo por capacidad de negocio. La estructura de carpetas, las capas y las dependencias permitidas están en §5; no se repiten acá.
@@ -214,7 +222,7 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 | Artefacto | Vive en | Valida | Conoce |
 | --- | --- | --- | --- |
 | **DTO HTTP** (`CreatePlanDto`) | `presentation/dto/` | Formato, tipos y campos obligatorios con `class-validator` | El contrato del transporte. Nada del dominio. |
-| **Input de aplicación** (`CrearPlanInput`) | junto a su caso de uso: tipo, interfaz o clase; `<verbo>-<sustantivo>.input.ts` solo si se crea un archivo | Nada: ya viene validado | Lo que la intención necesita, con tipos del dominio cuando aplica. Sin decoradores de transporte ni dependencias de Nest/HTTP. |
+| **Input de aplicación** (`CreatePlanInput`) | junto a su caso de uso: tipo, interfaz o clase; `<verbo>-<sustantivo>.input.ts` solo si se crea un archivo | Nada: ya viene validado | Lo que la intención necesita, con tipos del dominio cuando aplica. Sin decoradores de transporte ni dependencias de Nest/HTTP. |
 | **Entidad o agregado** (`Plan`) | `domain/entities/` | Invariantes del gimnasio | Su propio estado y sus reglas. |
 
 - El controller transforma el DTO en Input y lo pasa al `execute(input)`. El caso de uso no importa el DTO ni `class-validator`.
@@ -226,7 +234,7 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 - Usar el `EntityManager` contextual y la Unit of Work de MikroORM. No replicar `TypeOrmUnitOfWork` ni decoradores `@Transactional()` ad hoc de otros proyectos.
 - El límite transaccional coincide con el caso de uso que coordina los cambios: él decide qué operaciones forman una unidad. La ejecución —`em.transactional(...)`— pertenece a la implementación del puerto, no a `application/`. Todas las escrituras relacionadas van en el mismo contexto.
 - El caso de uso y, cuando exista, el Query Object reciben su **puerto** por constructor. `MikroOrmModule.forFeature([...])` se configura en el módulo NestJS (`*.module.ts`) y `@InjectRepository(Entity)` se usa en las clases concretas de `infrastructure/`; ninguno de los dos aparece en los casos de uso. El vínculo puerto → implementación se declara por token en `*.module.ts`.
-- Si un comando modifica varios agregados, el puerto expone una **operación con nombre propio** (`crearConDesasignacion(...)`) y su implementación la envuelve en `em.transactional(...)`. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
+- Si un comando modifica varios agregados, el puerto expone una **operación con nombre propio** (`createWithDeasignacion(...)`) y su implementación la envuelve en `em.transactional(...)`. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
 - Los métodos de escritura del puerto reciben y devuelven **agregados o entidades de dominio**. Recibir un DTO HTTP o un Input de aplicación es un error de diseño.
 - No llamar `flush()` desde reglas puras del dominio.
 - Una lectura previa `exists(...)` **no** garantiza una invariante concurrente: diseñar restricción, índice único parcial o bloqueo en PostgreSQL, y demostrarlo con prueba.

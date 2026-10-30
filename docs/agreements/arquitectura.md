@@ -30,6 +30,7 @@ Cuando una convención cambie, el orden es: se aprueba la decisión, se aplica e
 - **Partición:** por responsabilidades del negocio (*feature-first / domain-first*), no por una carpeta global de `controllers`, otra de `services` y otra de `repositories`.
 - **Capas conceptuales internas:** presentación, aplicación, dominio e infraestructura.
 - **Modelado:** DDD pragmático: lenguaje ubicuo, raíces de agregado, entidades, value objects, invariantes y servicios de dominio cuando aportan valor.
+- **Idioma de los identificadores:** el **verbo va en inglés** y el **concepto de dominio conserva el español** del lenguaje ubicuo —`createEntrenamiento()`, `findPlanById()`, `Plan`, `fechaDesde`, `darDeAlta()`—. La frontera es la naturaleza del nombre: un comportamiento del negocio se escribe como lo nombra el dominio, en español; una operación técnica sobre los datos, en inglés. Convención aprobada por el equipo y fijada en `AGENTS.md` §4.
 - **Contratos de persistencia:** obligatorios en el borde de aplicación. Los casos de uso —comandos y lecturas— y los Query Objects, cuando existan, acceden a la persistencia a través de una interfaz y nunca de `EntityRepository`, `EntityManager` ni `QueryBuilder` de MikroORM. La interfaz no se crea por operación: se reutiliza el contrato existente que ya cubre la lectura o la escritura necesaria. La implementación concreta pertenece a `infrastructure/` y se vincula mediante inyección de dependencias de NestJS.
 - **Abstracciones restantes:** selectivas. Fuera del borde de persistencia, una interfaz, un adapter, un servicio o una Factory se justifican por desacoplamiento real, testabilidad, varios consumidores o una regla compleja; no por plantilla. La Factory tampoco se exige una por entidad.
 - **CQRS:** el documento distingue explícitamente comandos y modelos de lectura, pero **no exige** `@nestjs/cqrs`, buses, handlers ni bases separadas. Pueden existir consultas dedicadas sin CQRS formal.
@@ -229,11 +230,11 @@ src/modules/catalogo/
 
 **No puede:** ocultar invariantes que deberían vivir dentro de los agregados, duplicar reglas en diversos controladores o casos de uso, ni presentar como regla de negocio la mera coordinación entre agregados.
 
-- Un caso de uso por intención de negocio (`CrearPlanUseCase`, `ListarEjerciciosUseCase`), con un único método público `execute()`.
+- Un caso de uso por intención de negocio (`CreatePlanUseCase`, `ListEjerciciosUseCase`), con un único método público `execute()`.
 - El caso de uso es el límite transaccional y el lugar donde se comprueba el actor y el permiso de la operación.
 - Un caso de uso puede ser fino: delegar en el agregado y persistir es una implementación válida. Lo que no se admite es mover esa orquestación al controller.
 - **La dependencia de persistencia es siempre una interfaz.** El caso de uso recibe por constructor un `IPlanRepository` (o el puerto equivalente) y jamás `@InjectRepository(Entity)`, `EntityRepository`, `EntityManager` ni `QueryBuilder`. La implementación concreta se registra como provider en `*.module.ts`. No se declara una interfaz nueva por operación: si un contrato existente ya cubre la lectura o la escritura, se reutiliza o se amplía.
-- El caso de uso recibe un **Input de aplicación** (`CrearPlanInput`), no el DTO HTTP: el DTO y `class-validator` se quedan en `presentation/` (§5.6).
+- El caso de uso recibe un **Input de aplicación** (`CreatePlanInput`), no el DTO HTTP: el DTO y `class-validator` se quedan en `presentation/` (§5.6).
 - Los métodos de escritura del puerto reciben y devuelven **agregados o entidades de dominio**, nunca DTO HTTP ni Input de aplicación.
 - No crear `<capacidad>.service.ts` ni `*-query.service.ts`. Si dos casos de uso comparten pasos, esos pasos son regla de dominio o un colaborador con nombre propio, nunca un servicio con el nombre del módulo.
 - No imponer una cadena de delegación donde cada capa solo reenvía métodos a la siguiente. El puerto de persistencia es el único borde admitido; por encima de él no se apilan repositorios, adaptadores ni interfaces.
@@ -295,7 +296,7 @@ NestJS `*.module.ts` es la **composition root** local: registra controladores y 
 | Coordinación de operaciones y límite transaccional | dentro del `UseCase` que la origina |
 | Lectura agregada (historial, récord, evolución, asistencias) | `UseCase` o `Query Object` con proyección; nunca hidratar agregados completos |
 | Baja lógica o reactivación de un agregado | caso de uso propio del comando + puerto de escritura; nunca un `update` genérico (§7) |
-| Crear plan completo | `CrearPlanUseCase` + `Plan` (con Factory si la construcción lo justifica) + `IPlanRepository` |
+| Crear plan completo | `CreatePlanUseCase` + `Plan` (con Factory si la construcción lo justifica) + `IPlanRepository` |
 | Iniciar, agregar o finalizar entrenamiento | caso de uso + métodos de `Entrenamiento` |
 | Baja de profesor con desasignación de alumnos | caso de uso coordinador + transacción; nunca evento asíncrono en el MVP sin aprobación |
 | Servicio externo real | caso de uso → interfaz → adapter; solo si la integración es parte del alcance aprobado |
@@ -378,7 +379,7 @@ Tres artefactos con dueños distintos, que no se reemplazan entre sí:
 | Artefacto | Vive en | Valida | Conoce |
 | --- | --- | --- | --- |
 | **DTO HTTP** (`CreatePlanDto`) | `presentation/dto/` | Formato, tipos y campos obligatorios, con `class-validator` | El contrato del transporte. Nada del dominio. |
-| **Input de aplicación** (`CrearPlanInput`) | junto a su caso de uso: tipo, interfaz o clase; `<verbo>-<sustantivo>.input.ts` solo si se crea un archivo | Nada: es un tipo de parámetros ya validado | Lo que la intención de negocio necesita, con tipos del dominio cuando aplica (`planId: PlanId`). Sin decoradores de transporte ni dependencias de Nest/HTTP. |
+| **Input de aplicación** (`CreatePlanInput`) | junto a su caso de uso: tipo, interfaz o clase; `<verbo>-<sustantivo>.input.ts` solo si se crea un archivo | Nada: es un tipo de parámetros ya validado | Lo que la intención de negocio necesita, con tipos del dominio cuando aplica (`planId: PlanId`). Sin decoradores de transporte ni dependencias de Nest/HTTP. |
 | **Entidad o agregado** (`Plan`) | `domain/entities/` | Invariantes del gimnasio | Su propio estado y sus reglas. Nunca se construye desde el payload sin pasar por sus validaciones. |
 
 - El controller transforma el DTO en Input y lo entrega al `execute(input)` del caso de uso. El caso de uso no importa `class-validator`, `@nestjs/common` para validación, ni el DTO.
@@ -389,7 +390,7 @@ Tres artefactos con dueños distintos, que no se reemplazan entre sí:
 
 - el agregado necesita datos de varias fuentes antes de invocar su constructor o su método de fábrica;
 - hay valores por defecto o una política de armado que debe aplicarse siempre y no puede expresarse en el constructor;
-- la construcción tiene un nombre de negocio propio (`Plan.aPartirDe(...)`, `PlanFactory.crearDesdePrescripcion(...)`).
+- la construcción tiene un nombre de negocio propio (`Plan.fromPrescripcion(...)`, `PlanFactory.createFromPrescripcion(...)`).
 
 No se crea una Factory por entidad. Un constructor con validaciones o un método estático nombrado de la raíz cubre la mayoría de los casos y es preferible: menos archivos, misma protección. La Factory no reemplaza al constructor ni puede saltear invariantes; si lo hace, es un antipatrón.
 
@@ -454,7 +455,7 @@ El detalle operativo de persistencia, integridad y migraciones vive en `AGENTS.m
 - El **caso de uso y el Query Object, cuando existe,** declaran su dependencia de persistencia como interfaz —`IPlanRepository`, `IHistorialEntrenamientosReader`— y la reciben por constructor. No se declara una interfaz nueva por operación si un contrato existente ya cubre lo necesario. `EntityRepository`, `EntityManager` y `QueryBuilder` aparecen **solo** dentro de `infrastructure/`.
 - `MikroOrmModule.forFeature([...])` se configura en el módulo NestJS (`*.module.ts`) y `@InjectRepository(Entity)` se usa en las clases concretas de `infrastructure/`; ninguno de los dos aparece en el caso de uso ni en el Query Object. El vínculo puerto → implementación se declara en `*.module.ts` con un token explícito.
 - Todo puerto de escritura recibe y devuelve **agregados o entidades de dominio**. Recibir un DTO HTTP o un Input de aplicación es un error de diseño, no una comodidad.
-- La unidad de trabajo la decide el caso de uso y la ejecuta la implementación: si un comando modifica varios agregados, el puerto expone una operación con nombre propio (`crearConDesasignacion(...)`) y su implementación la envuelve en `em.transactional(...)`. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
+- La unidad de trabajo la decide el caso de uso y la ejecuta la implementación: si un comando modifica varios agregados, el puerto expone una operación con nombre propio (`createWithDeasignacion(...)`) y su implementación la envuelve en `em.transactional(...)`. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
 - No lanzar `flush()` incidentalmente desde reglas puras del dominio; persistir en el ámbito definido por aplicación.
 
 ### Baja lógica, exclusión y reactivación
@@ -517,7 +518,7 @@ Las reglas de OpenSpec obligatorio, RED/GREEN/REFACTOR, Vitest, nombres de archi
 | --- | --- |
 | Dominio (`Plan`) | Días permitidos, bloques obligatorios, duplicados y consistencia de progresión. |
 | Dominio (`Entrenamiento`) | Series válidas, ejercicio repetido, estado finalizado inmutable. |
-| Aplicación (`CrearPlanUseCase`) | Alumno activo, actor autorizado, solapamientos, transacción. |
+| Aplicación (`CreatePlanUseCase`) | Alumno activo, actor autorizado, solapamientos, transacción. |
 | Aplicación (baja profesor) | Desasignación atómica de alumnos, errores y rollback. |
 | Aplicación (baja y reactivación) | Baja lógica completa, exclusión del registro en lecturas posteriores, reactivación con auditoría actualizada y actor tomado del contexto. |
 | Ports de persistencia | Casos de uso y Query Objects probados contra un doble del puerto, verificando el Input recibido y el agregado devuelto; ningún test de aplicación instancia MikroORM. |
@@ -581,8 +582,8 @@ src/modules/planes/
 │       └── plan-response.dto.ts
 ├── application/
 │   └── use-cases/
-│       ├── crear-plan.use-case.ts
-│       ├── crear-plan.input.ts                 # Opcional: tipo, interfaz o clase
+│       ├── create-plan.use-case.ts
+│       ├── create-plan.input.ts                 # Opcional: tipo, interfaz o clase
 │       ├── plan-de-alumno.query.ts             # Opcional: la lectura lo justifica
 │       ├── plan-de-alumno.query.interface.ts   # IPlanDeAlumnoReader
 │       └── plan-de-alumno.result.ts            # Proyección de lectura
@@ -604,13 +605,13 @@ src/modules/planes/
         └── mikro-orm-plan-de-alumno.reader.ts
 ```
 
-**Flujo de escritura:** `PlanesController -> CreatePlanDto -> CrearPlanInput -> CrearPlanUseCase -> Plan (invariantes) -> IPlanRepository -> MikroOrmPlanRepository -> PostgreSQL`.
+**Flujo de escritura:** `PlanesController -> CreatePlanDto -> CreatePlanInput -> CreatePlanUseCase -> Plan (invariantes) -> IPlanRepository -> MikroOrmPlanRepository -> PostgreSQL`.
 
 **Flujo de lectura:** `PlanesController -> PlanDeAlumnoQuery -> IPlanDeAlumnoReader -> MikroOrmPlanDeAlumnoReader (QueryBuilder + LEFT JOIN, filtro de baja lógica) -> PlanDeAlumnoResult -> DTO de respuesta`. Si la lectura fuera simple —una entidad por identificador, sin filtros dinámicos— alcanzaría un caso de uso con el contrato de persistencia existente, sin Query Object ni puerto nuevo.
 
 **Diferencia deliberada:** el flujo de lectura no atraviesa `Plan` como aggregate root cuando solo se quiere mostrar información. Debe seguir preservando permisos y la exclusión de registros dados de baja.
 
-Para cada CRUD de catálogo aplica la misma ruta que a cualquier comando: `Controller -> Input -> UseCase -> I<Concepto>Repository -> MikroOrm<Concepto>Repository`, **dentro de su subcarpeta específica** (por ejemplo, `catalogo/materiales/` contiene `MaterialesController`, `use-cases/crear-material.use-case.ts`, `material.repository.interface.ts`, `infrastructure/repositories/mikro-orm-material.repository.ts`, los DTO, `Material` y `MaterialesModule`). La baja consulta referencias antes de decidir, así que el caso de uso también es su límite transaccional. La implementación de persistencia y el contrato que la operación usa **no son opcionales** aunque el CRUD sea mecánico; lo que no se agrega sin motivo son `factories/`, `services/` y `external/`. `CatalogoModule` solamente agrupa los submódulos.
+Para cada CRUD de catálogo aplica la misma ruta que a cualquier comando: `Controller -> Input -> UseCase -> I<Concepto>Repository -> MikroOrm<Concepto>Repository`, **dentro de su subcarpeta específica** (por ejemplo, `catalogo/materiales/` contiene `MaterialesController`, `use-cases/create-material.use-case.ts`, `material.repository.interface.ts`, `infrastructure/repositories/mikro-orm-material.repository.ts`, los DTO, `Material` y `MaterialesModule`). La baja consulta referencias antes de decidir, así que el caso de uso también es su límite transaccional. La implementación de persistencia y el contrato que la operación usa **no son opcionales** aunque el CRUD sea mecánico; lo que no se agrega sin motivo son `factories/`, `services/` y `external/`. `CatalogoModule` solamente agrupa los submódulos.
 
 ---
 
@@ -623,6 +624,7 @@ Para cada CRUD de catálogo aplica la misma ruta que a cualquier comando: `Contr
 | Duración del plan | **Resuelto: RN-04 = entre 4 y 12 semanas**, según `Reglas de negocio.md` v2.0 y los criterios de aceptación de `HU 1 - Registrar plan de entrenamiento`. Reemplaza la duración fija de 4 semanas del análisis preliminar. | Persistir la **cantidad de semanas elegida por plan** (4 a 12) y calcular la fecha de fin. No volver a una constante fija ni aceptar valores fuera del rango. |
 | Entrenamiento sin plan | **Resuelto: `RN-17`** exige plan vigente para registrar un entrenamiento, y **`RN-16`** admite ejercicios adicionales del catálogo dentro de un entrenamiento asociado al plan vigente, a un día y a una semana elegidos. La flexibilidad que describe el análisis es sobre ejercicios, no sobre la existencia del plan. | Rechazar el registro sin plan vigente en el dominio. No crear un caso de uso «entrenamiento libre» ni pedir una decisión por cada escenario. |
 | Estructura de capas | **Resuelto:** `AGENTS.md` §4 y §5 adoptan las cuatro capas y dejan de ubicar controllers y DTO en `infrastructure/`. Sustituye la convención anterior; no es un empate entre fuentes. | Seguir `AGENTS.md`. La convención aplica al código vigente y al nuevo: no hay migración masiva que hacer, y cualquier archivo que no la cumpla se corrige al tocarlo. |
+| Idioma de los identificadores | **Resuelto por decisión del equipo:** la introducción de `AGENTS.md` pedía «el código… en inglés», mientras §5.1 y §5.7 no traducen el lenguaje ubicuo y ejemplificaban `crearConDesasignacion(...)`. Se adopta **verbo en inglés, concepto de dominio en español**, fijado en `AGENTS.md` §4 y en §1 de esta guía. | Nombrar con verbo en inglés y concepto de dominio en español (`createEntrenamiento()`, `findPlanById()`); los comportamientos del dominio conservan la forma del lenguaje ubicuo (`darDeAlta()`, `abarcaRangoDeFechas()`). No traducir ni renombrar términos del dominio en el código: un cambio de nombre del concepto se aprueba primero en `docs/dominio/` mediante un cambio de OpenSpec. |
 | Stack histórico | Secciones del SPMP contienen referencias heredadas a MySQL/TypeORM/Jest/ESLint y a Gestión de Productos | Para implementación priorizar `package.json`, ORM config y `AGENTS.md` reales: PostgreSQL/MikroORM/Vitest/oxlint. No copiar esos ejemplos antiguos. |
 | Nombre de carpetas/módulos | El documento define dominios, no rutas exactas `src/modules/*` | Los árboles de esta guía son recomendación para el equipo; no dar por existente un módulo. |
 | Entidades ORM vs dominio puro | El documento pide bajo acoplamiento; el repo configura decoradores legacy MikroORM | Permitir compromiso pragmático explícito; si se exige independencia estricta, proponer mapeo de modelos separados como decisión adicional. |
