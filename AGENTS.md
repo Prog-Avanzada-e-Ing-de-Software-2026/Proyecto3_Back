@@ -12,6 +12,8 @@ Las buenas prácticas de desarrollo —principios de trabajo, contratos HTTP y v
 
 Ese documento ya está alineado con GitFlow, adoptado según §10, y su §4 describe Swagger/OpenAPI, cuya dependencia ya está instalada. `@nestjs/swagger` está en `package.json`: el registro del `SwaggerModule` en `src/main.ts`, la ruta de documentación y la decoración de los controllers se entregan en el cambio de OpenSpec que exponga el primer endpoint, y cada endpoint posterior se documenta en el mismo cambio que lo crea.
 
+La **estrategia de testing** del repositorio está en `docs/agreements/testing.md`: qué se prueba en cada capa, el nivel mínimo que comprueba el comportamiento sin duplicar cobertura, la prioridad de esfuerzo `dominio → endpoints → casos de uso → persistencia`, Vitest con MikroORM y PostgreSQL real vía Testcontainers, el aislamiento del entorno, la cobertura esperada por módulo y la trazabilidad de cada caso a una regla o criterio de aceptación. Es de **cumplimiento obligatorio** al escribir o modificar pruebas: no se adopta otra estrategia por conveniencia ni por analogía con otros proyectos. §7 conserva los comandos y las reglas operativas del día a día; ante discrepancia manda `AGENTS.md` y la discrepancia se reporta. En materia de pruebas la precedencia es `AGENTS.md` → `docs/agreements/testing.md` → `docs/agreements/buenas_practicas.md`.
+
 ## 2. Comandos
 
 | Objetivo | Comando |
@@ -306,13 +308,15 @@ Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCas
 
 ## 7. Testing y verificación
 
+La estrategia —qué se prueba por capa, nivel mínimo, prioridades, aislamiento, cobertura esperada y trazabilidad de casos— está en `docs/agreements/testing.md` y se aplica al escribir o modificar pruebas. Esta sección fija los comandos y las reglas operativas que la complementan.
+
 - Tests unitarios colocados junto al código, con sufijo `.spec.ts`.
 - Tests e2e en `test/`, con sufijo `.e2e-spec.ts`.
 - Todo cambio de comportamiento sigue test-first: primero un test que falla (RED), luego la implementación (GREEN), luego refactor.
 - Cada test debe verificar todos los efectos observables de la regla (salida, error, datos persistidos) y pasar por la interfaz pública.
 - Toda entidad nueva cubre alta, edición y baja verificando los seis campos de auditoría (§6.1) a través de la interfaz pública, incluido que el actor provenga del contexto de autenticación y no del payload.
-- **Qué probar por capa:** dominio → invariantes del agregado (días permitidos, bloques obligatorios, series válidas, entrenamiento finalizado inmutable); aplicación → autorización del actor, solapamientos, atomicidad y rollback, con un doble del puerto que verifique el Input y el agregado; persistencia → restricciones de PostgreSQL, índices declarados en migraciones, concurrencia, auditoría y baja lógica; consultas → filtros de autorización, exclusión de registros dados de baja, filtros dinámicos, `LEFT JOIN` sobre relaciones opcionales, récords calculados, orden estable y paginación; HTTP → DTO, Input, guards, códigos y contratos de error.
-- No dar por probada la integridad transaccional haciendo mocks del ORM. En aplicación se usa un doble del puerto; la integridad se prueba contra PostgreSQL real. Si un test requiere PostgreSQL real y no está disponible, se reporta como omitido, nunca como verde.
+- **Qué probar por capa:** el detalle y las prioridades están en `docs/agreements/testing.md` §3. En resumen: dominio → invariantes del agregado; aplicación → autorización del actor, solapamientos, atomicidad y rollback, con un doble del puerto que verifique el Input y el agregado; persistencia → restricciones de PostgreSQL, índices declarados en migraciones, concurrencia, auditoría y baja lógica, contra base real; consultas → filtros de autorización, exclusión de registros dados de baja, filtros dinámicos, `LEFT JOIN` sobre relaciones opcionales, récords calculados, orden estable y paginación; HTTP → DTO, Input, guards, códigos y contratos de error.
+- No dar por probada la integridad transaccional haciendo mocks del ORM. En aplicación se usa un doble del puerto; la integridad se prueba contra PostgreSQL real. Si PostgreSQL real no está disponible, se reporta el bloqueo de infraestructura y se deja el test sin ejecutar: nunca se declara verde ni se sustituye por un mock, un `skip` o una aserción vacía.
 - Antes de declarar terminada una tarea: `yarn typecheck && yarn lint && yarn test`.
 - Ejecutar `yarn test:e2e` cuando el cambio toque HTTP, base de datos o configuración de la aplicación.
 - No desactivar ni saltear tests para "dejar todo en verde". Si un test falla por una causa preexistente, documentarlo con evidencia.
