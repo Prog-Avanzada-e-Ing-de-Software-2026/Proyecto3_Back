@@ -340,11 +340,11 @@ La interfaz de persistencia **es obligatoria y no se evalúa caso por caso**: el
 
 ### 5.2 `Entrenamiento` (aggregate root)
 
-- Pertenece a un alumno, puede utilizar el plan/día activo como guía y puede registrar ejercicios adicionales del catálogo sin estar obligatoriamente limitado a los planificados.
-- **No interpretar eso como autorización para crear «entrenamientos libres sin plan»**: el alcance del documento de gestión excluye explícitamente el entrenamiento libre. Si un escenario requiere entrenar sin plan, registrar el conflicto antes de implementarlo.
+- Pertenece a un alumno y se asocia a su **plan vigente**, a un **día** y a una **semana** de ese plan, elegidos por el alumno (`RN-16`). Sin plan vigente no se registra un entrenamiento (`RN-17`): el rechazo es una regla de dominio, no una decisión del controller.
+- Puede registrar **ejercicios adicionales del catálogo**, estén o no en el plan (`RN-16`), pero eso no autoriza «entrenamientos libres sin plan». La guía del día se ofrece junto con la prescripción semanal de la **semana elegida** (`RN-19`).
 - Un alumno solo puede tener **un entrenamiento en curso**.
 - Un ejercicio no se repite dentro del mismo entrenamiento.
-- `EjercicioRealizado` conserva identidad dentro de `Entrenamiento`; `Serie` y `Cantidad` son VO según el modelo preliminar.
+- `EjercicioRealizado` conserva identidad dentro de `Entrenamiento`; `Serie` y `Cantidad` son VO (§5.5).
 - Una serie exige cantidad `>= 1` y peso `>= 0` o ausente, conforme a la regla documentada.
 - Un entrenamiento finalizado **no puede editarse**.
 - No basta validar la unicidad de entrenamientos en curso en memoria: diseñar integridad de persistencia ante solicitudes concurrentes (por ejemplo, restricción/indexación apropiada) si corresponde.
@@ -621,7 +621,7 @@ Para cada CRUD de catálogo aplica la misma ruta que a cualquier comando: `Contr
 | Tema | Evidencia documental | Comportamiento exigido |
 | --- | --- | --- |
 | Duración del plan | **Resuelto: RN-04 = entre 4 y 12 semanas**, según `Reglas de negocio.md` v2.0 y los criterios de aceptación de `HU 1 - Registrar plan de entrenamiento`. Reemplaza la duración fija de 4 semanas del análisis preliminar. | Persistir la **cantidad de semanas elegida por plan** (4 a 12) y calcular la fecha de fin. No volver a una constante fija ni aceptar valores fuera del rango. |
-| Entrenamiento sin plan | Alcance del SPMP excluye entrenamiento libre, pero análisis describe registro flexible respecto de ejercicios planificados | Distinguir «ejercicios adicionales» de «sesión sin plan»; pedir decisión si el escenario cruza ese límite. |
+| Entrenamiento sin plan | **Resuelto: `RN-17`** exige plan vigente para registrar un entrenamiento, y **`RN-16`** admite ejercicios adicionales del catálogo dentro de un entrenamiento asociado al plan vigente, a un día y a una semana elegidos. La flexibilidad que describe el análisis es sobre ejercicios, no sobre la existencia del plan. | Rechazar el registro sin plan vigente en el dominio. No crear un caso de uso «entrenamiento libre» ni pedir una decisión por cada escenario. |
 | Estructura de capas | **Resuelto:** `AGENTS.md` §4 y §5 adoptan las cuatro capas y dejan de ubicar controllers y DTO en `infrastructure/`. Sustituye la convención anterior; no es un empate entre fuentes. | Seguir `AGENTS.md`. La convención aplica al código vigente y al nuevo: no hay migración masiva que hacer, y cualquier archivo que no la cumpla se corrige al tocarlo. |
 | Stack histórico | Secciones del SPMP contienen referencias heredadas a MySQL/TypeORM/Jest/ESLint y a Gestión de Productos | Para implementación priorizar `package.json`, ORM config y `AGENTS.md` reales: PostgreSQL/MikroORM/Vitest/oxlint. No copiar esos ejemplos antiguos. |
 | Nombre de carpetas/módulos | El documento define dominios, no rutas exactas `src/modules/*` | Los árboles de esta guía son recomendación para el equipo; no dar por existente un módulo. |
