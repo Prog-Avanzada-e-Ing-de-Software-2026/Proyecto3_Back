@@ -1,0 +1,36 @@
+name: docs
+
+# Documentation reference gate, separate from ci.yml so it fails on its own and
+# does not wait for typecheck, lint or tests.
+#
+# No path filters on purpose: a workflow skipped by filtering never creates its
+# check run, and a required check that never reports blocks every pull request.
+# The job is cheap (Node built-ins only, no dependency install), so it runs on
+# every pull request and push to the long-lived branches.
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  references:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Documentation references gate
+        run: node scripts/check-doc-refs.mjs

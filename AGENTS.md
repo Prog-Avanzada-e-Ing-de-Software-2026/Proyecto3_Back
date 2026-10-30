@@ -21,6 +21,7 @@ Ese documento ya está alineado con GitFlow, adoptado según §10, y su §4 desc
 | Build | `yarn build` |
 | Typecheck | `yarn typecheck` |
 | Lint | `yarn lint` |
+| Verificar referencias entre documentos | `yarn check:docs` |
 | Formatear | `yarn format` |
 | Tests unitarios | `yarn test` |
 | Tests e2e | `yarn test:e2e` |
@@ -157,7 +158,7 @@ src/
 
 `src/modules/catalogo/` es un módulo agrupador. `ejercicios`, `categorias-ejercicio`, `materiales`, `unidades` y `objetivos-plan` tienen cada uno su subcarpeta con controller, casos de uso, DTO, entidad y módulo NestJS propios. `CatalogoModule` solo los agrupa e importa: no concentra controladores, CRUD ni repositorios.
 
-**Por qué es una excepción y no ceremonia:** `docs/dominio/Analisis de dominio.md:94` define cada concepto de catálogo como **raíz de su propio agregado**, y las historias de catálogo (`HU 2`, `HU 26`, `HU 27`, `HU 28` y `HU 29`) los especifican por separado. Un agregado, un submódulo, un cambio de OpenSpec.
+**Por qué es una excepción y no ceremonia:** `docs/dominio/Analisis de dominio.md` define cada concepto de catálogo como **raíz de su propio agregado** —«cada una de las cuales es raíz de su propio agregado»—, y las historias de catálogo (`HU 2`, `HU 26`, `HU 27`, `HU 28` y `HU 29`) los especifican por separado. Un agregado, un submódulo, un cambio de OpenSpec.
 
 El CRUD de catálogo no habilita una ruta distinta: cada comando y cada lectura se implementan como caso de uso, igual que en cualquier otro agregado; un Query Object se agrega solo cuando la lectura lo justifica. Lo que el submódulo propio aporta es aislamiento, no una capa de aplicación más delgada. La implementación de persistencia y el contrato que la operación usa **son obligatorios** en cada submódulo; lo que no se agrega sin motivo son `infrastructure/queries/`, `factories/`, `services/` y `external/`.
 
