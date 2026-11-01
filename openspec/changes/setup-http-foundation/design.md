@@ -77,12 +77,15 @@ El filtro depende de `Logger` de `@nestjs/common` —respaldado por Pino— y no
 
 ### D7 — Identificador de solicitud: uno solo, resuelto en un punto
 
-Se acepta `X-Request-Id` entrante solo si cumple `^[A-Za-z0-9_-]{8,64}$`; en caso contrario se genera un UUID. La resolución vive en un middleware pequeño de `common/presentation/`, que deja el valor en la solicitud y lo escribe en la respuesta. `pino-http` usa ese mismo valor como `genReqId`, de modo que el `requestId` del cuerpo de error y el de los logs no pueden divergir.
+Se acepta `X-Request-Id` entrante solo si cumple `^[A-Za-z0-9_-]{8,64}$`; en caso contrario se genera un UUID. La resolución vive en la opción `genReqId` de `pino-http`: se ejecuta al inicio de cada solicitud, deja el valor en `req.id` y es la única fuente del identificador. El filtro escribe ese mismo valor en la cabecera `X-Request-Id` de la respuesta de error, de modo que cuerpo y logs no pueden divergir.
 
-**Alternativas descartadas:**
+**Alternativa descartada — middleware propio de NestJS:** su orden frente al middleware de `nestjs-pino` depende del orden de importación de módulos, y una reordenación silenciosa dejaría `genReqId` sin valor. `genReqId` no tiene ese acoplamiento.
 
-- Aceptar cualquier valor entrante: permite inyección de contenido arbitrario en logs y cabeceras.
-- Generar siempre uno nuevo: rompe la correlación con un proxy o con el frontend.
+**Alternativa descartada — aceptar cualquier valor entrante:** permite inyectar contenido arbitrario en logs y cabeceras.
+
+**Alternativa descartada — generar siempre uno nuevo:** rompe la correlación con un proxy o con el frontend.
+
+**Alternativa descartada — escribir la cabecera en todas las respuestas:** exige un interceptor o middleware con el mismo problema de orden; el contrato solo la exige en las respuestas de error. Se puede ampliar después sin romper nada.
 
 ### D8 — La petición y la respuesta nunca se registran en bruto
 

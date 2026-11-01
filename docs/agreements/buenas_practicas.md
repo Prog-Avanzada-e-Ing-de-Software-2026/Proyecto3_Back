@@ -132,7 +132,28 @@ Al crear o modificar un endpoint, revisar:
 - Dar contexto suficiente para reconstruir una operación cuando proceda, sin saturar los logs con métodos triviales.
 - No incluir secretos, tokens, credenciales ni datos personales innecesarios en mensajes de log.
 - Distinguir la trazabilidad técnica (**logs**) de la auditoría de entidades (**quién/cuándo realizó cambios persistidos**): una no reemplaza a la otra.
-- **Alcance del mecanismo:** el filtro global, el logging centralizado y la base auditable se construyen con la primera entidad y el primer endpoint, según `AGENTS.md` §6 y §7. Esta sección fija el destino y las reglas, no nombres de clases ni módulos.
+- **Alcance del mecanismo:** el filtro global y el logging centralizado se construyen antes del primer endpoint funcional; la base auditable, con la primera entidad, según `AGENTS.md` §6 y §7.
+
+### Contrato de error HTTP
+
+Toda respuesta 4xx o 5xx devuelve un cuerpo JSON con exactamente cuatro campos:
+
+| Campo | Contenido |
+| --- | --- |
+| `statusCode` | Estado HTTP de la respuesta. |
+| `code` | Identificador estable en mayúsculas; forma parte del contrato con el cliente. |
+| `message` | Mensaje seguro para mostrar. Nunca incluye trazas, SQL ni detalles internos. |
+| `requestId` | Identificador de la solicitud, repetido en la cabecera `X-Request-Id`. |
+
+- El error semántico declara una categoría que se traduce a `400`, `401`, `403`, `404` o `409`; una categoría desconocida o cualquier error no semántico responde `500` con `ERROR_INTERNO`.
+- Las excepciones que emite el framework —el 404 del router y, más adelante, el 400 de `ValidationPipe`— se normalizan al mismo cuerpo.
+- `X-Request-Id` se acepta del cliente solo con el formato `^[A-Za-z0-9_-]{8,64}$`; en cualquier otro caso se genera uno nuevo.
+
+### Logging estructurado
+
+- `LOG_LEVEL` define el nivel mínimo (`fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`); si falta o no es un nivel admitido se usa `info`.
+- La salida es un objeto JSON de una línea por evento, sin formato de consola, para que desarrollo y despliegue compartan la misma forma.
+- Se registran método, ruta, estado, duración e identificador de solicitud. No se registran cuerpos. Cookies, `authorization`, contraseñas, documentos y tokens se redactan.
 
 ## 7. Pruebas y calidad
 
