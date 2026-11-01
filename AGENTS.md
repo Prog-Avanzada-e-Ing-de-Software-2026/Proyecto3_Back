@@ -33,6 +33,7 @@ La **estrategia de testing** del repositorio está en `docs/agreements/testing.m
 | Revertir migración | `yarn db:migration:down` |
 | Migraciones pendientes | `yarn db:migration:pending` |
 | Verificar esquema | `yarn db:migration:check` |
+| Ejecutar un seed | `yarn db:seed <nombre>` |
 
 ## 3. Flujo SDD obligatorio (OpenSpec)
 
@@ -129,6 +130,7 @@ src/
 ├── app.module.ts
 ├── mikro-orm.config.ts
 ├── migrations/
+├── seeder/                  # Entrypoints de seeds; la lógica vive en cada módulo
 ├── common/                  # Solo lo transversal real, usado por dos o más módulos
 │   ├── domain/              # Base auditable, errores comunes
 │   ├── presentation/        # Filtro HTTP global, decorador de actor
@@ -158,6 +160,7 @@ src/
             └── queries/            # Implementación de puertos de lectura (QueryBuilder)
 ```
 
+- `seeder/` contiene solo entrypoints: levantan el contexto de Nest, resuelven un caso de uso por nombre y lo ejecutan. La carga inicial de datos se implementa como caso de uso del módulo dueño del agregado, nunca dentro de `seeder/`.
 - Crear cada subcarpeta **cuando se implemente** la funcionalidad que la necesita. Nunca carpetas vacías ni archivos ficticios para completar el árbol. **Excepción:** la implementación de persistencia y el contrato que la operación necesita se crean junto con su primer caso de uso, porque el ORM no se accede sin ese borde.
 - Los puertos de escritura viven en `domain/interfaces/<nombre>.repository.interface.ts` y devuelven agregados. Los puertos de lectura viven junto a la operación que los consume, en `application/use-cases/<nombre>.query.interface.ts`, y devuelven proyecciones de aplicación: el contrato pertenece al consumidor y la implementación, siempre a `infrastructure/`. No se exige una interfaz por operación: un contrato existente puede servir a varias lecturas.
 - **`application/` no importa nada de `@mikro-orm/*`.** Si un archivo de `application/` menciona `EntityRepository`, `EntityManager` o `QueryBuilder`, el límite está mal trazado.

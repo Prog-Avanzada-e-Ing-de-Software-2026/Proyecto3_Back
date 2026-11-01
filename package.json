@@ -28,7 +28,8 @@
     "db:migration:down": "mikro-orm migration:down",
     "db:migration:pending": "mikro-orm migration:pending",
     "db:migration:list": "mikro-orm migration:list",
-    "db:migration:check": "mikro-orm migration:check"
+    "db:migration:check": "mikro-orm migration:check",
+    "db:seed": "yarn build && node dist/seeder/seed.js"
   },
   "dependencies": {
     "@mikro-orm/core": "^7.2.5",
