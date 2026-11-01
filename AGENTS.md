@@ -287,13 +287,13 @@ Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCas
 | Propiedad | Tipo | Alta | Edición | Baja |
 | --- | --- | --- | --- | --- |
 | `createdAt` | `Date` | requerido | — | — |
-| `createdById` | `string` | requerido | — | — |
-| `updatedAt` | `Date` | requerido | requerido | — |
-| `updatedById` | `string` | requerido | requerido | — |
+| `createdById` | `number` | requerido | — | — |
+| `updatedAt` | `Date \| null` | `null` | requerido | — |
+| `updatedById` | `number \| null` | `null` | requerido | — |
 | `deletedAt` | `Date \| null` | `null` | `null` | requerido |
-| `deletedById` | `string \| null` | `null` | `null` | requerido |
+| `deletedById` | `number \| null` | `null` | `null` | requerido |
 
-- En el alta, `updatedAt` y `updatedById` se inicializan con los mismos valores que `createdAt` y `createdById`: toda fila tiene un último responsable, incluso antes de la primera edición.
+- En el alta, `updatedAt` y `updatedById` quedan en `null`: todavía no hubo edición. Toda lectura que necesite el último responsable usa `COALESCE(updatedAt, createdAt)` y `COALESCE(updatedById, createdById)`.
 - `deletedAt` y `deletedById` en `null` significan "la fila no está dada de baja". Se completan juntos o no se completa ninguno.
 - `createdById`, `updatedById` y `deletedById` referencian al **actor** (`Usuario`) por identificador, nunca por nombre ni email: un nombre suelto no es auditable.
 
@@ -332,7 +332,7 @@ La estrategia —qué se prueba por capa, nivel mínimo, prioridades, aislamient
 ## 8. Base de datos y migraciones
 
 - Los cambios de esquema son de alto riesgo: requieren un cambio de OpenSpec con su `design.md` y una estrategia de rollback.
-- Toda migración que crea o altera una entidad incluye las seis columnas de auditoría (§6.1). Su nulabilidad se define en el `design.md` del cambio; una vez que exista la capacidad de identidad, las columnas de alta y edición son `NOT NULL`.
+- Toda migración que crea o altera una entidad incluye las seis columnas de auditoría (§6.1). Su nulabilidad se define en el `design.md` del cambio; una vez que exista la capacidad de identidad, las columnas de alta (`createdAt`, `createdById`) son `NOT NULL` y las de edición (`updatedAt`, `updatedById`) permanecen nullables hasta la primera edición.
 - Toda tabla cuenta con al menos un índice, y el que PostgreSQL genera para la clave primaria alcanza. Los índices adicionales sobre claves foráneas y sobre campos usados con frecuencia en búsquedas, filtros y ordenamientos se evalúan según las consultas reales de la capacidad y el rendimiento esperado, no por una lista genérica de columnas candidatas.
 - Los índices se definen en las migraciones de MikroORM, igual que el resto del esquema; un índice derivado de decoradores o del snapshot se incorpora a la migración correspondiente y nunca se crea por `schema:update`.
 - No crear índices redundantes o innecesarios: los que repiten el prefijo de otro índice, duplican lo que ya garantiza un `UNIQUE` o no tienen consulta que los justifique incrementan el costo de `INSERT`, `UPDATE` y `DELETE`. Los índices únicos parciales de §6.3 no se reemplazan por índices planos.
