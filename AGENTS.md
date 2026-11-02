@@ -93,7 +93,7 @@ Solo los cambios sin efecto en comportamiento, contratos, esquema o código pued
   - Las entidades deben llamarse `*.entity.ts` (el config las busca con `./src/**/*.entity.ts`).
   - Usar los decoradores legacy de `@mikro-orm/decorators/legacy`, consistentes con el `ReflectMetadataProvider` configurado.
   - Las migraciones viven en `src/migrations`.
-  - Toda entidad persistente hereda de la base auditable (ver §6); los campos de auditoría no se declaran entidad por entidad.
+  - Toda entidad persistente declara las seis columnas de auditoría de §6.1 en su propia definición y las completa en el flujo que la crea o la modifica.
 - **Reglas de dominio:** se validan dentro de la raíz del agregado, no en controladores ni en DTOs. Un VO es inmutable; una entidad conserva identidad.
 - **Errores de dominio:** no exponer detalles de persistencia en la API. Los errores semánticos se traducen a HTTP en el límite de presentación, sin filtrar trazas ni detalles internos.
 - **Manejo de errores:** el tratamiento general está centralizado en un filtro global; `try/catch` es selectivo y solo traduce excepciones técnicas, recupera de un fallo esperable con alternativa concreta, agrega contexto sin ocultar la causa o compensa una operación no atómica. Un `catch` que solo registra y devuelve vacío está prohibido. Las excepciones del driver se traducen en `infrastructure/`; nunca llegan al cliente.
@@ -132,9 +132,8 @@ src/
 ├── migrations/
 ├── seeder/                  # Entrypoints de seeds; la lógica vive en cada módulo
 ├── common/                  # Solo lo transversal real, usado por dos o más módulos
-│   ├── domain/              # Base auditable, errores comunes
-│   ├── presentation/        # Filtro HTTP global, decorador de actor
-│   └── infrastructure/      # Mecanismo de auditoría
+│   ├── domain/              # Errores comunes
+│   └── presentation/        # Filtro HTTP global, decorador de actor
 └── modules/
     └── <capacidad>/         # alumnos, profesores, planes, entrenamientos, seguimiento, auth
         ├── <capacidad>.module.ts
@@ -279,7 +278,7 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 
 ## 6. Auditoría de entidades
 
-Toda entidad persistente registra **quién** creó, editó y eliminó cada fila. Es un requisito transversal del modelo: no se decide entidad por entidad ni caso de uso por caso de uso. El detalle de implementación (base abstracta, suscriptor sobre el `EntityManager`, interceptor) es una decisión de diseño del cambio de OpenSpec que introduzca la primera entidad; lo que no se negocia son los campos ni las reglas de esta sección.
+Toda entidad persistente registra **quién** creó, editó y eliminó cada fila. Es un requisito transversal del modelo, y cada entidad lo cumple por sí misma: declara las seis columnas de §6.1 y las completa en el flujo que la crea o la modifica. No hay base abstracta compartida ni suscriptor central; la repetición entre entidades es una decisión explícita del proyecto. Lo que no se negocia son los campos ni las reglas de esta sección.
 
 Esta convención se incorporó por decisión explícita del usuario como documentación: no requiere un cambio de OpenSpec propio, pero obliga a que todo cambio posterior que cree o modifique una entidad la cumpla.
 
@@ -302,10 +301,10 @@ Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCas
 
 ### 6.2 Reglas de implementación
 
-1. **Un solo lugar.** Los seis campos se completan en la base auditable y en el mecanismo de persistencia, nunca a mano en cada caso de uso ni en cada controlador.
+1. **Cada entidad los declara y los completa.** Las seis columnas se declaran en la entidad y se completan en el mismo caso de uso que la crea o la modifica, nunca en el controlador. La repetición entre entidades es deliberada: no se centraliza en una base abstracta ni en un suscriptor.
 2. **El actor sale del contexto de autenticación.** Jamás del body, del query string ni de un DTO. Si no hay actor identificado, la operación se rechaza; no se inventa un usuario "sistema" salvo en procesos internos explícitamente declarados.
 3. **El cliente no puede escribirlos.** Los DTOs de entrada no exponen estos campos y, si llegan en el payload, se ignoran.
-4. **Nada de escrituras que salteen el mecanismo.** `updateMany`, `nativeUpdate` o SQL crudo no pasan por el suscriptor y dejan la auditoría desactualizada. Si un caso de uso los necesita, actualiza `updatedAt` y `updatedById` explícitamente dentro de la misma transacción.
+4. **Nada de escrituras que salten el flujo.** `updateMany`, `nativeUpdate` o SQL crudo no pasan por el caso de uso y dejan la auditoría desactualizada. Si un caso de uso los necesita, actualiza `updatedAt` y `updatedById` explícitamente dentro de la misma transacción.
 5. **UTC.** Las fechas se persisten en UTC (`timestamptz`) y se serializan en ISO-8601 con zona.
 6. **La auditoría no se edita.** Ningún endpoint ni caso de uso modifica estos campos después de escritos; `createdAt` y `createdById` son inmutables por definición.
 

@@ -132,7 +132,7 @@ Al crear o modificar un endpoint, revisar:
 - Dar contexto suficiente para reconstruir una operación cuando proceda, sin saturar los logs con métodos triviales.
 - No incluir secretos, tokens, credenciales ni datos personales innecesarios en mensajes de log.
 - Distinguir la trazabilidad técnica (**logs**) de la auditoría de entidades (**quién/cuándo realizó cambios persistidos**): una no reemplaza a la otra.
-- **Alcance del mecanismo:** el filtro global y el logging centralizado se construyen antes del primer endpoint funcional; la base auditable, con la primera entidad, según `AGENTS.md` §6 y §7.
+- **Alcance del mecanismo:** el filtro global y el logging centralizado se construyen antes del primer endpoint funcional; la auditoría de entidades, con la primera entidad, según `AGENTS.md` §6 y §7.
 
 ### Contrato de error HTTP
 

@@ -56,7 +56,7 @@ src/
 ├── mikro-orm.config.ts
 ├── migrations/
 ├── common/                              # Solo preocupaciones transversales reales
-│   ├── domain/                          # Ej.: base auditable, errores comunes
+│   ├── domain/                          # Ej.: errores comunes
 │   ├── presentation/                    # Ej.: filtro HTTP global, decorador actor
 │   └── infrastructure/                  # Ej.: auditoría persistente
 └── modules/
@@ -467,7 +467,7 @@ La regla operativa vive en `AGENTS.md` §6.3; acá queda el criterio arquitectó
 - **Exclusión en consultas habituales.** El filtro `deletedAt IS NULL` se aplica en la implementación del puerto de lectura (§6, regla 6), no se repite a mano en cada consulta ni se delega a la memoria del desarrollador. Un registro dado de baja no aparece en listados, búsquedas, reportes ni validaciones de existencia salvo que la intención de la consulta pida explícitamente el histórico.
 - **Las comprobaciones de negocio también excluyen.** Un plan nuevo no se crea sobre un alumno dado de baja, y un ejercicio dado de baja no se ofrece en el catálogo: la validación consulta el estado vigente, no solo la existencia de la fila.
 - **Reactivación explícita.** Volver `deletedAt` y `deletedById` a `null` es un caso de uso del dominio, no un update genérico, y actualiza `updatedAt`/`updatedById` como cualquier otra edición. La reactivación conserva continuidad: el historial previo no se reescribe.
-- **Auditoría.** Los seis campos de `AGENTS.md` §6.1 se completan en el mismo mecanismo que el resto de las escrituras; la baja no los saltea y la reactivación tampoco. `createdAt` y `createdById` son inmutables.
+- **Auditoría.** Los seis campos de `AGENTS.md` §6.1 los declara y los completa cada entidad en su propio flujo; la baja no los saltea y la reactivación tampoco. `createdAt` y `createdById` son inmutables.
 - **Integridad.** Una restricción `UNIQUE` plana queda bloqueada por la fila dada de baja: el índice único parcial sobre `WHERE deleted_at IS NULL` es parte del diseño de la tabla, no un parche posterior.
 - **Escrituras que saltean el mecanismo.** `updateMany`, `nativeUpdate` o SQL crudo no pasan por el mecanismo de auditoría: si un caso de uso los necesita, actualiza `updatedAt`/`updatedById` y la baja lógica explícitamente dentro de la misma transacción.
 
@@ -483,7 +483,7 @@ La regla operativa vive en `AGENTS.md` §8; acá queda el criterio y el fundamen
 
 ### Auditoría transversal (ver `AGENTS.md` §6)
 
-La auditoría se define en `AGENTS.md` §6 y no se repite acá: seis columnas obligatorias (`createdAt`, `createdById`, `updatedAt`, `updatedById`, `deletedAt`, `deletedById`), actor tomado del contexto de autenticación y nunca del payload, UTC, baja lógica, reactivación explícita y restricciones únicas parciales. El mecanismo concreto —base abstracta, suscriptor sobre el `EntityManager` o interceptor— se implementa en el cambio de OpenSpec que introduzca la primera entidad, cumpliendo los seis campos.
+La auditoría se define en `AGENTS.md` §6 y no se repite acá: seis columnas obligatorias (`createdAt`, `createdById`, `updatedAt`, `updatedById`, `deletedAt`, `deletedById`), actor tomado del contexto de autenticación y nunca del payload, UTC, baja lógica, reactivación explícita y restricciones únicas parciales. Cada entidad declara sus seis columnas y las completa en el caso de uso que la crea o la modifica; no hay base abstracta compartida ni suscriptor central, y esa repetición es una decisión explícita del proyecto.
 
 ---
 
