@@ -1,6 +1,7 @@
 # Estado del cambio `add-usuario-identity`
 
 **Fecha de corte:** 2026-11-02
+**Última revisión:** 2026-11-02 — se presentaron las decisiones abiertas y las tablas de atributos; quedan pendientes de respuesta.
 **Rama:** `feature/add-usuario-identity` (apilada sobre `feature/setup-http-foundation`, upstream configurado en `origin`)
 **Estado:** planificación cerrada y validada. **La implementación no empezó**: `AGENTS.md` §3.7 separa planificación de implementación y falta la aprobación explícita del usuario.
 
@@ -12,7 +13,7 @@
 | `openspec/changes/add-usuario-identity/specs/identidad-usuario/spec.md` | **16 requisitos** con escenarios `WHEN/THEN`, trazados a `RN-nn` y `HU-n`. |
 | `openspec/changes/add-usuario-identity/design.md` | **19 decisiones** (`D1` a `D19`) con alternativas descartadas, **tablas de atributos por entidad** (§ *Modelo de datos*), módulos afectados, riesgos, rollback y estrategia de pruebas. |
 | `openspec/changes/add-usuario-identity/tasks.md` | **18 tareas** en 7 secciones, cada una con su prueba asociada y el requisito que la origina. |
-| `openspec/changes/add-usuario-identity/estado.md` | Este archivo: estado operativo de la sesión y cómo retomar. |
+| `openspec/changes/add-usuario-identity/estado.md` | Este archivo: estado operativo, revisión de decisiones abiertas y resumen del modelo de datos. |
 | `docs/temp/plan_auth_logging_proyecto3.md` | Plan general de auth y logging del que sale este cambio (etapas 3–6). |
 
 Validación vigente: `openspec validate add-usuario-identity --strict` → **valid**.
@@ -23,6 +24,7 @@ Validación vigente: `openspec validate add-usuario-identity --strict` → **val
 - Últimos commits de la rama: `b9144fd` (retira la base auditable compartida), `49b9624` (entrypoint de seeds), `380dd13` (base auditable), `b238fd1` (auditoría nullable y numérica).
 - **Commiteado** en `feature/add-usuario-identity`, en el commit `docs(openspec): propose add-usuario-identity change`. Para seguir desde otra PC falta el **push**: un commit local no viaja.
 - `openspec/changes/setup-http-foundation`: completo (14/14 tareas) y **sin archivar**. Pendiente de `openspec archive setup-http-foundation` cuando el usuario lo autorice.
+- `develop` no existe todavía en el clon local; la rama está apilada sobre `feature/setup-http-foundation`, no sobre `develop` como pide `AGENTS.md` §10.
 
 ## 3. Decisiones tomadas, con su motivo
 
@@ -62,22 +64,117 @@ Todas están desarrolladas en `design.md`; acá solo el índice para ubicarlas r
 | `PROFESOR` | `CREAR_PLAN` | `RN-11`, `HU 1` |
 | `ALUMNO` | ninguno | sus operaciones son por identidad (`RN-35`) |
 
-## 4. Puntos que el usuario todavía no confirmó
+## 4. Decisiones abiertas — revisión del 2026-11-02
 
-1. **Aprobación para implementar.** Es el único bloqueante real.
-2. **Catálogo de permisos:** son tres y salen de reglas e historias explícitas. El permiso de gestión del catálogo quedó afuera porque `DW-13` sigue abierta.
-3. **`created_by_id` nulo en las filas del seed:** el seeder es el proceso interno declarado por `AGENTS.md` §6.2.2, porque todavía no existe ningún `Usuario` que pueda ser actor.
-4. **`fechaNacimiento` como `date`** en lugar de `timestamptz` (`D14`).
+Se presentaron al usuario el 2026-11-02. **Todas quedaron sin respuesta:** el usuario pidió revisarlas antes de implementar. Ninguna bloquea técnicamente — el diseño ya tomó cada una — y esperan visto bueno.
 
-## 5. Próximos pasos, en orden
+| # | Punto | Decisión vigente | Recomendación registrada | Estado |
+| --- | --- | --- | --- | --- |
+| 1 | Aprobación para implementar | — | Es el único bloqueante real (`AGENTS.md` §3.7) | **Pendiente** |
+| 2 | Catálogo de permisos y `DW-13` | Tres permisos; el de gestión de catálogo queda fuera | No resolver `DW-13` acá: arrastra wireframes y navegación (`DW-03`, `AD-04`) | **Pendiente** |
+| 3 | `created_by_id` nulo en las filas del seed | `NULL` (`D6`, `D13`) | Dejarlo nulo y cerrarlo en `implement-login` | **Pendiente** |
+| 4 | `fechaNacimiento` como `date` | `date` sin zona (`D14`) | Dejarlo como está | **Pendiente** |
+| 5 | Unicidades planas | `UNIQUE` plano, sin índice parcial (`D9`) | Dejarlo; cambiarlo exige cambiar `RN-32` antes | **Pendiente** |
+| 6 | Rama base y cambio anterior | Apilada sobre `feature/setup-http-foundation`, completo y sin archivar | Archivar `setup-http-foundation` antes de implementar | **Pendiente** |
 
-1. Aprobar el cambio.
-2. Implementar siguiendo `tasks.md` de punta a punta. Las secciones 1–2 son test-first (RED → GREEN); la migración de la sección 3 se revisa a mano porque los decoradores no expresan el índice funcional `lower(nombre)`.
-3. Verificación de cierre: `yarn typecheck && yarn lint && yarn test`, más la suite de integración contra PostgreSQL 18 con Testcontainers (`yarn db:seed catalogo-identidad` se prueba dos veces seguidas).
-4. `openspec validate add-usuario-identity --strict`.
-5. Archivar solo con todas las tareas verificadas.
+**Detalle de los puntos con consecuencia de negocio:**
 
-## 6. Cómo retomar
+- **Punto 2 — catálogo de permisos.** El cambio carga `GESTIONAR_ALUMNOS`, `GESTIONAR_PROFESORES` y `CREAR_PLAN`. La pregunta abierta (`DW-13`) es quién gestiona máquinas, ejercicios, categorías, objetivos y unidades: Administrador, Profesor o ambos. Mientras no se responda, el permiso correspondiente no existe y `AD-04` queda indefinido. Agregar un permiso después es una fila nueva más su asignación, no un cambio de modelo ni de esquema.
+- **Punto 3 — auditoría del seed.** El seeder es el proceso interno declarado por `AGENTS.md` §6.2.2: todavía no existe ningún `Usuario` que pueda ser actor, y el primer administrador necesita Argon2id, que llega con `implement-login`. La alternativa es un actor centinela «sistema», que §6.2.2 prohíbe.
+- **Punto 4 — `fechaNacimiento`.** Una fecha de nacimiento no es un instante; guardada como `timestamptz` a medianoche UTC se corre de día al leerse desde otra zona. Se aparta de la letra de `AGENTS.md` §6.2.5 y por eso está registrada como excepción.
+- **Punto 5 — unicidades planas.** Consecuencia concreta: un email dado de baja **nunca se reutiliza**; si la persona vuelve se la **reactiva** (`RN-30`), no se la da de alta otra vez con el mismo email. Un código de rol o de permiso tampoco se recicla. Reutilizar el email de una baja dejaría dos identidades con el mismo acceso y volvería ambiguo el login de `HU 14`. Además es lo único que resiste dos altas concurrentes.
+- **Punto 6 — operativo.** `feature/add-usuario-identity` está apilada sobre `feature/setup-http-foundation`. `AGENTS.md` §10 dice que `feature/*` nace de `develop`, y `develop` no existe localmente. Archivar `setup-http-foundation` sincroniza los specs principales y es el paso natural antes de abrir la implementación.
+
+**Recomendación en bloque:** dejar 2–5 como están (cada una tiene su motivo escrito), archivar `setup-http-foundation` para cerrar el ciclo anterior y después implementar. `DW-13` queda para cuando se decida producto.
+
+## 5. Atributos de las entidades
+
+Resumen derivado de `design.md` § *Modelo de datos*. **Ante discrepancia manda `design.md`.** Los ids son `integer identity`, no `bigint`: el driver devuelve `bigint` como `string` y `AGENTS.md` §6.1 fija `number` para la auditoría.
+
+### Atributos de dominio
+
+| Entidad | Propiedad | Columna | Tipo PG | Null | Restricción |
+| --- | --- | --- | --- | --- | --- |
+| **`Usuario`** (`usuario`) | `id` | `id` | `integer identity` | no | PK |
+| | `email` | `email` | `text` | no | `UNIQUE`, normalizado a minúsculas |
+| | `passwordHash` | `password_hash` | `text` | no | — |
+| | `rol` | `rol_id` | `integer` | no | FK → `rol(id)` `ON DELETE RESTRICT` |
+| **`Rol`** (`rol`) | `id` | `id` | `integer identity` | no | PK |
+| | `codigo` | `codigo` | `text` | no | `UNIQUE`, normalizado a mayúsculas |
+| | `nombre` | `nombre` | `text` | no | — |
+| | `descripcion` | `descripcion` | `text` | sí | — |
+| | `permisos` | — | N-M vía `rol_permiso` | — | modificable solo por la raíz (`D5`) |
+| **`Permiso`** (`permiso`) | `id` | `id` | `integer identity` | no | PK |
+| | `codigo` | `codigo` | `text` | no | `UNIQUE`, normalizado a mayúsculas |
+| | `nombre` | `nombre` | `text` | no | — |
+| | `descripcion` | `descripcion` | `text` | sí | — |
+| **`Alumno`** (`alumno`) | `id` | `id` | `integer identity` | no | PK |
+| | `nombre` | `nombre` | `text` | no | único funcional con `numero_documento` |
+| | `fechaNacimiento` | `fecha_nacimiento` | `date` | no | — |
+| | `numeroDocumento` | `numero_documento` | `text` | no | único funcional con `nombre` |
+| | `numeroTelefono` | `numero_telefono` | `text` | no | — |
+| | `fechaIngreso` | `fecha_ingreso` | `timestamptz` | no | — |
+| | `observaciones` | `observaciones` | `text` | sí | — |
+| | `profesorAsignado` | `profesor_asignado_id` | `integer` | sí | FK → `profesor(id)` |
+| | `usuario` | `usuario_id` | `integer` | no | FK → `usuario(id)`, `UNIQUE` |
+| **`Profesor`** (`profesor`) | `id` | `id` | `integer identity` | no | PK |
+| | `nombre` | `nombre` | `text` | no | único funcional con `numero_documento` |
+| | `fechaNacimiento` | `fecha_nacimiento` | `date` | no | — |
+| | `numeroDocumento` | `numero_documento` | `text` | no | único funcional con `nombre` |
+| | `numeroTelefono` | `numero_telefono` | `text` | no | — |
+| | `fechaIngreso` | `fecha_ingreso` | `timestamptz` | no | — |
+| | `usuario` | `usuario_id` | `integer` | no | FK → `usuario(id)`, `UNIQUE` |
+
+### Auditoría — las seis columnas, idénticas en las cinco entidades
+
+| Propiedad | Columna | Tipo PG | Null | Restricción |
+| --- | --- | --- | --- | --- |
+| `createdAt` | `created_at` | `timestamptz` | **no** | — |
+| `createdById` | `created_by_id` | `integer` | sí | FK → `usuario(id)` |
+| `updatedAt` | `updated_at` | `timestamptz` | sí | `CHECK` de par con `updated_by_id` |
+| `updatedById` | `updated_by_id` | `integer` | sí | FK → `usuario(id)` |
+| `deletedAt` | `deleted_at` | `timestamptz` | sí | `CHECK` de par con `deleted_by_id` |
+| `deletedById` | `deleted_by_id` | `integer` | sí | FK → `usuario(id)` |
+
+### Tabla de asignación `rol_permiso` — sin entidad
+
+| Columna | Tipo PG | Null | Restricción |
+| --- | --- | --- | --- |
+| `rol_id` | `integer` | no | FK → `rol(id)` `ON DELETE RESTRICT` |
+| `permiso_id` | `integer` | no | FK → `permiso(id)` `ON DELETE RESTRICT` |
+
+PK compuesta `(rol_id, permiso_id)` — es lo que impide repetir un permiso dentro del rol. **No lleva auditoría propia:** asignar o quitar permisos actualiza `updated_at` y `updated_by_id` de la fila de `rol`.
+
+### Atributos derivados, sin columna
+
+| Entidad | Atributo | Cómo se obtiene |
+| --- | --- | --- |
+| Todas | `activo` | `deletedAt IS NULL` (`D8`) |
+| `Usuario` | `permisosEfectivos()` | unión de los permisos de su `rol` (`D4`) |
+
+### Índices escritos a mano en la migración
+
+Los decoradores de MikroORM no expresan expresiones, así que estos van en el SQL:
+
+- `UNIQUE (lower(nombre), numero_documento)` en `alumno` y en `profesor` — sin `lower()`, «Juan Pérez» y «juan pérez» conviven y `RN-25` queda a medias.
+- `UNIQUE` planos de `usuario.email`, `rol.codigo`, `permiso.codigo`, `alumno.usuario_id` y `profesor.usuario_id`.
+- Los dos `CHECK` de coherencia (baja y edición) en las cinco tablas.
+
+### Límites que el esquema no puede expresar
+
+- «Un `ADMINISTRADOR` no tiene perfil» requiere leer otra tabla: no se puede como `CHECK`, se garantiza en el caso de uso del alta más la prueba de integración.
+- La baja de un rol asignado a un `Usuario` no la bloquea la clave foránea: la baja es lógica y la fila sigue existiendo. Qué hacer con esos usuarios es una regla de `implement-login`, no de este esquema.
+
+## 6. Próximos pasos, en orden
+
+1. Responder la revisión de §4 y aprobar el cambio.
+2. Archivar `setup-http-foundation` (`openspec archive setup-http-foundation`) cuando el usuario lo autorice.
+3. Implementar siguiendo `tasks.md` de punta a punta. Las secciones 1–2 son test-first (RED → GREEN); la migración de la sección 3 se revisa a mano porque los decoradores no expresan el índice funcional `lower(nombre)`.
+4. Verificación de cierre: `yarn typecheck && yarn lint && yarn test`, más la suite de integración contra PostgreSQL 18 con Testcontainers (`yarn db:seed catalogo-identidad` se prueba dos veces seguidas).
+5. `openspec validate add-usuario-identity --strict`.
+6. Archivar solo con todas las tareas verificadas.
+
+## 7. Cómo retomar
 
 ```bash
 git checkout feature/add-usuario-identity
@@ -86,9 +183,9 @@ openspec status --change add-usuario-identity
 openspec validate add-usuario-identity --strict
 ```
 
-Después leer, en este orden: `proposal.md` → `specs/identidad-usuario/spec.md` → `design.md` (§ *Decisiones* y § *Modelo de datos*) → `tasks.md`.
+Después leer, en este orden: este archivo → `proposal.md` → `specs/identidad-usuario/spec.md` → `design.md` (§ *Decisiones* y § *Modelo de datos*) → `tasks.md`.
 
-## 7. Archivos que tocará la implementación
+## 8. Archivos que tocará la implementación
 
 ```text
 src/modules/auth/
