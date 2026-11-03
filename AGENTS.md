@@ -233,10 +233,11 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 
 ### 5.7 Transacciones, integridad y persistencia
 
-- Usar el `EntityManager` contextual y la Unit of Work de MikroORM. No replicar `TypeOrmUnitOfWork` ni decoradores `@Transactional()` ad hoc de otros proyectos.
-- El límite transaccional coincide con el caso de uso que coordina los cambios: él decide qué operaciones forman una unidad. La ejecución —`em.transactional(...)`— pertenece a la implementación del puerto, no a `application/`. Todas las escrituras relacionadas van en el mismo contexto.
+- Usar el `EntityManager` contextual y la Unit of Work de MikroORM. El límite transaccional se declara con el decorador `@Transactional()` de MikroORM sobre el método de escritura de la implementación del puerto. No se copian `TypeOrmUnitOfWork` ni decoradores ad hoc de otros frameworks.
+- El límite transaccional coincide con el caso de uso que coordina los cambios: él decide qué operaciones forman una unidad. La ejecución —el `@Transactional()` del puerto— pertenece a la implementación del puerto, no a `application/`. Todas las escrituras relacionadas van en el mismo contexto.
+- El decorador recibe `context` apuntando al repositorio del propio adaptador (`@Transactional({ context: (self) => self.repositorio })`): así abre la transacción sobre el `EntityManager` que usa la clase y funciona también fuera de una petición HTTP, por ejemplo en el seeder, donde no hay `RequestContext`. Sin ese `context`, el decorador resuelve el `EntityManager` del contexto de la petición y falla fuera de HTTP.
 - El caso de uso y, cuando exista, el Query Object reciben su **puerto** por constructor. `MikroOrmModule.forFeature([...])` se configura en el módulo NestJS (`*.module.ts`) y `@InjectRepository(Entity)` se usa en las clases concretas de `infrastructure/`; ninguno de los dos aparece en los casos de uso. El vínculo puerto → implementación se declara por token en `*.module.ts`.
-- Si un comando modifica varios agregados, el puerto expone una **operación con nombre propio** (`createWithDeasignacion(...)`) y su implementación la envuelve en `em.transactional(...)`. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
+- Si un comando modifica varios agregados, el puerto expone una **operación con nombre propio** (`createWithDeasignacion(...)`) y su implementación la declara con `@Transactional()` y escribe las dos raíces en la misma transacción. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
 - Los métodos de escritura del puerto reciben y devuelven **agregados o entidades de dominio**. Recibir un DTO HTTP o un Input de aplicación es un error de diseño.
 - No llamar `flush()` desde reglas puras del dominio.
 - Una lectura previa `exists(...)` **no** garantiza una invariante concurrente: diseñar restricción, índice único parcial o bloqueo en PostgreSQL, y demostrarlo con prueba.

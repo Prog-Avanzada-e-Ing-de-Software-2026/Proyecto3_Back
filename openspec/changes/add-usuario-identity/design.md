@@ -96,7 +96,7 @@ El catálogo inicial —tres roles, tres permisos y sus asignaciones— se carga
 
 **Idempotencia:** el seeder MUST poder repetirse. Cada caso de uso consulta su puerto por código y no escribe si la fila ya existe, así una segunda ejecución termina sin cambios y una ejecución interrumpida converge al repetirse.
 
-**Atomicidad:** cada caso de uso escribe un solo agregado y su implementación abre la transacción (`AGENTS.md` §5.7). No hay una transacción única para el catálogo completo: si la ejecución se corta entre permisos y roles, la siguiente converge. Se prefiere eso a un puerto que cree dos raíces de agregado, que sería el caso de uso escondido en el repositorio.
+**Atomicidad:** cada caso de uso escribe un solo agregado y su implementación declara la transacción con `@Transactional()` sobre el `EntityManager` de su repositorio (`AGENTS.md` §5.7). No hay una transacción única para el catálogo completo: si la ejecución se corta entre permisos y roles, la siguiente converge. Se prefiere eso a un puerto que cree dos raíces de agregado, que sería el caso de uso escondido en el repositorio.
 
 **Actor de la auditoría:** el seeder es el proceso interno explícitamente declarado por `AGENTS.md` §6.2.2. Registra el momento del alta y deja `created_by_id` en `NULL`, porque todavía no existe ningún `Usuario` que pueda ser actor: el primer administrador necesita el hash de `implement-login`. No se inventa un usuario «sistema».
 
@@ -137,7 +137,7 @@ El catálogo inicial —tres roles, tres permisos y sus asignaciones— se carga
 **Acoplamiento perfil ↔ usuario (decidido el 2026-11-03):** el alta, la baja y la reactivación de un `Alumno` o de un `Profesor` ocurren en la **misma unidad de trabajo** que las de su `Usuario`, para que los dos estados no puedan divergir y `RN-34` no quede contradictorio con el perfil. Consecuencias:
 
 - El caso de uso del perfil es el único punto de entrada de un `Usuario` que tiene perfil: no existe un comando que dé de baja o reactive ese `Usuario` por separado. Un `Usuario` sin perfil (`ADMINISTRADOR`) se activa y desactiva por sí mismo.
-- El puerto de persistencia expone una operación con nombre propio —alta, baja y reactivación con usuario— y su implementación la envuelve en `em.transactional(...)`; el caso de uso no abre la transacción a mano (`AGENTS.md` §5.7).
+- El puerto de persistencia expone una operación con nombre propio —alta, baja y reactivación con usuario— y su implementación la declara con `@Transactional()` sobre el `EntityManager` de su repositorio; el caso de uso no abre la transacción a mano (`AGENTS.md` §5.7).
 - Las dos filas reciben el mismo actor y el mismo instante: la baja completa `deletedAt` y `deletedById` en ambas, la reactivación los limpia en ambas y la edición actualiza `updatedAt` y `updatedById` en ambas. La prueba de integración compara las dos filas, no solo el perfil.
 - El caso de uso y su puerto viven en el módulo del perfil (`alumnos`, `profesores`); importan la entidad `Usuario` como vocabulario compartido de dominio (`D10`) y no providers internos de `auth` (`AGENTS.md` §5.4). La operación no introduce `forwardRef`.
 

@@ -277,7 +277,7 @@ Frontend
                          -> MikroORM (EntityRepository, QueryBuilder) -> PostgreSQL
 ```
 
-El borde es **obligatorio y único**: ningún caso de uso ni Query Object conoce `EntityRepository`, `EntityManager` o `QueryBuilder`. El caso de uso decide la unidad de trabajo y la pide a su puerto; la implementación de `infrastructure/` es la que abre la transacción con `em.transactional(...)`. Las reglas del dominio se mantienen protegidas y no se agregan capas intermedias: un solo puerto, una sola implementación.
+El borde es **obligatorio y único**: ningún caso de uso ni Query Object conoce `EntityRepository`, `EntityManager` o `QueryBuilder`. El caso de uso decide la unidad de trabajo y la pide a su puerto; la implementación de `infrastructure/` es la que declara la transacción con `@Transactional()` sobre el `EntityManager` de su repositorio. Las reglas del dominio se mantienen protegidas y no se agregan capas intermedias: un solo puerto, una sola implementación.
 
 NestJS `*.module.ts` es la **composition root** local: registra controladores y proveedores, vincula cada puerto con su implementación mediante un token —por ejemplo `{ provide: 'IPlanRepository', useClass: MikroOrmPlanRepository }`— e importa/exporta las dependencias necesarias. Evitar `forwardRef()` recurrente: suele indicar límites poco claros.
 
@@ -450,12 +450,12 @@ La optimización de consultas —N+1, joins que nadie consume, límites, paginac
 
 El detalle operativo de persistencia, integridad y migraciones vive en `AGENTS.md` §6–§8 y `docs/agreements/buenas_practicas.md` §5; acá queda el criterio arquitectónico.
 
-- Usar `EntityManager` contextual y Unit of Work propio de MikroORM. **No replicar** el `TypeOrmUnitOfWork` ni el decorador `@Transactional()` ad hoc del Proyecto 1.
+- Usar `EntityManager` contextual y Unit of Work propio de MikroORM. El límite transaccional se declara con el decorador `@Transactional()` de MikroORM sobre el método de escritura del adaptador, con `context` apuntando a su repositorio. **No replicar** el `TypeOrmUnitOfWork` ni decoradores ad hoc del Proyecto 1.
 - El límite transaccional coincide con el caso de uso que coordina los cambios: él decide qué operaciones forman una unidad, no el repositorio ni el controller. Todas las escrituras relacionadas van en el **mismo** contexto transaccional.
 - El **caso de uso y el Query Object, cuando existe,** declaran su dependencia de persistencia como interfaz —`IPlanRepository`, `IHistorialEntrenamientosReader`— y la reciben por constructor. No se declara una interfaz nueva por operación si un contrato existente ya cubre lo necesario. `EntityRepository`, `EntityManager` y `QueryBuilder` aparecen **solo** dentro de `infrastructure/`.
 - `MikroOrmModule.forFeature([...])` se configura en el módulo NestJS (`*.module.ts`) y `@InjectRepository(Entity)` se usa en las clases concretas de `infrastructure/`; ninguno de los dos aparece en el caso de uso ni en el Query Object. El vínculo puerto → implementación se declara en `*.module.ts` con un token explícito.
 - Todo puerto de escritura recibe y devuelve **agregados o entidades de dominio**. Recibir un DTO HTTP o un Input de aplicación es un error de diseño, no una comodidad.
-- La unidad de trabajo la decide el caso de uso y la ejecuta la implementación: si un comando modifica varios agregados, el puerto expone una operación con nombre propio (`createWithDeasignacion(...)`) y su implementación la envuelve en `em.transactional(...)`. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
+- La unidad de trabajo la decide el caso de uso y la ejecuta la implementación: si un comando modifica varios agregados, el puerto expone una operación con nombre propio (`createWithDeasignacion(...)`) y su implementación la declara con `@Transactional()` y escribe las dos raíces en la misma transacción. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
 - No lanzar `flush()` incidentalmente desde reglas puras del dominio; persistir en el ámbito definido por aplicación.
 
 ### Baja lógica, exclusión y reactivación
@@ -634,7 +634,7 @@ Para cada CRUD de catálogo aplica la misma ruta que a cualquier comando: `Contr
 | Interfaces y puertos de persistencia | **Resuelto:** decisión registrada en §1, §3, §4 y §7 de esta guía y aplicada en `AGENTS.md` §5.1, §5.4, §5.5, §5.7 y §5.9. El acceso a datos de casos de uso y Query Objects pasa siempre por un contrato; lo que sigue prohibido es apilar capas por encima y declarar una interfaz nueva por operación cuando ya existe una adecuada. | Seguir ambos documentos: el ORM solo en `infrastructure/`; `EntityRepository`, `EntityManager` y `QueryBuilder` no aparecen en `application/` ni en `domain/`. |
 | Ubicación de los puertos | **Resuelto:** escritura en `domain/interfaces/`; lectura junto a la operación que la consume, en `application/use-cases/`; alineado en `AGENTS.md` §5.2 y §5.5. | Respetar la ubicación según la proyección devuelta: el contrato vive del lado del consumidor. |
 | Separación de lecturas | **Resuelto:** `application/` mantiene solo `use-cases/`; toda lectura se implementa como operación de aplicación con nombre —caso de uso o Query Object— y el Query Object es opcional. Alineado en `AGENTS.md` §5.2, §5.4 y §5.8. | No crear `application/queries/` como carpeta obligatoria ni una clase por lectura. |
-| Límite transaccional | **Resuelto:** el caso de uso decide la unidad de trabajo y la implementación del puerto la ejecuta con `em.transactional(...)`; alineado en `AGENTS.md` §5.7. | No inyectar `EntityManager` en `application/`; exponer una operación con nombre propio en el puerto. |
+| Límite transaccional | **Resuelto:** el caso de uso decide la unidad de trabajo y la implementación del puerto la declara con `@Transactional()`; alineado en `AGENTS.md` §5.7. | No inyectar `EntityManager` en `application/`; exponer una operación con nombre propio en el puerto. |
 | QueryBuilder y consultas de lectura | **Resuelto:** `QueryBuilder`, joins, `LEFT JOIN` y filtros dinámicos viven en `infrastructure/queries/`; el Query Object es opcional y está alineado en `AGENTS.md` §5.8. | No exigirlo en consultas simples ni permitir que cruce el puerto. |
 | Propuestas futuras | Arquitectura de lectura y módulos recomendados | No convertir sugerencias o backlog futuro en requisitos obligatorios. |
 
