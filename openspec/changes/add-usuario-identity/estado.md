@@ -1,9 +1,9 @@
 # Estado del cambio `add-usuario-identity`
 
 **Fecha de corte:** 2026-11-02
-**Última revisión:** 2026-11-03 — el usuario respondió las dudas de modelo: `created_by_id` nulo en el seed, `fechaNacimiento` como `date`, unicidad plana del email y de los códigos (con reactivación como único reingreso), `UNIQUE` solo sobre `numero_documento` en lugar del par con nombre, la tabla N-M delegada al ORM, la reactivación de profesor aceptada y el acoplamiento perfil ↔ `Usuario` en una única unidad de trabajo. Quedan abiertas la aprobación de implementación, `DW-13` y el archivado previo.
-**Rama:** `feature/add-usuario-identity` (apilada sobre `feature/setup-http-foundation`, upstream configurado en `origin`)
-**Estado:** planificación cerrada y validada. **La implementación no empezó**: `AGENTS.md` §3.7 separa planificación de implementación y falta la aprobación explícita del usuario.
+**Última revisión:** 2026-11-03 — implementación completa (18/18 tareas), validada y con las suites en verde.
+**Rama:** `feature/add-usuario-identity` (apilada sobre `feature/setup-http-foundation`; `setup-http-foundation` ya archivado en esta rama)
+**Estado:** **implementado**. `openspec validate --strict` en verde, `yarn typecheck`, `yarn lint`, `yarn test` y `yarn test:e2e` en verde. Pendiente: revisar y aprobar la entrega, y archivar el cambio.
 
 ## 1. Dónde vive cada cosa
 
@@ -21,10 +21,21 @@ Validación vigente: `openspec validate add-usuario-identity --strict` → **val
 ## 2. Estado del repositorio
 
 - Rama actual `feature/add-usuario-identity`, con upstream `origin/feature/add-usuario-identity`.
-- Últimos commits de la rama: `b9144fd` (retira la base auditable compartida), `49b9624` (entrypoint de seeds), `380dd13` (base auditable), `b238fd1` (auditoría nullable y numérica).
-- **Commiteado** en `feature/add-usuario-identity`, en el commit `docs(openspec): propose add-usuario-identity change`. Para seguir desde otra PC falta el **push**: un commit local no viaja.
-- `openspec/changes/setup-http-foundation`: completo (14/14 tareas) y **sin archivar**. Pendiente de `openspec archive setup-http-foundation` cuando el usuario lo autorice.
+- `setup-http-foundation` archivado como `2026-11-03-setup-http-foundation`; sus specs principales quedaron en `openspec/specs/`.
+- Implementación entregada en commits por unidad de trabajo: entidades de dominio, casos de uso y persistencia, migración y filtro de baja, seed del catálogo, pruebas de integración y documentación de dominio.
 - `develop` no existe todavía en el clon local; la rama está apilada sobre `feature/setup-http-foundation`, no sobre `develop` como pide `AGENTS.md` §10.
+
+## 2.1 Evidencia de verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `yarn typecheck` | sin errores |
+| `yarn lint` | sin advertencias |
+| `yarn test` | 15 archivos, 92 tests en verde (incluye integración con Testcontainers sobre `postgres:18-alpine`) |
+| `yarn test:e2e` | 2 archivos, 11 tests en verde |
+| `yarn check:docs` | 149 referencias OK |
+| `openspec validate add-usuario-identity --strict` | valid |
+| Migración `up` / `down` sobre PostgreSQL 18 | crea y elimina las seis tablas, sin filas de datos |
 
 ## 3. Decisiones tomadas, con su motivo
 
@@ -66,18 +77,18 @@ Todas están desarrolladas en `design.md`; acá solo el índice para ubicarlas r
 
 ## 4. Decisiones abiertas — revisión del 2026-11-03
 
-Se presentaron al usuario el 2026-11-02 y respondió el 2026-11-03. Cinco quedaron cerradas; tres siguen abiertas.
+Se presentaron al usuario el 2026-11-02 y respondió el 2026-11-03, incluida la autorización para archivar `setup-http-foundation` e implementar. Seis quedaron cerradas; queda una decisión de producto.
 
 | # | Punto | Decisión vigente | Estado |
 | --- | --- | --- | --- |
-| 1 | Aprobación para implementar | — | **Pendiente** — es el único bloqueante real (`AGENTS.md` §3.7) |
+| 1 | Aprobación para implementar | Autorizada el 2026-11-03, con el archivo de `setup-http-foundation` | **Resuelto** |
 | 2 | Catálogo de permisos y `DW-13` | Tres permisos; el de gestión de catálogo queda fuera | **Pendiente** — decisión de producto, no de este cambio |
 | 3 | `created_by_id` nulo en las filas del seed | `NULL` (`D6`, `D13`) | **Resuelto 2026-11-03** |
 | 4 | `fechaNacimiento` como `date` | `date` sin zona ni hora (`D14`) | **Resuelto 2026-11-03** |
 | 5 | Unicidad del email, de los códigos y del documento | `UNIQUE` plano, sin índice parcial; el documento solo, sin el par con nombre (`D9`) | **Resuelto 2026-11-03** |
 | 6 | Mapeo N-M rol-permiso | `@ManyToMany` unidireccional en `Rol` con `pivotTable: 'rol_permiso'` (`D5`) | **Resuelto 2026-11-03** |
 | 7 | Reactivación de profesor | Permitida, sin reasignarle alumnos (`D8`) | **Resuelto 2026-11-03** |
-| 8 | Rama base y cambio anterior | Apilada sobre `feature/setup-http-foundation`, completo y sin archivar | **Pendiente** |
+| 8 | Rama base y cambio anterior | `setup-http-foundation` archivado como `2026-11-03-setup-http-foundation` | **Resuelto 2026-11-03** |
 
 **Detalle de lo resuelto:**
 
@@ -90,7 +101,6 @@ Se presentaron al usuario el 2026-11-02 y respondió el 2026-11-03. Cinco quedar
 **Detalle de lo abierto:**
 
 - **Punto 2 — catálogo de permisos.** El cambio carga `GESTIONAR_ALUMNOS`, `GESTIONAR_PROFESORES` y `CREAR_PLAN`. La pregunta abierta (`DW-13`) es quién gestiona máquinas, ejercicios, categorías, objetivos y unidades: Administrador, Profesor o ambos. Mientras no se responda, el permiso correspondiente no existe y `AD-04` queda indefinido. Agregar un permiso después es una fila nueva más su asignación, no un cambio de modelo ni de esquema.
-- **Punto 8 — operativo.** `feature/add-usuario-identity` está apilada sobre `feature/setup-http-foundation`. `AGENTS.md` §10 dice que `feature/*` nace de `develop`, y `develop` no existe localmente. Archivar `setup-http-foundation` sincroniza los specs principales y es el paso natural antes de abrir la implementación.
 
 **Recomendación en bloque:** el modelo ya está cerrado; archivar `setup-http-foundation` para cerrar el ciclo anterior y después implementar. `DW-13` queda para cuando se decida producto.
 
@@ -176,12 +186,10 @@ Los decoradores de MikroORM no expresan expresiones, así que estos van en el SQ
 
 ## 6. Próximos pasos, en orden
 
-1. Aprobar la implementación y decidir el archivado de `setup-http-foundation`. El modelo ya está cerrado: no queda ninguna decisión de diseño pendiente.
-2. Archivar `setup-http-foundation` (`openspec archive setup-http-foundation`) cuando el usuario lo autorice.
-3. Implementar siguiendo `tasks.md` de punta a punta. Las secciones 1–2 son test-first (RED → GREEN); la migración de la sección 3 se revisa a mano por los `CHECK` de coherencia y la tabla intermedia emitida por el ORM.
-4. Verificación de cierre: `yarn typecheck && yarn lint && yarn test`, más la suite de integración contra PostgreSQL 18 con Testcontainers (`yarn db:seed catalogo-identidad` se prueba dos veces seguidas).
-5. `openspec validate add-usuario-identity --strict`.
-6. Archivar solo con todas las tareas verificadas.
+1. Revisar la entrega y aprobarla. No queda ninguna decisión de diseño ni tarea pendiente.
+2. `openspec archive add-usuario-identity` solo después de la aprobación; archiva el delta sobre `openspec/specs/`.
+3. `implement-login` es el cambio siguiente: cierra `created_by_id` en `NULL` y conecta el hash Argon2id, el guard por permiso y el alta del administrador inicial.
+4. `DW-13` sigue esperando decisión de producto sobre quién gestiona el catálogo.
 
 ## 7. Cómo retomar
 
@@ -194,12 +202,15 @@ openspec validate add-usuario-identity --strict
 
 Después leer, en este orden: este archivo → `proposal.md` → `specs/identidad-usuario/spec.md` → `design.md` (§ *Decisiones* y § *Modelo de datos*) → `tasks.md`.
 
-## 8. Archivos que tocará la implementación
+## 8. Archivos que tocó la implementación
 
 ```text
+src/common/domain/validaciones.ts
 src/modules/auth/
 ├── auth.module.ts
+├── auth.tokens.ts
 ├── domain/
+│   ├── codigos.ts
 │   ├── entities/{usuario,rol,permiso}.entity.ts
 │   └── interfaces/{rol,permiso}.repository.interface.ts
 ├── application/use-cases/{create-permiso,create-rol}.use-case.ts
@@ -207,12 +218,15 @@ src/modules/auth/
 
 src/modules/alumnos/domain/entities/alumno.entity.ts
 src/modules/profesores/domain/entities/profesor.entity.ts
-src/migrations/<timestamp>.ts
+src/migrations/Migration20261103132639.ts
+src/seeder/catalogo-identidad.seed.ts
 src/seeder/registry.ts
 src/app.module.ts
 src/mikro-orm.config.ts
-src/mock/mock.entity.ts            (se retira)
+src/mock/mock.entity.ts            (retirado)
 docs/dominio/Analisis de dominio.md
+test/support/{orm-metadata,postgres}.ts
+test/integration/{migracion,persistencia,seeder}.spec.ts
 ```
 
 Fuera de alcance, para no reabrirlo por accidente: login, JWT, cookies, guards, Argon2id, endpoints, DTO, `ValidationPipe`, administración de roles por API, alta del administrador inicial, casos de uso de `HU 16`–`HU 24`.

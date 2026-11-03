@@ -223,7 +223,7 @@ Cada una de las cinco entidades declara las seis columnas y las completa el fluj
 
 **Alternativas descartadas:** `timestamptz` a medianoche UTC (desplaza el día); `text` con formato `YYYY-MM-DD` (pierde el tipo y la comparación de fechas).
 
-**Confirmado por el usuario el 2026-11-03:** `fechaNacimiento` es `date` sin zona ni hora. La excepción a la letra de `AGENTS.md` §6.2.5 queda aceptada y justificada.
+**Confirmado por el usuario el 2026-11-03:** `fechaNacimiento` es `date` sin zona ni hora. La excepción a la letra de `AGENTS.md` §6.2.5 queda aceptada y justificada. En TypeScript se representa como cadena `YYYY-MM-DD` y no como `Date`, para no reintroducir la zona horaria al construirla desde el calendario.
 
 ### D15 — `numeroDocumento` es texto
 
