@@ -229,6 +229,13 @@ describe('persistencia del modelo de identidad', () => {
     entorno.orm.em.clear();
 
     expect(await entorno.orm.em.find(Rol, { codigo: 'PROFESOR' })).toHaveLength(1);
+
+    const reactivado = await entorno.orm.em.findOneOrFail(Rol, { codigo: 'PROFESOR' });
+
+    expect(reactivado.deletedAt).toBeNull();
+    expect(reactivado.deletedById).toBeNull();
+    expect(reactivado.updatedAt).toEqual(edicion);
+    expect(reactivado.updatedById).toBe(administrador.id);
   });
 
   it('[persistencia] conserva la auditoría de alta, edición y baja', async () => {
@@ -238,22 +245,34 @@ describe('persistencia del modelo de identidad', () => {
 
     rol.registrarEdicion(administrador.id, edicion);
     await entorno.orm.em.flush();
+    entorno.orm.em.clear();
 
-    rol.darDeBaja(administrador.id, new Date('2026-03-01T10:00:00.000Z'));
+    const editado = await entorno.orm.em.findOneOrFail(Rol, { codigo: 'PROFESOR' });
+
+    expect(editado.createdAt).toEqual(alta);
+    expect(editado.createdById).toBeNull();
+    expect(editado.updatedAt).toEqual(edicion);
+    expect(editado.updatedById).toBe(administrador.id);
+    expect(editado.ultimoResponsableId).toBe(administrador.id);
+    expect(editado.deletedAt).toBeNull();
+    expect(editado.deletedById).toBeNull();
+
+    const baja = new Date('2026-03-01T10:00:00.000Z');
+    editado.darDeBaja(administrador.id, baja);
     await entorno.orm.em.flush();
     entorno.orm.em.clear();
 
-    const persistido = await entorno.orm.em.findOneOrFail(
+    const dadoDeBaja = await entorno.orm.em.findOneOrFail(
       Rol,
       { codigo: 'PROFESOR' },
       { filters: { bajaLogica: false } },
     );
 
-    expect(persistido.createdAt).toEqual(alta);
-    expect(persistido.createdById).toBeNull();
-    expect(persistido.updatedAt).toEqual(new Date('2026-03-01T10:00:00.000Z'));
-    expect(persistido.updatedById).toBe(administrador.id);
-    expect(persistido.deletedAt).toEqual(new Date('2026-03-01T10:00:00.000Z'));
-    expect(persistido.deletedById).toBe(administrador.id);
+    expect(dadoDeBaja.createdAt).toEqual(alta);
+    expect(dadoDeBaja.createdById).toBeNull();
+    expect(dadoDeBaja.deletedAt).toEqual(baja);
+    expect(dadoDeBaja.deletedById).toBe(administrador.id);
+    expect(dadoDeBaja.updatedAt).toEqual(baja);
+    expect(dadoDeBaja.updatedById).toBe(administrador.id);
   });
 });
