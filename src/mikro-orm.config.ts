@@ -3,6 +3,13 @@ import 'dotenv/config';
 import { defineConfig } from '@mikro-orm/postgresql';
 import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
 import { Migrator } from '@mikro-orm/migrations';
+import { Alumno } from './modules/alumnos/domain/entities/alumno.entity.js';
+import { Permiso } from './modules/auth/domain/entities/permiso.entity.js';
+import { Rol } from './modules/auth/domain/entities/rol.entity.js';
+import { Usuario } from './modules/auth/domain/entities/usuario.entity.js';
+import { Profesor } from './modules/profesores/domain/entities/profesor.entity.js';
+
+const ENTIDADES_AUDITADAS = [Usuario, Rol, Permiso, Alumno, Profesor];
 
 export default defineConfig({
   host: process.env.DB_HOST ?? 'localhost',
@@ -15,6 +22,16 @@ export default defineConfig({
   entitiesTs: ['./src/**/*.entity.ts'],
 
   metadataProvider: ReflectMetadataProvider,
+
+  // Las lecturas habituales excluyen los registros dados de baja. El histórico
+  // se consulta desactivando el filtro explícitamente en la consulta.
+  filters: {
+    bajaLogica: {
+      cond: { deletedAt: null },
+      default: true,
+      entity: ENTIDADES_AUDITADAS,
+    },
+  },
 
   extensions: [Migrator],
 
