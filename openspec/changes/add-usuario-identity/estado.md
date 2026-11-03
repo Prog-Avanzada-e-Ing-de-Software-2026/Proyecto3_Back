@@ -1,7 +1,7 @@
 # Estado del cambio `add-usuario-identity`
 
 **Fecha de corte:** 2026-11-02
-**Última revisión:** 2026-11-02 — se presentaron las decisiones abiertas y las tablas de atributos; quedan pendientes de respuesta.
+**Última revisión:** 2026-11-03 — el usuario respondió las dudas de modelo: `created_by_id` nulo en el seed, `fechaNacimiento` como `date`, unicidad plana del email y de los códigos (con reactivación como único reingreso), `UNIQUE` solo sobre `numero_documento` en lugar del par con nombre, la tabla N-M delegada al ORM, la reactivación de profesor aceptada y el acoplamiento perfil ↔ `Usuario` en una única unidad de trabajo. Quedan abiertas la aprobación de implementación, `DW-13` y el archivado previo.
 **Rama:** `feature/add-usuario-identity` (apilada sobre `feature/setup-http-foundation`, upstream configurado en `origin`)
 **Estado:** planificación cerrada y validada. **La implementación no empezó**: `AGENTS.md` §3.7 separa planificación de implementación y falta la aprobación explícita del usuario.
 
@@ -36,9 +36,9 @@ Todas están desarrolladas en `design.md`; acá solo el índice para ubicarlas r
 - `D2` `Rol` y `Permiso` son **entidades persistidas**, no un enum. Decisión explícita del usuario.
 - `D3` Los códigos (`ADMINISTRADOR`, `CREAR_PLAN`, …) son datos; el código de la aplicación declara constantes solo para tipar búsquedas.
 - `D4` La autorización se decide por **permiso**, no comparando el código del rol. `RN-12` y `RN-35` son pertenencia, no permisos.
-- `D5` La asignación rol-permiso pertenece a la raíz `Rol`; la tabla intermedia no es entidad ni lleva auditoría propia.
+- `D5` La asignación rol-permiso pertenece a la raíz `Rol`; la tabla intermedia la genera el ORM desde un `@ManyToMany` unidireccional con `pivotTable: 'rol_permiso'`, sin entidad y sin auditoría propia. Decisión explícita del usuario.
 - `D7` El vínculo 1-a-1 con el perfil vive en `Alumno`/`Profesor` (`usuario_id UNIQUE`); `Usuario` solo tiene `rol`.
-- `D8` El estado activo se **deriva** de la baja lógica; no se persiste un booleano `activo`.
+- `D8` El estado activo se **deriva** de la baja lógica; no se persiste un booleano `activo`. El alta, la baja y la reactivación de un perfil y de su `Usuario` comparten la misma unidad de trabajo.
 - `D9` Unicidades **planas** (email, código de rol, código de permiso, nombre+documento): ninguna clave de identidad se reutiliza después de una baja.
 - `D10` Referencias entre agregados con la clase de la entidad y accesor no persistido del identificador (`arquitectura.md` §5.4).
 - `D14` `fechaNacimiento` es `date` sin zona — **excepción deliberada** a la letra de `AGENTS.md` §6.2.5.
@@ -64,28 +64,35 @@ Todas están desarrolladas en `design.md`; acá solo el índice para ubicarlas r
 | `PROFESOR` | `CREAR_PLAN` | `RN-11`, `HU 1` |
 | `ALUMNO` | ninguno | sus operaciones son por identidad (`RN-35`) |
 
-## 4. Decisiones abiertas — revisión del 2026-11-02
+## 4. Decisiones abiertas — revisión del 2026-11-03
 
-Se presentaron al usuario el 2026-11-02. **Todas quedaron sin respuesta:** el usuario pidió revisarlas antes de implementar. Ninguna bloquea técnicamente — el diseño ya tomó cada una — y esperan visto bueno.
+Se presentaron al usuario el 2026-11-02 y respondió el 2026-11-03. Cinco quedaron cerradas; tres siguen abiertas.
 
-| # | Punto | Decisión vigente | Recomendación registrada | Estado |
-| --- | --- | --- | --- | --- |
-| 1 | Aprobación para implementar | — | Es el único bloqueante real (`AGENTS.md` §3.7) | **Pendiente** |
-| 2 | Catálogo de permisos y `DW-13` | Tres permisos; el de gestión de catálogo queda fuera | No resolver `DW-13` acá: arrastra wireframes y navegación (`DW-03`, `AD-04`) | **Pendiente** |
-| 3 | `created_by_id` nulo en las filas del seed | `NULL` (`D6`, `D13`) | Dejarlo nulo y cerrarlo en `implement-login` | **Pendiente** |
-| 4 | `fechaNacimiento` como `date` | `date` sin zona (`D14`) | Dejarlo como está | **Pendiente** |
-| 5 | Unicidades planas | `UNIQUE` plano, sin índice parcial (`D9`) | Dejarlo; cambiarlo exige cambiar `RN-32` antes | **Pendiente** |
-| 6 | Rama base y cambio anterior | Apilada sobre `feature/setup-http-foundation`, completo y sin archivar | Archivar `setup-http-foundation` antes de implementar | **Pendiente** |
+| # | Punto | Decisión vigente | Estado |
+| --- | --- | --- | --- |
+| 1 | Aprobación para implementar | — | **Pendiente** — es el único bloqueante real (`AGENTS.md` §3.7) |
+| 2 | Catálogo de permisos y `DW-13` | Tres permisos; el de gestión de catálogo queda fuera | **Pendiente** — decisión de producto, no de este cambio |
+| 3 | `created_by_id` nulo en las filas del seed | `NULL` (`D6`, `D13`) | **Resuelto 2026-11-03** |
+| 4 | `fechaNacimiento` como `date` | `date` sin zona ni hora (`D14`) | **Resuelto 2026-11-03** |
+| 5 | Unicidad del email, de los códigos y del documento | `UNIQUE` plano, sin índice parcial; el documento solo, sin el par con nombre (`D9`) | **Resuelto 2026-11-03** |
+| 6 | Mapeo N-M rol-permiso | `@ManyToMany` unidireccional en `Rol` con `pivotTable: 'rol_permiso'` (`D5`) | **Resuelto 2026-11-03** |
+| 7 | Reactivación de profesor | Permitida, sin reasignarle alumnos (`D8`) | **Resuelto 2026-11-03** |
+| 8 | Rama base y cambio anterior | Apilada sobre `feature/setup-http-foundation`, completo y sin archivar | **Pendiente** |
 
-**Detalle de los puntos con consecuencia de negocio:**
+**Detalle de lo resuelto:**
+
+- **Punto 3 — auditoría del seed.** Las filas cargadas quedan con `created_by_id` en `NULL`. Es la excepción de proceso interno declarada en `AGENTS.md` §6.2.2 y se cierra en `implement-login`, cuando exista el primer `Usuario` que pueda ser actor.
+- **Punto 4 — `fechaNacimiento`.** Se persiste como `date`: una fecha de nacimiento no es un instante y como `timestamptz` a medianoche UTC se corre de día al leerse desde otra zona. Excepción registrada a la letra de `AGENTS.md` §6.2.5.
+- **Punto 5 — unicidad del email.** `UNIQUE` plano. La base no admite dos filas con el mismo email: liberarlo en una baja haría ambiguo el login de `HU 14` y permitiría eludir `RN-34` creando un usuario nuevo con el email de alguien dado de baja. El regreso se resuelve por reactivación (`RN-30`, `HU 24`). Un código de rol o de permiso tampoco se recicla: se reactiva. **El documento se declara `UNIQUE` solo, sin el par con nombre:** un documento único por agregado implica el par de `RN-25`, el documento identifica a la persona, y así el índice no depende de acentos ni de capitalización. El mismo documento puede existir a la vez en un `Alumno` y en un `Profesor`.
+- **Punto 6 — tabla N-M.** La genera MikroORM desde la colección de `Rol`; no se declara a mano y no es entidad. Se mantiene unidireccional, con el único camino de escritura en la raíz. Si el vínculo necesitara columnas propias (quién y cuándo asignó), recién ahí tendría que ser entidad.
+- **Punto 7 — reactivación de profesor.** Se acepta: un `Profesor` dado de baja puede reactivarse, igual que un alumno. La base es `HU 25`, que incluye "reactivarla" sobre cualquier persona de la nómina; `RN-30` y `RN-31` son del alumno y no se oponen. No se le reasignan alumnos, porque `RN-27` ya los dejó sin profesor al darlo de baja. **El perfil y su `Usuario` se activan y desactivan en la misma unidad de trabajo:** el caso de uso del perfil es el único punto de entrada, el puerto abre la transacción, y las dos filas reciben el mismo actor y el mismo instante. Un `Usuario` sin perfil se administra por sí mismo.
+
+**Detalle de lo abierto:**
 
 - **Punto 2 — catálogo de permisos.** El cambio carga `GESTIONAR_ALUMNOS`, `GESTIONAR_PROFESORES` y `CREAR_PLAN`. La pregunta abierta (`DW-13`) es quién gestiona máquinas, ejercicios, categorías, objetivos y unidades: Administrador, Profesor o ambos. Mientras no se responda, el permiso correspondiente no existe y `AD-04` queda indefinido. Agregar un permiso después es una fila nueva más su asignación, no un cambio de modelo ni de esquema.
-- **Punto 3 — auditoría del seed.** El seeder es el proceso interno declarado por `AGENTS.md` §6.2.2: todavía no existe ningún `Usuario` que pueda ser actor, y el primer administrador necesita Argon2id, que llega con `implement-login`. La alternativa es un actor centinela «sistema», que §6.2.2 prohíbe.
-- **Punto 4 — `fechaNacimiento`.** Una fecha de nacimiento no es un instante; guardada como `timestamptz` a medianoche UTC se corre de día al leerse desde otra zona. Se aparta de la letra de `AGENTS.md` §6.2.5 y por eso está registrada como excepción.
-- **Punto 5 — unicidades planas.** Consecuencia concreta: un email dado de baja **nunca se reutiliza**; si la persona vuelve se la **reactiva** (`RN-30`), no se la da de alta otra vez con el mismo email. Un código de rol o de permiso tampoco se recicla. Reutilizar el email de una baja dejaría dos identidades con el mismo acceso y volvería ambiguo el login de `HU 14`. Además es lo único que resiste dos altas concurrentes.
-- **Punto 6 — operativo.** `feature/add-usuario-identity` está apilada sobre `feature/setup-http-foundation`. `AGENTS.md` §10 dice que `feature/*` nace de `develop`, y `develop` no existe localmente. Archivar `setup-http-foundation` sincroniza los specs principales y es el paso natural antes de abrir la implementación.
+- **Punto 8 — operativo.** `feature/add-usuario-identity` está apilada sobre `feature/setup-http-foundation`. `AGENTS.md` §10 dice que `feature/*` nace de `develop`, y `develop` no existe localmente. Archivar `setup-http-foundation` sincroniza los specs principales y es el paso natural antes de abrir la implementación.
 
-**Recomendación en bloque:** dejar 2–5 como están (cada una tiene su motivo escrito), archivar `setup-http-foundation` para cerrar el ciclo anterior y después implementar. `DW-13` queda para cuando se decida producto.
+**Recomendación en bloque:** el modelo ya está cerrado; archivar `setup-http-foundation` para cerrar el ciclo anterior y después implementar. `DW-13` queda para cuando se decida producto.
 
 ## 5. Atributos de las entidades
 
@@ -103,24 +110,24 @@ Resumen derivado de `design.md` § *Modelo de datos*. **Ante discrepancia manda 
 | | `codigo` | `codigo` | `text` | no | `UNIQUE`, normalizado a mayúsculas |
 | | `nombre` | `nombre` | `text` | no | — |
 | | `descripcion` | `descripcion` | `text` | sí | — |
-| | `permisos` | — | N-M vía `rol_permiso` | — | modificable solo por la raíz (`D5`) |
+| | `permisos` | — | N-M vía `rol_permiso`, emitida por el ORM | — | modificable solo por la raíz (`D5`) |
 | **`Permiso`** (`permiso`) | `id` | `id` | `integer identity` | no | PK |
 | | `codigo` | `codigo` | `text` | no | `UNIQUE`, normalizado a mayúsculas |
 | | `nombre` | `nombre` | `text` | no | — |
 | | `descripcion` | `descripcion` | `text` | sí | — |
 | **`Alumno`** (`alumno`) | `id` | `id` | `integer identity` | no | PK |
-| | `nombre` | `nombre` | `text` | no | único funcional con `numero_documento` |
+| | `nombre` | `nombre` | `text` | no | — |
 | | `fechaNacimiento` | `fecha_nacimiento` | `date` | no | — |
-| | `numeroDocumento` | `numero_documento` | `text` | no | único funcional con `nombre` |
+| | `numeroDocumento` | `numero_documento` | `text` | no | `UNIQUE` |
 | | `numeroTelefono` | `numero_telefono` | `text` | no | — |
 | | `fechaIngreso` | `fecha_ingreso` | `timestamptz` | no | — |
 | | `observaciones` | `observaciones` | `text` | sí | — |
 | | `profesorAsignado` | `profesor_asignado_id` | `integer` | sí | FK → `profesor(id)` |
 | | `usuario` | `usuario_id` | `integer` | no | FK → `usuario(id)`, `UNIQUE` |
 | **`Profesor`** (`profesor`) | `id` | `id` | `integer identity` | no | PK |
-| | `nombre` | `nombre` | `text` | no | único funcional con `numero_documento` |
+| | `nombre` | `nombre` | `text` | no | — |
 | | `fechaNacimiento` | `fecha_nacimiento` | `date` | no | — |
-| | `numeroDocumento` | `numero_documento` | `text` | no | único funcional con `nombre` |
+| | `numeroDocumento` | `numero_documento` | `text` | no | `UNIQUE` |
 | | `numeroTelefono` | `numero_telefono` | `text` | no | — |
 | | `fechaIngreso` | `fecha_ingreso` | `timestamptz` | no | — |
 | | `usuario` | `usuario_id` | `integer` | no | FK → `usuario(id)`, `UNIQUE` |
@@ -136,14 +143,14 @@ Resumen derivado de `design.md` § *Modelo de datos*. **Ante discrepancia manda 
 | `deletedAt` | `deleted_at` | `timestamptz` | sí | `CHECK` de par con `deleted_by_id` |
 | `deletedById` | `deleted_by_id` | `integer` | sí | FK → `usuario(id)` |
 
-### Tabla de asignación `rol_permiso` — sin entidad
+### Tabla intermedia `rol_permiso` — generada por el ORM, sin entidad
 
 | Columna | Tipo PG | Null | Restricción |
 | --- | --- | --- | --- |
 | `rol_id` | `integer` | no | FK → `rol(id)` `ON DELETE RESTRICT` |
 | `permiso_id` | `integer` | no | FK → `permiso(id)` `ON DELETE RESTRICT` |
 
-PK compuesta `(rol_id, permiso_id)` — es lo que impide repetir un permiso dentro del rol. **No lleva auditoría propia:** asignar o quitar permisos actualiza `updated_at` y `updated_by_id` de la fila de `rol`.
+PK compuesta `(rol_id, permiso_id)` — es lo que impide repetir un permiso dentro del rol. La tabla la emite MikroORM desde el `@ManyToMany` unidireccional de `Rol` con `pivotTable: 'rol_permiso'`; no se declara a mano. **No lleva auditoría propia:** asignar o quitar permisos actualiza `updated_at` y `updated_by_id` de la fila de `rol`.
 
 ### Atributos derivados, sin columna
 
@@ -156,9 +163,11 @@ PK compuesta `(rol_id, permiso_id)` — es lo que impide repetir un permiso dent
 
 Los decoradores de MikroORM no expresan expresiones, así que estos van en el SQL:
 
-- `UNIQUE (lower(nombre), numero_documento)` en `alumno` y en `profesor` — sin `lower()`, «Juan Pérez» y «juan pérez» conviven y `RN-25` queda a medias.
-- `UNIQUE` planos de `usuario.email`, `rol.codigo`, `permiso.codigo`, `alumno.usuario_id` y `profesor.usuario_id`.
 - Los dos `CHECK` de coherencia (baja y edición) en las cinco tablas.
+
+### Únicos que no requieren SQL a mano
+
+- `UNIQUE` planos de `usuario.email`, `rol.codigo`, `permiso.codigo`, `alumno.numero_documento`, `profesor.numero_documento`, `alumno.usuario_id` y `profesor.usuario_id`. Los expresa el decorador de cada entidad.
 
 ### Límites que el esquema no puede expresar
 
@@ -167,9 +176,9 @@ Los decoradores de MikroORM no expresan expresiones, así que estos van en el SQ
 
 ## 6. Próximos pasos, en orden
 
-1. Responder la revisión de §4 y aprobar el cambio.
+1. Aprobar la implementación y decidir el archivado de `setup-http-foundation`. El modelo ya está cerrado: no queda ninguna decisión de diseño pendiente.
 2. Archivar `setup-http-foundation` (`openspec archive setup-http-foundation`) cuando el usuario lo autorice.
-3. Implementar siguiendo `tasks.md` de punta a punta. Las secciones 1–2 son test-first (RED → GREEN); la migración de la sección 3 se revisa a mano porque los decoradores no expresan el índice funcional `lower(nombre)`.
+3. Implementar siguiendo `tasks.md` de punta a punta. Las secciones 1–2 son test-first (RED → GREEN); la migración de la sección 3 se revisa a mano por los `CHECK` de coherencia y la tabla intermedia emitida por el ORM.
 4. Verificación de cierre: `yarn typecheck && yarn lint && yarn test`, más la suite de integración contra PostgreSQL 18 con Testcontainers (`yarn db:seed catalogo-identidad` se prueba dos veces seguidas).
 5. `openspec validate add-usuario-identity --strict`.
 6. Archivar solo con todas las tareas verificadas.

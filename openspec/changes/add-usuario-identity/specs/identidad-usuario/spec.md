@@ -159,16 +159,21 @@ Todo `Usuario` SHALL tener un hash de contraseña almacenado, y el sistema MUST 
 
 ### Requirement: Unicidad de identidad de Alumno y Profesor
 
-El sistema SHALL rechazar un `Alumno` con igual nombre y número de documento que otro `Alumno` registrado, y un `Profesor` con igual nombre y número de documento que otro `Profesor` registrado, considerando también los dados de baja.
+El sistema SHALL rechazar un `Alumno` cuyo número de documento ya pertenezca a otro `Alumno`, y un `Profesor` cuyo número de documento ya pertenezca a otro `Profesor`, considerando también los dados de baja. La identidad se evalúa por agregado: el mismo documento puede existir a la vez en un `Alumno` y en un `Profesor`.
 
-#### Scenario: Alumno duplicado
+#### Scenario: Alumno con documento repetido
 
-- **WHEN** se intenta registrar un `Alumno` con el mismo nombre y número de documento que otro alumno existente
+- **WHEN** se intenta registrar un `Alumno` con el mismo número de documento que otro alumno existente
 - **THEN** el alta se rechaza como identidad duplicada
 
-#### Scenario: Mismo nombre y documento en agregados distintos
+#### Scenario: Documento repetido con distinto nombre
 
-- **WHEN** se registra un `Profesor` con el mismo nombre y número de documento que un `Alumno` existente
+- **WHEN** se intenta registrar un `Alumno` con el mismo número de documento que otro alumno existente pero con otro nombre
+- **THEN** el alta se rechaza como identidad duplicada, porque la corrección de un nombre es una edición del registro existente, no un alta
+
+#### Scenario: Mismo documento en agregados distintos
+
+- **WHEN** se registra un `Profesor` con el mismo número de documento que un `Alumno` existente
 - **THEN** el alta se acepta, porque la unicidad se evalúa por agregado
 
 ### Requirement: Profesor asignado opcional
@@ -194,10 +199,15 @@ El estado activo de toda entidad persistente del modelo de identidad SHALL deriv
 - **WHEN** se registra un `Alumno` y luego se le da de baja
 - **THEN** antes de la baja está activo y después deja de estarlo, sin que se modifique ningún otro dato de estado
 
-#### Scenario: Reactivación
+#### Scenario: Reactivación de un Alumno
 
 - **WHEN** se reactiva un `Alumno` dado de baja
 - **THEN** vuelve a estar activo conservando su historial y su vínculo de usuario
+
+#### Scenario: Reactivación de un Profesor
+
+- **WHEN** se reactiva un `Profesor` dado de baja
+- **THEN** vuelve a estar activo conservando su vínculo de usuario, y sus alumnos no se le reasignan automáticamente
 
 ### Requirement: Coherencia de la baja lógica
 

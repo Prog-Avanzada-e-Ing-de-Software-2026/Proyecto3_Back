@@ -16,7 +16,7 @@ Este cambio define y persiste ese modelo, con la auditoría de `AGENTS.md` §6 y
 - Se entrega la **primera capa de aplicación del módulo `auth`** que el seeder necesita: los casos de uso de alta de permiso y de rol con sus puertos de persistencia, sus implementaciones MikroORM y `AuthModule` como composition root. Es la excepción de `AGENTS.md` §5.2: la persistencia y su contrato nacen con su primer caso de uso.
 - Se crea la entidad **`Alumno`**, raíz de su propio agregado, con `nombre`, `fechaNacimiento`, `numeroDocumento`, `numeroTelefono`, `fechaIngreso`, `observaciones`, su `usuario` (1 a 1) y su `profesorAsignado` (opcional).
 - Se crea la entidad **`Profesor`**, raíz de su propio agregado, con `nombre`, `fechaNacimiento`, `numeroDocumento`, `numeroTelefono`, `fechaIngreso` y su `usuario` (1 a 1).
-- Se agrega **una migración** que crea las cinco tablas y la tabla de asignación, con sus índices únicos, sus claves foráneas y las restricciones de coherencia de la baja lógica.
+- Se agrega **una migración** que crea las cinco tablas y la tabla intermedia `rol_permiso` que emite el ORM, con sus índices únicos, sus claves foráneas y las restricciones de coherencia de la baja lógica.
 - Se define el **estado activo derivado** de la baja lógica: no se persiste un booleano `activo` paralelo a la fecha de baja, y se configura el filtro global de MikroORM que excluye las filas dadas de baja en las lecturas habituales.
 - Se retira **`MockEntity`**, que ya no tiene función con entidades reales.
 - Se sincroniza la documentación de dominio: `Usuario`, `Rol` y `Permiso` entran al lenguaje ubicuo y `Alumno` y `Profesor` incorporan los atributos que exigen `HU 16` a `HU 19` y `RN-25` y que hoy el modelo no declara.
@@ -35,7 +35,7 @@ Ninguna. `openspec/specs/` todavía no contiene capacidades archivadas.
 
 - **Código afectado:** `src/modules/auth/` (`domain/entities/` con `Usuario`, `Rol` y `Permiso`; `domain/interfaces/` con los puertos de `Rol` y `Permiso`; `application/use-cases/` con los dos casos de uso de alta; `infrastructure/repositories/` con sus implementaciones MikroORM; `auth.module.ts`), `src/modules/alumnos/domain/` (`Alumno`), `src/modules/profesores/domain/` (`Profesor`), `src/migrations/` (esquema nuevo), `src/seeder/` (entrypoint `catalogo-identidad` y su registro), `src/app.module.ts` (importa `AuthModule`), `src/mikro-orm.config.ts` (filtro global de baja lógica), y la baja de `src/mock/mock.entity.ts`.
 - **Sin endpoints, sin controllers, sin DTO y sin `ValidationPipe`.** La capa de aplicación de este cambio existe solo para poder cargar el catálogo; no expone ninguna ruta.
-- **Base de datos:** cinco tablas de entidad más la tabla de asignación rol-permiso, con sus índices. Los cambios de esquema son de alto riesgo según `AGENTS.md` §8, así que el diseño incluye la estrategia de rollback. La carga del catálogo no vive en la migración.
+- **Base de datos:** cinco tablas de entidad más la tabla intermedia rol-permiso que emite el ORM, con sus índices. Los cambios de esquema son de alto riesgo según `AGENTS.md` §8, así que el diseño incluye la estrategia de rollback. La carga del catálogo no vive en la migración.
 - **Dependencias:** ninguna nueva.
 - **API:** sin cambios. `GET /` conserva su respuesta.
 - **Fuera de alcance:**
