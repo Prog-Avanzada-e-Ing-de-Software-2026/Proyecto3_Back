@@ -19,7 +19,10 @@ export interface EntornoPostgres {
 }
 
 /** Configuración de MikroORM contra el contenedor; la comparten las suites de integración. */
-export function configuracionOrm(container: StartedPostgreSqlContainer) {
+export function configuracionOrm(
+  container: StartedPostgreSqlContainer,
+  opciones: { logger?: (mensaje: string) => void } = {},
+) {
   return defineConfig({
     host: container.getHost(),
     port: container.getPort(),
@@ -29,6 +32,9 @@ export function configuracionOrm(container: StartedPostgreSqlContainer) {
     entities: ENTIDADES,
     allowGlobalContext: true,
     metadataProvider: ReflectMetadataProvider,
+    ...(opciones.logger === undefined
+      ? {}
+      : { debug: true, logger: (mensaje: string) => opciones.logger?.(mensaje) }),
     filters: {
       bajaLogica: {
         cond: { deletedAt: null },
