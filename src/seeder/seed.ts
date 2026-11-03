@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { MikroORM, RequestContext } from '@mikro-orm/postgresql';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import { AppModule } from '../app.module.js';
 import { runSeed, SEEDERS, UnknownSeedError } from './registry.js';
@@ -22,7 +23,13 @@ const logger = app.get(PinoLogger);
 app.useLogger(logger);
 
 try {
-  await runSeed(name, app);
+  // Un seed corre fuera de una petición HTTP: sin este contexto, los
+  // repositorios no pueden resolver el EntityManager y el ORM rechaza
+  // operar sobre la instancia global.
+  const orm = app.get(MikroORM);
+  await RequestContext.create(orm.em, async () => {
+    await runSeed(name, app);
+  });
   logger.log(`Seed "${name}" ejecutado`);
 } catch (error) {
   if (error instanceof UnknownSeedError) {

@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import type { TestingModule } from '@nestjs/testing';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { MikroORM } from '@mikro-orm/postgresql';
+import { MikroORM, RequestContext } from '@mikro-orm/postgresql';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -38,7 +38,10 @@ async function permisosDeRol(codigo: string): Promise<string[]> {
 beforeAll(async () => {
   container = await new PostgreSqlContainer(POSTGRES_IMAGE).start();
   modulo = await Test.createTestingModule({
-    imports: [MikroOrmModule.forRoot(configuracionOrm(container)), AuthModule],
+    imports: [
+      MikroOrmModule.forRoot(configuracionOrm(container, { allowGlobalContext: false })),
+      AuthModule,
+    ],
   }).compile();
   orm = modulo.get(MikroORM);
   await orm.migrator.up();
@@ -48,6 +51,11 @@ beforeEach(async () => {
   await vaciarTablas(orm);
 });
 
+/** Igual que el entrypoint: el seed corre dentro de un RequestContext. */
+function correrSeed(): Promise<void> {
+  return RequestContext.create(orm.em, () => runCatalogoIdentidad(modulo));
+}
+
 afterAll(async () => {
   await modulo.close();
   await container.stop();
@@ -55,7 +63,7 @@ afterAll(async () => {
 
 describe('seed catalogo-identidad', () => {
   it('[seeder] deja los tres roles, los tres permisos y sus asignaciones', async () => {
-    await runCatalogoIdentidad(modulo);
+    await correrSeed();
 
     expect(await contar('rol')).toBe(3);
     expect(await contar('permiso')).toBe(3);
@@ -70,12 +78,12 @@ describe('seed catalogo-identidad', () => {
   });
 
   it('[seeder] una segunda ejecución no agrega ni modifica filas', async () => {
-    await runCatalogoIdentidad(modulo);
+    await correrSeed();
     const antes = await orm.em.getConnection().execute<{ id: number; codigo: string }[]>(
       'select "id", "codigo" from "rol" order by "id";',
     );
 
-    await runCatalogoIdentidad(modulo);
+    await correrSeed();
     const despues = await orm.em.getConnection().execute<{ id: number; codigo: string }[]>(
       'select "id", "codigo" from "rol" order by "id";',
     );
@@ -87,12 +95,14 @@ describe('seed catalogo-identidad', () => {
 
   it('[seeder] converge después de una ejecución interrumpida entre permisos y roles', async () => {
     const crearPermiso = modulo.get(CreatePermisoUseCase);
-    await crearPermiso.execute({
-      codigo: CODIGOS_PERMISO.CREAR_PLAN,
-      nombre: 'Crear plan',
-    });
+    await RequestContext.create(orm.em, () =>
+      crearPermiso.execute({
+        codigo: CODIGOS_PERMISO.CREAR_PLAN,
+        nombre: 'Crear plan',
+      }),
+    );
 
-    await runCatalogoIdentidad(modulo);
+    await correrSeed();
 
     expect(await contar('permiso')).toBe(3);
     expect(await contar('rol')).toBe(3);
