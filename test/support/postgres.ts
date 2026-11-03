@@ -42,6 +42,8 @@ export function configuracionOrm(container: StartedPostgreSqlContainer) {
       pathTs: './src/migrations',
       transactional: true,
       allOrNothing: true,
+      // El snapshot lo administra `migration:create`; correr up/down no debe reescribirlo.
+      snapshotOnMigrate: false,
     },
   });
 }

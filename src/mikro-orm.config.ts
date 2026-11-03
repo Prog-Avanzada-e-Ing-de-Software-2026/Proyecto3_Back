@@ -41,6 +41,8 @@ export default defineConfig({
     emit: 'ts',
     transactional: true,
     allOrNothing: true,
+    // El snapshot lo administra `migration:create`; correr up/down no debe reescribirlo.
+    snapshotOnMigrate: false,
   },
 
   debug: process.env.NODE_ENV === 'development',
