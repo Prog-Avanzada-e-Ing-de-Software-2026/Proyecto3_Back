@@ -224,7 +224,8 @@ describe('persistencia del modelo de identidad', () => {
       { codigo: 'PROFESOR' },
       { filters: { bajaLogica: false } },
     );
-    paraReactivar.reactivar(administrador.id, edicion);
+    const reactivacion = new Date('2026-04-01T10:00:00.000Z');
+    paraReactivar.reactivar(administrador.id, reactivacion);
     await entorno.orm.em.flush();
     entorno.orm.em.clear();
 
@@ -234,7 +235,7 @@ describe('persistencia del modelo de identidad', () => {
 
     expect(reactivado.deletedAt).toBeNull();
     expect(reactivado.deletedById).toBeNull();
-    expect(reactivado.updatedAt).toEqual(edicion);
+    expect(reactivado.updatedAt).toEqual(reactivacion);
     expect(reactivado.updatedById).toBe(administrador.id);
   });
 
