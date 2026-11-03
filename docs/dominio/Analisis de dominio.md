@@ -17,6 +17,10 @@ Sabremos que hemos alcanzado nuestro propósito si se cumplen los siguientes obj
 | **Plan** | Es la rutina de entrenamiento, conjunto de ejercicios que el profesor prescribe a un alumno para un período de aproximadamente un mes. Se organiza en tres bloques (movilidad, core y fuerza), se reparte en días de entrenamiento e incluye cómo deben variar las cantidades semana a semana. |
 | **Profesor** | Profesional de educación física que trabaja en el gimnasio. Prepara los planes de sus alumnos y supervisa su entrenamiento.   |
 | **Alumno** | Cliente del gimnasio que asiste al mismo a entrenar y para quien el profesor arma los planes. Tiene un profesor asignado.  |
+| **Usuario** | Identidad de acceso al sistema. Tiene un email obligatorio y único, la credencial almacenada como hash y un rol. Alumno y profesor tienen un usuario; el administrador no tiene perfil. |
+| **Rol** | Agrupación de permisos que se asigna a un usuario. Su código es único y no se reutiliza después de una baja. |
+| **Permiso** | Habilitación de una operación del negocio, por ejemplo crear un plan. Se asigna a los roles y su código es único. |
+| **Permisos efectivos** | Unión de los permisos asignados al rol de un usuario. Es lo que autoriza una operación protegida, no el código del rol. |
 | **Número de plan** | Los planes de un mismo alumno se enumeran de manera sucesiva. El número indica el orden en que fue armado respecto de los demás planes de ese alumno (el plan 1 es el primero que se le preparó).  |
 | **Movilidad** | Bloque del plan con los ejercicios de calentamiento. Es el mismo para todos los días del plan.  |
 | **Core** | Bloque del plan con los ejercicios de zona media. Es el mismo para todos los días del plan.  |
@@ -83,12 +87,23 @@ Lo que representa el atributo cantidad queda definido por la unidad del ejercici
 Tenemos también las entidades que representarán a los actores principales del sistema:
 
 ***Alumno:*** Representa la persona que entrena en el gimnasio y a quien van dirigidos los planes.  
-Atributos: id, nombre, fechaIngreso, activo(boolean), profesorAsignado, observaciones.  
-Comportamientos: darDeAlta(), darDeBaja(), reasignar(), verHistorialDeEntrenamiento(), buscarPlanActivo()  
+Atributos: id, nombre, fechaNacimiento, numeroDocumento, numeroTelefono, fechaIngreso, observaciones, profesorAsignado, usuario. El estado activo se deriva de la baja lógica: no se persiste como atributo independiente. El número de documento es texto para conservar los ceros a la izquierda y es único dentro de los alumnos.  
+Comportamientos: darDeAlta(), darDeBaja(), reactivar(), reasignar(), verHistorialDeEntrenamiento(), buscarPlanActivo()  
 El atributo observaciones es simplemente un comentario que le puede servir al profesor asignado para definir el plan.  
 ***Profesor:*** Representa a la persona que trabaja en el gimnasio y arma los planes.  
-Atributos: id, nombre, fechaIngreso, activo(boolean).  
-Comportamientos: darDeAlta(), darDeBaja().
+Atributos: id, nombre, fechaNacimiento, numeroDocumento, numeroTelefono, fechaIngreso, usuario. El estado activo también se deriva de la baja lógica y el documento es único dentro de los profesores.  
+Comportamientos: darDeAlta(), darDeBaja(), reactivar().
+
+***Usuario:*** Representa la identidad de acceso. El email se normaliza y es único; la credencial se guarda como hash y el rol es obligatorio.  
+Atributos: id, email, passwordHash, rol.  
+Comportamientos: estaActivo(), permisosEfectivos(), darDeBaja(), reactivar().  
+***Rol:*** Agrupa permisos y es la raíz del agregado que posee la asignación: la colección solo se modifica a través del rol.  
+Atributos: id, codigo, nombre, descripcion, permisos.  
+Comportamientos: asignarPermiso(), quitarPermiso(), estaActivo().  
+***Permiso:*** Es la habilitación de una operación del negocio y es raíz de su propio agregado de catálogo.  
+Atributos: id, codigo, nombre, descripcion.
+
+Los permisos efectivos de un usuario son la unión de los permisos de su rol. Alumno y profesor se dan de alta con su usuario y, al darlos de baja o reactivarlos, el usuario se da de baja o se reactiva en la misma operación. La reactivación de un alumno conserva su profesor si sigue activo; la de un profesor no le reasigna alumnos, porque la baja ya los dejó sin profesor.
 
 Estas entidades son raices de sus propios agregados.  
 Finalmente tenemos entidades “de catálogo”, cada una de las cuales es raíz de su propio agregado.
@@ -120,7 +135,7 @@ El sistema no solo guarda datos, también modela las acciones que realizan el pr
 
 * Registrar un plan para un alumno, con sus bloques, la organización de ejercicios por día y las prescripciones semanales.  
 * Registrar un entrenamiento con los ejercicios y las series realizadas, y corregirlas o completarlas más tarde.  
-* Dar de alta y de baja a alumnos y profesores, reactivar alumnos dados de baja y reasignar alumnos a otro profesor.  
+* Dar de alta y de baja a alumnos y profesores, reactivar alumnos y profesores dados de baja y reasignar alumnos a otro profesor.  
 * Administrar el catálogo: ejercicios, categorías, materiales, unidades de medida y objetivos de plan.
 
 ## ***Modelos de lectura***
