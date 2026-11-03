@@ -7,11 +7,13 @@ import { AppService } from './app.service.js';
 import { GlobalExceptionFilter } from './common/presentation/global-exception.filter.js';
 import { buildPinoHttpOptions } from './common/presentation/logging/pino-options.js';
 import mikroOrmConfig from './mikro-orm.config.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 
 @Module({
   imports: [
     LoggerModule.forRoot({ pinoHttp: buildPinoHttpOptions() }),
     MikroOrmModule.forRoot(mikroOrmConfig),
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [

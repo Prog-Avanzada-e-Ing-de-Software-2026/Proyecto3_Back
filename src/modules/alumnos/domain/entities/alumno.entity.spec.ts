@@ -60,7 +60,7 @@ describe('Alumno', () => {
     expect(() => crearAlumno({ fechaNacimiento: '2000-02-30' })).toThrow(ErrorSemantico);
   });
 
-  it('[alumno] conserva los ceros a la izquierda del numero de documento', () => {
+  it('[alumno][RN-33] conserva los ceros a la izquierda del numero de documento', () => {
     expect(crearAlumno({ numeroDocumento: '00123456' }).numeroDocumento).toBe('00123456');
   });
 
@@ -91,7 +91,7 @@ describe('Alumno', () => {
     expect(alumno.deletedById).toBe(7);
   });
 
-  it('[alumno] la reactivacion limpia la baja y conserva el resto del registro', () => {
+  it('[alumno][RN-30] la reactivacion limpia la baja y conserva el resto del registro', () => {
     const profesor = crearProfesor();
     const alumno = crearAlumno({ profesorAsignado: profesor });
     alumno.darDeBaja(7, edicion);

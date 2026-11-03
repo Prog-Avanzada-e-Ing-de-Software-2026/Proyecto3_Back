@@ -39,7 +39,7 @@ describe('Usuario', () => {
     expect(() => crearUsuario('   ')).toThrow(ErrorSemantico);
   });
 
-  it('[usuario] normaliza el email a minusculas sin espacios circundantes', () => {
+  it('[usuario][RN-32] normaliza el email a minusculas sin espacios circundantes', () => {
     expect(crearUsuario('  Alumno@Gym.com ').email).toBe('alumno@gym.com');
   });
 

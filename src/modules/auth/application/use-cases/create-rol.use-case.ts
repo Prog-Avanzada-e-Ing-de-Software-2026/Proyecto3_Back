@@ -1,0 +1,66 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
+import { normalizarCodigo } from '../../../../common/domain/validaciones.js';
+import { Rol } from '../../domain/entities/rol.entity.js';
+import type { IPermisoRepository } from '../../domain/interfaces/permiso.repository.interface.js';
+import type { IRolRepository } from '../../domain/interfaces/rol.repository.interface.js';
+import { PERMISO_REPOSITORY, ROL_REPOSITORY } from '../../auth.tokens.js';
+
+export interface CreateRolInput {
+  codigo: string;
+  nombre: string;
+  descripcion?: string | null;
+  permisos: string[];
+}
+
+/**
+ * Alta idempotente de un rol con sus permisos.
+ *
+ * Resuelve cada permiso antes de escribir: un código inexistente se rechaza sin
+ * dejar el rol a medio construir.
+ */
+@Injectable()
+export class CreateRolUseCase {
+  constructor(
+    @Inject(ROL_REPOSITORY) private readonly roles: IRolRepository,
+    @Inject(PERMISO_REPOSITORY) private readonly permisos: IPermisoRepository,
+  ) {}
+
+  async execute(input: CreateRolInput): Promise<Rol> {
+    const codigo = normalizarCodigo(input.codigo);
+    const existente = await this.roles.findByCodigo(codigo);
+
+    if (existente !== null) {
+      return existente;
+    }
+
+    const permisos = [];
+
+    for (const codigoPermiso of input.permisos) {
+      const permiso = await this.permisos.findByCodigo(normalizarCodigo(codigoPermiso));
+
+      if (permiso === null) {
+        throw new ErrorSemantico(
+          'no_encontrado',
+          'PERMISO_NO_ENCONTRADO',
+          `El permiso ${codigoPermiso} no existe.`,
+        );
+      }
+
+      permisos.push(permiso);
+    }
+
+    const rol = Rol.crear({
+      codigo,
+      nombre: input.nombre,
+      descripcion: input.descripcion ?? null,
+      permisos,
+      createdAt: new Date(),
+      createdById: null,
+    });
+
+    await this.roles.save(rol);
+
+    return rol;
+  }
+}

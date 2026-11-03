@@ -13,6 +13,7 @@ export interface CrearRol {
   codigo: string;
   nombre: string;
   descripcion?: string | null;
+  permisos?: Permiso[];
   createdAt: Date;
   createdById?: number | null;
 }
@@ -35,7 +36,7 @@ export class Rol {
   @Property({ type: 'text', nullable: true })
   descripcion: string | null = null;
 
-  @ManyToMany({ entity: () => Permiso, pivotTable: 'rol_permiso' })
+  @ManyToMany({ entity: () => Permiso, pivotTable: 'rol_permiso', deleteRule: 'restrict' })
   permisos = new Collection<Permiso>(this);
 
   @Property({ columnType: 'timestamptz' })
@@ -63,6 +64,18 @@ export class Rol {
     rol.descripcion = datos.descripcion ?? null;
     rol.createdAt = exigirMomento(datos.createdAt);
     rol.createdById = datos.createdById ?? null;
+
+    for (const permiso of datos.permisos ?? []) {
+      if (rol.permisos.contains(permiso)) {
+        throw new ErrorSemantico(
+          'conflicto',
+          'PERMISO_DUPLICADO',
+          'El rol ya tiene asignado ese permiso.',
+        );
+      }
+
+      rol.permisos.add(permiso);
+    }
 
     return rol;
   }
