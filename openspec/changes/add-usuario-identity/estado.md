@@ -215,8 +215,8 @@ src/modules/auth/
 │   ├── entities/{usuario,rol,permiso}.input.ts
 │   └── interfaces/{rol,permiso}.repository.interface.ts
 ├── application/use-cases/
-│   ├── create-permiso.{use-case,input}.ts
-│   ├── create-rol.{use-case,input}.ts
+│   ├── create-permiso.use-case.ts
+│   ├── create-rol.use-case.ts
 │   └── find-permiso-by-codigo.use-case.ts
 └── infrastructure/repositories/mikro-orm-{rol,permiso}.repository.ts
 

@@ -3,7 +3,12 @@ import { normalizarCodigo } from '../../../../common/domain/validaciones.js';
 import { Permiso } from '../../domain/entities/permiso.entity.js';
 import type { IPermisoRepository } from '../../domain/interfaces/permiso.repository.interface.js';
 import { PERMISO_REPOSITORY } from '../../auth.repository-tokens.js';
-import type { CreatePermisoInput } from './create-permiso.input.js';
+
+export interface CreatePermisoInput {
+  codigo: string;
+  nombre: string;
+  descripcion?: string | null;
+}
 
 /**
  * Alta idempotente de un permiso del catálogo.
