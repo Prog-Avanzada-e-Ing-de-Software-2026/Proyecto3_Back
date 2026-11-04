@@ -208,16 +208,20 @@ Después leer, en este orden: este archivo → `proposal.md` → `specs/identida
 src/common/domain/validaciones.ts
 src/modules/auth/
 ├── auth.module.ts
-├── auth.tokens.ts
+├── auth.repository-tokens.ts
 ├── domain/
 │   ├── codigos.ts
 │   ├── entities/{usuario,rol,permiso}.entity.ts
+│   ├── entities/{usuario,rol,permiso}.input.ts
 │   └── interfaces/{rol,permiso}.repository.interface.ts
-├── application/use-cases/{create-permiso,create-rol}.use-case.ts
+├── application/use-cases/
+│   ├── create-permiso.{use-case,input}.ts
+│   ├── create-rol.{use-case,input}.ts
+│   └── find-permiso-by-codigo.use-case.ts
 └── infrastructure/repositories/mikro-orm-{rol,permiso}.repository.ts
 
-src/modules/alumnos/domain/entities/alumno.entity.ts
-src/modules/profesores/domain/entities/profesor.entity.ts
+src/modules/alumnos/domain/entities/{alumno.entity,alumno.input}.ts
+src/modules/profesores/domain/entities/{profesor.entity,profesor.input}.ts
 src/migrations/Migration20261103132639.ts
 src/seeder/catalogo-identidad.seed.ts
 src/seeder/registry.ts

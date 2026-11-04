@@ -6,6 +6,7 @@ import type { Rol } from '../../domain/entities/rol.entity.js';
 import type { IPermisoRepository } from '../../domain/interfaces/permiso.repository.interface.js';
 import type { IRolRepository } from '../../domain/interfaces/rol.repository.interface.js';
 import { CreateRolUseCase } from './create-rol.use-case.js';
+import { FindPermisoByCodigoUseCase } from './find-permiso-by-codigo.use-case.js';
 
 const alta = new Date('2026-01-01T10:00:00.000Z');
 
@@ -59,7 +60,7 @@ describe('CreateRolUseCase', () => {
     const roles = new RolRepositoryFalso();
     const permiso = crearPermiso('CREAR_PLAN');
     permisos.precargar(permiso);
-    const caso = new CreateRolUseCase(roles, permisos);
+    const caso = new CreateRolUseCase(roles, new FindPermisoByCodigoUseCase(permisos));
 
     const rol = await caso.execute({
       codigo: 'profesor',
@@ -80,7 +81,7 @@ describe('CreateRolUseCase', () => {
     const roles = new RolRepositoryFalso();
     const permiso = crearPermiso('CREAR_PLAN');
     permisos.precargar(permiso);
-    const caso = new CreateRolUseCase(roles, permisos);
+    const caso = new CreateRolUseCase(roles, new FindPermisoByCodigoUseCase(permisos));
     const existente = await caso.execute({
       codigo: 'PROFESOR',
       nombre: 'Profesor',
@@ -100,7 +101,7 @@ describe('CreateRolUseCase', () => {
   it('[create-rol] rechaza un permiso inexistente antes de escribir', async () => {
     const permisos = new PermisoRepositoryFalso();
     const roles = new RolRepositoryFalso();
-    const caso = new CreateRolUseCase(roles, permisos);
+    const caso = new CreateRolUseCase(roles, new FindPermisoByCodigoUseCase(permisos));
 
     await expect(
       caso.execute({ codigo: 'PROFESOR', nombre: 'Profesor', permisos: ['INEXISTENTE'] }),
@@ -111,7 +112,7 @@ describe('CreateRolUseCase', () => {
   it('[create-rol] un rol sin permisos es válido', async () => {
     const permisos = new PermisoRepositoryFalso();
     const roles = new RolRepositoryFalso();
-    const caso = new CreateRolUseCase(roles, permisos);
+    const caso = new CreateRolUseCase(roles, new FindPermisoByCodigoUseCase(permisos));
 
     const rol = await caso.execute({ codigo: 'ALUMNO', nombre: 'Alumno', permisos: [] });
 

@@ -2,7 +2,8 @@ import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { CreatePermisoUseCase } from './application/use-cases/create-permiso.use-case.js';
 import { CreateRolUseCase } from './application/use-cases/create-rol.use-case.js';
-import { PERMISO_REPOSITORY, ROL_REPOSITORY } from './auth.tokens.js';
+import { FindPermisoByCodigoUseCase } from './application/use-cases/find-permiso-by-codigo.use-case.js';
+import { PERMISO_REPOSITORY, ROL_REPOSITORY } from './auth.repository-tokens.js';
 import { Permiso } from './domain/entities/permiso.entity.js';
 import { Rol } from './domain/entities/rol.entity.js';
 import { Usuario } from './domain/entities/usuario.entity.js';
@@ -20,9 +21,9 @@ import { MikroOrmRolRepository } from './infrastructure/repositories/mikro-orm-r
   providers: [
     CreatePermisoUseCase,
     CreateRolUseCase,
+    FindPermisoByCodigoUseCase,
     { provide: PERMISO_REPOSITORY, useClass: MikroOrmPermisoRepository },
     { provide: ROL_REPOSITORY, useClass: MikroOrmRolRepository },
   ],
-  exports: [CreatePermisoUseCase, CreateRolUseCase],
 })
 export class AuthModule {}

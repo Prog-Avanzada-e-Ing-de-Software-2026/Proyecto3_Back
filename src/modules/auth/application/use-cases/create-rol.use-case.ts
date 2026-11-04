@@ -2,16 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 import { normalizarCodigo } from '../../../../common/domain/validaciones.js';
 import { Rol } from '../../domain/entities/rol.entity.js';
-import type { IPermisoRepository } from '../../domain/interfaces/permiso.repository.interface.js';
 import type { IRolRepository } from '../../domain/interfaces/rol.repository.interface.js';
-import { PERMISO_REPOSITORY, ROL_REPOSITORY } from '../../auth.tokens.js';
-
-export interface CreateRolInput {
-  codigo: string;
-  nombre: string;
-  descripcion?: string | null;
-  permisos: string[];
-}
+import { ROL_REPOSITORY } from '../../auth.repository-tokens.js';
+import type { CreateRolInput } from './create-rol.input.js';
+import { FindPermisoByCodigoUseCase } from './find-permiso-by-codigo.use-case.js';
 
 /**
  * Alta idempotente de un rol con sus permisos.
@@ -23,7 +17,7 @@ export interface CreateRolInput {
 export class CreateRolUseCase {
   constructor(
     @Inject(ROL_REPOSITORY) private readonly roles: IRolRepository,
-    @Inject(PERMISO_REPOSITORY) private readonly permisos: IPermisoRepository,
+    private readonly buscarPermiso: FindPermisoByCodigoUseCase,
   ) {}
 
   async execute(input: CreateRolInput): Promise<Rol> {
@@ -37,7 +31,7 @@ export class CreateRolUseCase {
     const permisos = [];
 
     for (const codigoPermiso of input.permisos) {
-      const permiso = await this.permisos.findByCodigo(normalizarCodigo(codigoPermiso));
+      const permiso = await this.buscarPermiso.execute(codigoPermiso);
 
       if (permiso === null) {
         throw new ErrorSemantico(
