@@ -1,26 +1,14 @@
-import { Entity, ManyToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
+import { Entity, ManyToOne, OneToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 import {
   exigirActor,
   exigirFechaCalendario,
   exigirMomento,
-  exigirTexto,
+  normalizarTextoObligatorio,
 } from '../../../../common/domain/validaciones.js';
 import { Usuario } from '../../../auth/domain/entities/usuario.entity.js';
 import { Profesor } from '../../../profesores/domain/entities/profesor.entity.js';
-
-export interface CrearAlumno {
-  nombre: string;
-  fechaNacimiento: string;
-  numeroDocumento: string;
-  numeroTelefono: string;
-  fechaIngreso: Date;
-  observaciones?: string | null;
-  profesorAsignado?: Profesor | null;
-  usuario: Usuario;
-  createdAt: Date;
-  createdById?: number | null;
-}
+import type { CrearAlumno } from './alumno.input.js';
 
 /**
  * Perfil de alumno. Su identidad de acceso vive en `Usuario`; el estado activo
@@ -57,9 +45,9 @@ export class Alumno {
   })
   profesorAsignado: Profesor | null = null;
 
-  @ManyToOne(() => Usuario, {
+  @OneToOne(() => Usuario, {
     fieldName: 'usuario_id',
-    unique: true,
+    owner: true,
     deleteRule: 'restrict',
   })
   usuario!: Usuario;
@@ -88,10 +76,10 @@ export class Alumno {
     }
 
     const alumno = new Alumno();
-    alumno.nombre = exigirTexto(datos.nombre, 'NOMBRE');
+    alumno.nombre = normalizarTextoObligatorio(datos.nombre, 'NOMBRE');
     alumno.fechaNacimiento = exigirFechaCalendario(datos.fechaNacimiento, 'FECHA_NACIMIENTO');
-    alumno.numeroDocumento = exigirTexto(datos.numeroDocumento, 'NUMERO_DOCUMENTO');
-    alumno.numeroTelefono = exigirTexto(datos.numeroTelefono, 'NUMERO_TELEFONO');
+    alumno.numeroDocumento = normalizarTextoObligatorio(datos.numeroDocumento, 'NUMERO_DOCUMENTO');
+    alumno.numeroTelefono = normalizarTextoObligatorio(datos.numeroTelefono, 'NUMERO_TELEFONO');
     alumno.fechaIngreso = exigirMomento(datos.fechaIngreso);
     alumno.observaciones = datos.observaciones ?? null;
     alumno.profesorAsignado = datos.profesorAsignado ?? null;

@@ -1,23 +1,13 @@
-import { Entity, ManyToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
+import { Entity, OneToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 import {
   exigirActor,
   exigirFechaCalendario,
   exigirMomento,
-  exigirTexto,
+  normalizarTextoObligatorio,
 } from '../../../../common/domain/validaciones.js';
 import { Usuario } from '../../../auth/domain/entities/usuario.entity.js';
-
-export interface CrearProfesor {
-  nombre: string;
-  fechaNacimiento: string;
-  numeroDocumento: string;
-  numeroTelefono: string;
-  fechaIngreso: Date;
-  usuario: Usuario;
-  createdAt: Date;
-  createdById?: number | null;
-}
+import type { CrearProfesor } from './profesor.input.js';
 
 /**
  * Perfil de profesor. Su identidad de acceso vive en `Usuario`; el estado
@@ -43,9 +33,9 @@ export class Profesor {
   @Property({ columnType: 'timestamptz' })
   fechaIngreso!: Date;
 
-  @ManyToOne(() => Usuario, {
+  @OneToOne(() => Usuario, {
     fieldName: 'usuario_id',
-    unique: true,
+    owner: true,
     deleteRule: 'restrict',
   })
   usuario!: Usuario;
@@ -78,10 +68,10 @@ export class Profesor {
     }
 
     const profesor = new Profesor();
-    profesor.nombre = exigirTexto(datos.nombre, 'NOMBRE');
+    profesor.nombre = normalizarTextoObligatorio(datos.nombre, 'NOMBRE');
     profesor.fechaNacimiento = exigirFechaCalendario(datos.fechaNacimiento, 'FECHA_NACIMIENTO');
-    profesor.numeroDocumento = exigirTexto(datos.numeroDocumento, 'NUMERO_DOCUMENTO');
-    profesor.numeroTelefono = exigirTexto(datos.numeroTelefono, 'NUMERO_TELEFONO');
+    profesor.numeroDocumento = normalizarTextoObligatorio(datos.numeroDocumento, 'NUMERO_DOCUMENTO');
+    profesor.numeroTelefono = normalizarTextoObligatorio(datos.numeroTelefono, 'NUMERO_TELEFONO');
     profesor.fechaIngreso = exigirMomento(datos.fechaIngreso);
     profesor.usuario = datos.usuario;
     profesor.createdAt = exigirMomento(datos.createdAt);

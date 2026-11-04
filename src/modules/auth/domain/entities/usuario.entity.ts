@@ -3,19 +3,12 @@ import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico
 import {
   exigirActor,
   exigirMomento,
-  exigirTexto,
+  normalizarTextoObligatorio,
   normalizarEmail,
 } from '../../../../common/domain/validaciones.js';
 import type { Permiso } from './permiso.entity.js';
 import { Rol } from './rol.entity.js';
-
-export interface CrearUsuario {
-  email: string;
-  passwordHash: string;
-  rol: Rol;
-  createdAt: Date;
-  createdById?: number | null;
-}
+import type { CrearUsuario } from './usuario.input.js';
 
 /**
  * Identidad de acceso. El estado activo se deriva de la baja lógica y los
@@ -63,7 +56,7 @@ export class Usuario {
 
     const usuario = new Usuario();
     usuario.email = normalizarEmail(datos.email);
-    usuario.passwordHash = exigirTexto(datos.passwordHash, 'CREDENCIAL');
+    usuario.passwordHash = normalizarTextoObligatorio(datos.passwordHash, 'CREDENCIAL');
     usuario.rol = datos.rol;
     usuario.createdAt = exigirMomento(datos.createdAt);
     usuario.createdById = datos.createdById ?? null;

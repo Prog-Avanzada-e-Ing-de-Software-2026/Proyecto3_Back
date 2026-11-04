@@ -4,19 +4,11 @@ import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico
 import {
   exigirActor,
   exigirMomento,
-  exigirTexto,
+  normalizarTextoObligatorio,
   normalizarCodigo,
 } from '../../../../common/domain/validaciones.js';
 import { Permiso } from './permiso.entity.js';
-
-export interface CrearRol {
-  codigo: string;
-  nombre: string;
-  descripcion?: string | null;
-  permisos?: Permiso[];
-  createdAt: Date;
-  createdById?: number | null;
-}
+import type { CrearRol } from './rol.input.js';
 
 /**
  * Rol del catálogo de autorización. Es la raíz del agregado que posee la
@@ -60,7 +52,7 @@ export class Rol {
   static crear(datos: CrearRol): Rol {
     const rol = new Rol();
     rol.codigo = normalizarCodigo(datos.codigo);
-    rol.nombre = exigirTexto(datos.nombre, 'NOMBRE');
+    rol.nombre = normalizarTextoObligatorio(datos.nombre, 'NOMBRE');
     rol.descripcion = datos.descripcion ?? null;
     rol.createdAt = exigirMomento(datos.createdAt);
     rol.createdById = datos.createdById ?? null;

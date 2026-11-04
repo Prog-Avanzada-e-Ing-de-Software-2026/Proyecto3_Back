@@ -3,17 +3,10 @@ import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico
 import {
   exigirActor,
   exigirMomento,
-  exigirTexto,
+  normalizarTextoObligatorio,
   normalizarCodigo,
 } from '../../../../common/domain/validaciones.js';
-
-export interface CrearPermiso {
-  codigo: string;
-  nombre: string;
-  descripcion?: string | null;
-  createdAt: Date;
-  createdById?: number | null;
-}
+import type { CrearPermiso } from './permiso.input.js';
 
 /**
  * Permiso del catálogo de autorización. Es raíz de su propio agregado y no
@@ -54,7 +47,7 @@ export class Permiso {
   static crear(datos: CrearPermiso): Permiso {
     const permiso = new Permiso();
     permiso.codigo = normalizarCodigo(datos.codigo);
-    permiso.nombre = exigirTexto(datos.nombre, 'NOMBRE');
+    permiso.nombre = normalizarTextoObligatorio(datos.nombre, 'NOMBRE');
     permiso.descripcion = datos.descripcion ?? null;
     permiso.createdAt = exigirMomento(datos.createdAt);
     permiso.createdById = datos.createdById ?? null;

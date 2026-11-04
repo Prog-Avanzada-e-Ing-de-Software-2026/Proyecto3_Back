@@ -8,7 +8,7 @@ import { ErrorSemantico } from './errors/error-semantico.js';
  * inválidos con el mismo criterio.
  */
 
-export function exigirTexto(valor: string | null | undefined, campo: string): string {
+export function normalizarTextoObligatorio(valor: string | null | undefined, campo: string): string {
   const normalizado = typeof valor === 'string' ? valor.trim() : '';
 
   if (normalizado.length === 0) {
@@ -19,11 +19,11 @@ export function exigirTexto(valor: string | null | undefined, campo: string): st
 }
 
 export function normalizarEmail(valor: string | null | undefined): string {
-  return exigirTexto(valor, 'EMAIL').toLowerCase();
+  return normalizarTextoObligatorio(valor, 'EMAIL').toLowerCase();
 }
 
 export function normalizarCodigo(valor: string | null | undefined): string {
-  return exigirTexto(valor, 'CODIGO').toUpperCase();
+  return normalizarTextoObligatorio(valor, 'CODIGO').toUpperCase();
 }
 
 export function exigirActor(actorId: number | null | undefined): number {
@@ -57,7 +57,7 @@ export function exigirMomento(momento: Date | null | undefined): Date {
  * nacimiento no es un instante.
  */
 export function exigirFechaCalendario(valor: string | null | undefined, campo: string): string {
-  const normalizado = exigirTexto(valor, campo);
+  const normalizado = normalizarTextoObligatorio(valor, campo);
   const coincidencia = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalizado);
 
   if (coincidencia === null) {
