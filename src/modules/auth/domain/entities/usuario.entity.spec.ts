@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { initOrmMetadata } from '../../../../../test/support/orm-metadata.js';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
-import { CODIGOS_ROL, NOMBRES_PERMISO } from '../codigos.js';
+import { NOMBRES_ROL, NOMBRES_PERMISO } from '../catalogos.js';
 import { Permiso } from './permiso.entity.js';
 import { Rol } from './rol.entity.js';
 import { Usuario } from './usuario.entity.js';
@@ -13,8 +13,8 @@ beforeAll(() => {
   initOrmMetadata();
 });
 
-function crearRol(codigo: string, permisos: Permiso[] = []): Rol {
-  const rol = Rol.crear({ codigo, nombre: codigo, createdAt: alta, createdById: null });
+function crearRol(nombre: string, permisos: Permiso[] = []): Rol {
+  const rol = Rol.crear({ nombre, createdAt: alta, createdById: null });
   permisos.forEach((permiso) => rol.asignarPermiso(permiso, 1, alta));
 
   return rol;
@@ -24,7 +24,7 @@ function crearPermiso(nombre: string): Permiso {
   return Permiso.crear({ nombre, createdAt: alta, createdById: null });
 }
 
-function crearUsuario(email = 'alumno@gym.com', rol = crearRol(CODIGOS_ROL.ALUMNO)): Usuario {
+function crearUsuario(email = 'alumno@gym.com', rol = crearRol(NOMBRES_ROL.ALUMNO)): Usuario {
   return Usuario.crear({
     email,
     passwordHash: 'hash-argon2id',
@@ -60,7 +60,7 @@ describe('Usuario', () => {
       Usuario.crear({
         email: 'alumno@gym.com',
         passwordHash: '  ',
-        rol: crearRol(CODIGOS_ROL.ALUMNO),
+        rol: crearRol(NOMBRES_ROL.ALUMNO),
         createdAt: alta,
         createdById: null,
       }),
@@ -77,7 +77,7 @@ describe('Usuario', () => {
   });
 
   it('[usuario] los permisos efectivos son los del rol', () => {
-    const rol = crearRol(CODIGOS_ROL.PROFESOR, [crearPermiso(NOMBRES_PERMISO.CREAR_PLAN)]);
+    const rol = crearRol(NOMBRES_ROL.PROFESOR, [crearPermiso(NOMBRES_PERMISO.CREAR_PLAN)]);
     const usuario = crearUsuario('profesor@gym.com', rol);
 
     expect(usuario.permisosEfectivos().map((permiso) => permiso.nombre)).toEqual([
@@ -86,14 +86,14 @@ describe('Usuario', () => {
   });
 
   it('[usuario] un rol sin permisos no habilita ninguna operacion de gestion', () => {
-    const usuario = crearUsuario('alumno@gym.com', crearRol(CODIGOS_ROL.ALUMNO));
+    const usuario = crearUsuario('alumno@gym.com', crearRol(NOMBRES_ROL.ALUMNO));
 
     expect(usuario.permisosEfectivos()).toEqual([]);
   });
 
   it('[usuario] excluye de los permisos efectivos el permiso dado de baja', () => {
     const permiso = crearPermiso(NOMBRES_PERMISO.CREAR_PLAN);
-    const rol = crearRol(CODIGOS_ROL.PROFESOR, [permiso]);
+    const rol = crearRol(NOMBRES_ROL.PROFESOR, [permiso]);
     const usuario = crearUsuario('profesor@gym.com', rol);
 
     permiso.darDeBaja(1, edicion);

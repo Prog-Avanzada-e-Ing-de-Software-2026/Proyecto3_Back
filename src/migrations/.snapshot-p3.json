@@ -985,23 +985,6 @@
       "name": "rol",
       "schema": "public",
       "columns": {
-        "codigo": {
-          "name": "codigo",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": true,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz(6)",
@@ -1159,11 +1142,11 @@
       "indexes": [
         {
           "columnNames": [
-            "codigo"
+            "nombre"
           ],
           "composite": false,
           "constraint": true,
-          "keyName": "rol_codigo_unique",
+          "keyName": "rol_nombre_unique",
           "primary": false,
           "unique": true
         },

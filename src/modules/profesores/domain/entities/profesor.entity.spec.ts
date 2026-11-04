@@ -9,7 +9,6 @@ const edicion = new Date('2026-02-01T10:00:00.000Z');
 
 function crearUsuario(email = 'ana@gym.com'): Usuario {
   const rol = Rol.crear({
-    codigo: 'PROFESOR',
     nombre: 'Profesor',
     createdAt: alta,
     createdById: null,

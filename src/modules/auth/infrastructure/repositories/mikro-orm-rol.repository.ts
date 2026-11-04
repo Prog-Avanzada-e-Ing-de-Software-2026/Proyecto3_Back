@@ -25,7 +25,7 @@ export class MikroOrmRolRepository implements IRolRepository {
     this.repositorio.getEntityManager().persist(rol);
   }
 
-  async findByCodigo(codigo: string): Promise<Rol | null> {
-    return this.repositorio.findOne({ codigo }, { populate: ['permisos'] });
+  async findByNombre(nombre: string): Promise<Rol | null> {
+    return this.repositorio.findOne({ nombre }, { populate: ['permisos'] });
   }
 }

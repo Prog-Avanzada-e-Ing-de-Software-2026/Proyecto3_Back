@@ -16,8 +16,8 @@ const edicion = new Date('2026-02-01T10:00:00.000Z');
 
 let entorno: EntornoPostgres;
 
-function crearRol(codigo: string): Rol {
-  return Rol.crear({ codigo, nombre: codigo, createdAt: alta });
+function crearRol(nombre: string): Rol {
+  return Rol.crear({ nombre, createdAt: alta });
 }
 
 function crearUsuario(email: string, rol: Rol, createdById: number | null = null): Usuario {
@@ -28,7 +28,7 @@ function crearAlumno(
   email: string,
   documento: string,
   nombre = 'Juan Perez',
-  usuarioRol: Rol = crearRol('ALUMNO'),
+  usuarioRol: Rol = crearRol('Alumno'),
   createdById: number | null = null,
   profesorAsignado: Profesor | null = null,
 ): Alumno {
@@ -49,7 +49,7 @@ function crearProfesor(
   email: string,
   documento: string,
   nombre = 'Ana Profesora',
-  usuarioRol: Rol = crearRol('PROFESOR'),
+  usuarioRol: Rol = crearRol('Profesor'),
 ): Profesor {
   return Profesor.crear({
     nombre,
@@ -63,7 +63,7 @@ function crearProfesor(
 }
 
 async function crearAdministrador(): Promise<Usuario> {
-  const rol = crearRol('ADMINISTRADOR');
+  const rol = crearRol('Administrador');
   const usuario = crearUsuario('admin@gym.com', rol);
   await persistir([rol, usuario]);
 
@@ -94,7 +94,7 @@ afterAll(async () => {
 
 describe('persistencia del modelo de identidad', () => {
   it('[persistencia][RN-32] rechaza un email repetido sin distinguir mayúsculas', async () => {
-    const rol = crearRol('ALUMNO');
+    const rol = crearRol('Alumno');
     const primero = crearUsuario('alumno@gym.com', rol);
     await persistir([rol, primero]);
 
@@ -103,11 +103,11 @@ describe('persistencia del modelo de identidad', () => {
     await expect(persistir(segundo)).rejects.toThrow();
   });
 
-  it('[persistencia] rechaza códigos de rol y nombres de permiso repetidos', async () => {
-    const rol = crearRol('PROFESOR');
+  it('[persistencia] rechaza nombres de rol y de permiso repetidos', async () => {
+    const rol = crearRol('Profesor');
     await persistir(rol);
 
-    await expect(persistir(crearRol('profesor'))).rejects.toThrow();
+    await expect(persistir(crearRol('  Profesor  '))).rejects.toThrow();
     entorno.orm.em.clear();
 
     const permiso = Permiso.crear({ nombre: 'Crear plan', createdAt: alta });
@@ -124,7 +124,7 @@ describe('persistencia del modelo de identidad', () => {
       'alumno@gym.com',
       '00123456',
       'Juan Perez',
-      crearRol('ALUMNO'),
+      crearRol('Alumno'),
       null,
       profesor,
     );
@@ -210,7 +210,7 @@ describe('persistencia del modelo de identidad', () => {
   });
 
   it('[persistencia] rechaza el mismo permiso dos veces en un rol', async () => {
-    const rol = crearRol('PROFESOR');
+    const rol = crearRol('Profesor');
     const permiso = Permiso.crear({ nombre: 'Crear plan', createdAt: alta });
     await persistir([rol, permiso]);
 
@@ -228,7 +228,7 @@ describe('persistencia del modelo de identidad', () => {
 
   it('[persistencia] rechaza una baja con fecha y sin autor, o al revés', async () => {
     const administrador = await crearAdministrador();
-    const rol = crearRol('PROFESOR');
+    const rol = crearRol('Profesor');
     await persistir(rol);
 
     const conexion = entorno.orm.em.getConnection();
@@ -246,21 +246,21 @@ describe('persistencia del modelo de identidad', () => {
 
   it('[persistencia][RN-30] el filtro excluye los dados de baja y la reactivación los vuelve a incluir', async () => {
     const administrador = await crearAdministrador();
-    const rol = crearRol('PROFESOR');
+    const rol = crearRol('Profesor');
     await persistir(rol);
 
     rol.darDeBaja(administrador.id, edicion);
     await entorno.orm.em.flush();
     entorno.orm.em.clear();
 
-    expect(await entorno.orm.em.find(Rol, { codigo: 'PROFESOR' })).toHaveLength(0);
+    expect(await entorno.orm.em.find(Rol, { nombre: 'Profesor' })).toHaveLength(0);
     expect(
-      await entorno.orm.em.find(Rol, { codigo: 'PROFESOR' }, { filters: { bajaLogica: false } }),
+      await entorno.orm.em.find(Rol, { nombre: 'Profesor' }, { filters: { bajaLogica: false } }),
     ).toHaveLength(1);
 
     const paraReactivar = await entorno.orm.em.findOneOrFail(
       Rol,
-      { codigo: 'PROFESOR' },
+      { nombre: 'Profesor' },
       { filters: { bajaLogica: false } },
     );
     const reactivacion = new Date('2026-04-01T10:00:00.000Z');
@@ -268,9 +268,9 @@ describe('persistencia del modelo de identidad', () => {
     await entorno.orm.em.flush();
     entorno.orm.em.clear();
 
-    expect(await entorno.orm.em.find(Rol, { codigo: 'PROFESOR' })).toHaveLength(1);
+    expect(await entorno.orm.em.find(Rol, { nombre: 'Profesor' })).toHaveLength(1);
 
-    const reactivado = await entorno.orm.em.findOneOrFail(Rol, { codigo: 'PROFESOR' });
+    const reactivado = await entorno.orm.em.findOneOrFail(Rol, { nombre: 'Profesor' });
 
     expect(reactivado.deletedAt).toBeNull();
     expect(reactivado.deletedById).toBeNull();
@@ -280,14 +280,14 @@ describe('persistencia del modelo de identidad', () => {
 
   it('[persistencia] conserva la auditoría de alta, edición y baja', async () => {
     const administrador = await crearAdministrador();
-    const rol = crearRol('PROFESOR');
+    const rol = crearRol('Profesor');
     await persistir(rol);
 
     rol.registrarEdicion(administrador.id, edicion);
     await entorno.orm.em.flush();
     entorno.orm.em.clear();
 
-    const editado = await entorno.orm.em.findOneOrFail(Rol, { codigo: 'PROFESOR' });
+    const editado = await entorno.orm.em.findOneOrFail(Rol, { nombre: 'Profesor' });
 
     expect(editado.createdAt).toEqual(alta);
     expect(editado.createdById).toBeNull();
@@ -304,7 +304,7 @@ describe('persistencia del modelo de identidad', () => {
 
     const dadoDeBaja = await entorno.orm.em.findOneOrFail(
       Rol,
-      { codigo: 'PROFESOR' },
+      { nombre: 'Profesor' },
       { filters: { bajaLogica: false } },
     );
 

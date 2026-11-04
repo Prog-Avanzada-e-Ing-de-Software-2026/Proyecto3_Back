@@ -19,10 +19,9 @@ function crearPermiso(nombre: string): Permiso {
   });
 }
 
-function crearRol(codigo = 'PROFESOR'): Rol {
+function crearRol(nombre = 'Profesor'): Rol {
   return Rol.crear({
-    codigo,
-    nombre: codigo,
+    nombre,
     createdAt: alta,
     createdById: null,
   });
@@ -33,14 +32,14 @@ describe('Rol', () => {
     const rol = crearRol();
 
     expect(rol.permisos.getItems()).toHaveLength(0);
-    expect(rol.codigo).toBe('PROFESOR');
+    expect(rol.nombre).toBe('Profesor');
   });
 
-  it('[rol] normaliza el codigo a mayusculas', () => {
-    expect(crearRol('  profesor  ').codigo).toBe('PROFESOR');
+  it('[rol] recorta los espacios circundantes del nombre', () => {
+    expect(crearRol('  Profesor  ').nombre).toBe('Profesor');
   });
 
-  it('[rol] rechaza un codigo vacio', () => {
+  it('[rol] rechaza un nombre vacio', () => {
     expect(() => crearRol('  ')).toThrow(ErrorSemantico);
   });
 
@@ -57,7 +56,7 @@ describe('Rol', () => {
   it('[rol] el mismo permiso puede asignarse a dos roles', () => {
     const permiso = crearPermiso('Crear plan');
     const primero = crearRol('PROFESOR');
-    const segundo = crearRol('ADMINISTRADOR');
+    const segundo = crearRol('Administrador');
 
     primero.asignarPermiso(permiso, 7, edicion);
     segundo.asignarPermiso(permiso, 7, edicion);

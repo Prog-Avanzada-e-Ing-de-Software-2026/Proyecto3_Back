@@ -1,7 +1,7 @@
 import type { INestApplicationContext } from '@nestjs/common';
 import { CreatePermisoUseCase } from '../modules/auth/application/use-cases/create-permiso.use-case.js';
 import { CreateRolUseCase } from '../modules/auth/application/use-cases/create-rol.use-case.js';
-import { CODIGOS_ROL, NOMBRES_PERMISO } from '../modules/auth/domain/codigos.js';
+import { NOMBRES_PERMISO, NOMBRES_ROL } from '../modules/auth/domain/catalogos.js';
 
 interface PermisoInicial {
   nombre: string;
@@ -9,7 +9,6 @@ interface PermisoInicial {
 }
 
 interface RolInicial {
-  codigo: string;
   nombre: string;
   permisos: string[];
 }
@@ -31,18 +30,15 @@ const PERMISOS_INICIALES: readonly PermisoInicial[] = [
 
 const ROLES_INICIALES: readonly RolInicial[] = [
   {
-    codigo: CODIGOS_ROL.ADMINISTRADOR,
-    nombre: 'Administrador',
+    nombre: NOMBRES_ROL.ADMINISTRADOR,
     permisos: [NOMBRES_PERMISO.GESTIONAR_ALUMNOS, NOMBRES_PERMISO.GESTIONAR_PROFESORES],
   },
   {
-    codigo: CODIGOS_ROL.PROFESOR,
-    nombre: 'Profesor',
+    nombre: NOMBRES_ROL.PROFESOR,
     permisos: [NOMBRES_PERMISO.CREAR_PLAN],
   },
   {
-    codigo: CODIGOS_ROL.ALUMNO,
-    nombre: 'Alumno',
+    nombre: NOMBRES_ROL.ALUMNO,
     permisos: [],
   },
 ];

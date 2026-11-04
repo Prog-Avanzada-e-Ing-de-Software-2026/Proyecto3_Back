@@ -41,22 +41,22 @@ Todo `Usuario` SHALL tener exactamente un rol del catálogo de roles. El sistema
 
 ### Requirement: Catálogo de roles
 
-El sistema SHALL persistir los roles como entidades con código único, nombre y descripción, y MUST contener los roles `ADMINISTRADOR`, `PROFESOR` y `ALUMNO`. El código de un rol MUST NOT reutilizarse, ni siquiera después de su baja.
+El sistema SHALL persistir los roles como entidades con nombre único y descripción, y MUST contener los roles `Administrador`, `Profesor` y `Alumno`. El nombre de un rol MUST NOT reutilizarse, ni siquiera después de su baja.
 
-#### Scenario: Código de rol repetido
+#### Scenario: Nombre de rol repetido
 
-- **WHEN** se intenta registrar un rol con un código ya existente, en distinta capitalización
-- **THEN** la operación se rechaza como código duplicado
+- **WHEN** se intenta registrar un rol con un nombre ya existente, comparado sin espacios circundantes
+- **THEN** la operación se rechaza como nombre duplicado
 
 #### Scenario: Roles requeridos disponibles
 
 - **WHEN** se ejecuta la carga inicial del catálogo sobre un esquema recién aplicado
-- **THEN** el catálogo contiene `ADMINISTRADOR`, `PROFESOR` y `ALUMNO`
+- **THEN** el catálogo contiene `Administrador`, `Profesor` y `Alumno`
 
-#### Scenario: Código de un rol dado de baja
+#### Scenario: Nombre de un rol dado de baja
 
-- **WHEN** se intenta registrar un rol con el código de un rol dado de baja
-- **THEN** la operación se rechaza como código duplicado
+- **WHEN** se intenta registrar un rol con el nombre de un rol dado de baja
+- **THEN** la operación se rechaza como nombre duplicado
 
 ### Requirement: Catálogo de permisos
 
@@ -116,12 +116,12 @@ Los permisos efectivos de un `Usuario` SHALL ser la unión de los permisos asign
 
 #### Scenario: Profesor con el permiso de armar planes
 
-- **WHEN** se consultan los permisos efectivos de un `Usuario` cuyo rol es `PROFESOR`
+- **WHEN** se consultan los permisos efectivos de un `Usuario` cuyo rol es `Profesor`
 - **THEN** incluyen `Crear plan`
 
 #### Scenario: Alumno con permisos de gestión
 
-- **WHEN** se consultan los permisos efectivos de un `Usuario` cuyo rol es `ALUMNO`
+- **WHEN** se consultan los permisos efectivos de un `Usuario` cuyo rol es `Alumno`
 - **THEN** no incluyen `Gestionar alumnos` ni `Gestionar profesores`
 
 #### Scenario: Autorización por permiso
@@ -131,7 +131,7 @@ Los permisos efectivos de un `Usuario` SHALL ser la unión de los permisos asign
 
 ### Requirement: Perfil coherente con el rol
 
-Un `Usuario` cuyo rol sea `ALUMNO` SHALL estar vinculado a exactamente un `Alumno`, uno cuyo rol sea `PROFESOR` a exactamente un `Profesor`, y uno cuyo rol sea `ADMINISTRADOR` MUST NOT estar vinculado a ninguno; un `Alumno` o un `Profesor` MUST NOT estar vinculado a más de un `Usuario`.
+Un `Usuario` cuyo rol sea `Alumno` SHALL estar vinculado a exactamente un `Alumno`, uno cuyo rol sea `Profesor` a exactamente un `Profesor`, y uno cuyo rol sea `Administrador` MUST NOT estar vinculado a ninguno; un `Alumno` o un `Profesor` MUST NOT estar vinculado a más de un `Usuario`.
 
 #### Scenario: Dos perfiles para el mismo usuario
 
@@ -140,7 +140,7 @@ Un `Usuario` cuyo rol sea `ALUMNO` SHALL estar vinculado a exactamente un `Alumn
 
 #### Scenario: Administrador con perfil
 
-- **WHEN** se intenta vincular un perfil de `Alumno` o `Profesor` a un `Usuario` con rol `ADMINISTRADOR`
+- **WHEN** se intenta vincular un perfil de `Alumno` o `Profesor` a un `Usuario` con rol `Administrador`
 - **THEN** la operación se rechaza
 
 ### Requirement: Credencial nunca almacenada en claro

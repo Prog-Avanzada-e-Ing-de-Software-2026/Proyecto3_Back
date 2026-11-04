@@ -1,13 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
-import { normalizarCodigo } from '../../../../common/domain/validaciones.js';
+import { normalizarTextoObligatorio } from '../../../../common/domain/validaciones.js';
 import { Rol } from '../../domain/entities/rol.entity.js';
 import type { IRolRepository } from '../../domain/interfaces/rol.repository.interface.js';
 import { ROL_REPOSITORY } from '../../auth.repository-tokens.js';
 import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
 
 export interface CreateRolInput {
-  codigo: string;
   nombre: string;
   descripcion?: string | null;
   permisos: string[];
@@ -27,8 +26,8 @@ export class CreateRolUseCase {
   ) {}
 
   async execute(input: CreateRolInput): Promise<Rol> {
-    const codigo = normalizarCodigo(input.codigo);
-    const existente = await this.roles.findByCodigo(codigo);
+    const nombre = normalizarTextoObligatorio(input.nombre, 'NOMBRE');
+    const existente = await this.roles.findByNombre(nombre);
 
     if (existente !== null) {
       return existente;
@@ -51,8 +50,7 @@ export class CreateRolUseCase {
     }
 
     const rol = Rol.crear({
-      codigo,
-      nombre: input.nombre,
+      nombre,
       descripcion: input.descripcion ?? null,
       permisos,
       createdAt: new Date(),

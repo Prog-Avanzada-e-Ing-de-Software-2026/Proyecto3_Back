@@ -7,7 +7,6 @@ import type { Permiso } from './permiso.entity.js';
  * invariantes las aplica la raíz del agregado.
  */
 export interface CrearRol {
-  codigo: string;
   nombre: string;
   descripcion?: string | null;
   permisos?: Permiso[];

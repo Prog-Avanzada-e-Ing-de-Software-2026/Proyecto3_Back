@@ -98,7 +98,7 @@ Comportamientos: darDeAlta(), darDeBaja(), reactivar().
 Atributos: id, email, passwordHash, rol.  
 Comportamientos: estaActivo(), permisosEfectivos(), darDeBaja(), reactivar().  
 ***Rol:*** Agrupa permisos y es la raíz del agregado que posee la asignación: la colección solo se modifica a través del rol.  
-Atributos: id, codigo, nombre, descripcion, permisos.  
+Atributos: id, nombre, descripcion, permisos. El nombre es único.  
 Comportamientos: asignarPermiso(), quitarPermiso(), estaActivo().  
 ***Permiso:*** Es la habilitación de una operación del negocio y es raíz de su propio agregado de catálogo.  
 Atributos: id, nombre, descripcion. El nombre es único y es la identidad del permiso.

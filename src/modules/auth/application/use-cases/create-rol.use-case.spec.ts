@@ -30,19 +30,19 @@ class PermisoRepositoryFalso implements IPermisoRepository {
 
 class RolRepositoryFalso implements IRolRepository {
   readonly guardados: Rol[] = [];
-  private readonly porCodigo = new Map<string, Rol>();
+  private readonly porNombre = new Map<string, Rol>();
 
   async save(rol: Rol): Promise<void> {
     this.guardados.push(rol);
-    this.porCodigo.set(rol.codigo, rol);
+    this.porNombre.set(rol.nombre, rol);
   }
 
-  async findByCodigo(codigo: string): Promise<Rol | null> {
-    return this.porCodigo.get(codigo) ?? null;
+  async findByNombre(nombre: string): Promise<Rol | null> {
+    return this.porNombre.get(nombre) ?? null;
   }
 
   precargar(rol: Rol): void {
-    this.porCodigo.set(rol.codigo, rol);
+    this.porNombre.set(rol.nombre, rol);
   }
 }
 
@@ -63,34 +63,31 @@ describe('CreateRolUseCase', () => {
     const caso = new CreateRolUseCase(roles, new FindPermisoByNombreUseCase(permisos));
 
     const rol = await caso.execute({
-      codigo: 'profesor',
       nombre: 'Profesor',
       permisos: ['Crear plan'],
     });
 
     expect(roles.guardados).toHaveLength(1);
-    expect(rol.codigo).toBe('PROFESOR');
+    expect(rol.nombre).toBe('Profesor');
     expect(rol.permisos.getItems()).toEqual([permiso]);
     expect(rol.createdById).toBeNull();
     expect(rol.createdAt).toBeInstanceOf(Date);
     expect(rol.updatedAt).toBeNull();
   });
 
-  it('[create-rol] no escribe cuando el código del rol ya existe', async () => {
+  it('[create-rol] no escribe cuando el nombre del rol ya existe', async () => {
     const permisos = new PermisoRepositoryFalso();
     const roles = new RolRepositoryFalso();
     const permiso = crearPermiso('Crear plan');
     permisos.precargar(permiso);
     const caso = new CreateRolUseCase(roles, new FindPermisoByNombreUseCase(permisos));
     const existente = await caso.execute({
-      codigo: 'PROFESOR',
       nombre: 'Profesor',
       permisos: ['Crear plan'],
     });
 
     const resultado = await caso.execute({
-      codigo: 'profesor',
-      nombre: 'Otro nombre',
+      nombre: '  Profesor  ',
       permisos: [],
     });
 
@@ -104,7 +101,7 @@ describe('CreateRolUseCase', () => {
     const caso = new CreateRolUseCase(roles, new FindPermisoByNombreUseCase(permisos));
 
     await expect(
-      caso.execute({ codigo: 'PROFESOR', nombre: 'Profesor', permisos: ['Inexistente'] }),
+      caso.execute({ nombre: 'Profesor', permisos: ['Inexistente'] }),
     ).rejects.toThrow(ErrorSemantico);
     expect(roles.guardados).toHaveLength(0);
   });
@@ -114,7 +111,7 @@ describe('CreateRolUseCase', () => {
     const roles = new RolRepositoryFalso();
     const caso = new CreateRolUseCase(roles, new FindPermisoByNombreUseCase(permisos));
 
-    const rol = await caso.execute({ codigo: 'ALUMNO', nombre: 'Alumno', permisos: [] });
+    const rol = await caso.execute({ nombre: 'Alumno', permisos: [] });
 
     expect(rol.permisos.getItems()).toEqual([]);
     expect(roles.guardados).toHaveLength(1);

@@ -44,7 +44,7 @@ No se crea `*.module.ts` en este cambio: `AGENTS.md` §5.2 lo define como compos
 
 ### D2 — `Rol` y `Permiso` son entidades persistidas, no un enum
 
-`Rol` y `Permiso` son entidades con las seis columnas de auditoría y baja lógica. `Rol` identifica su catálogo por `codigo` único; `Permiso` por `nombre` único. `Usuario` referencia a `Rol` por clave foránea; no guarda un rol como texto ni como enum.
+`Rol` y `Permiso` son entidades con las seis columnas de auditoría y baja lógica. Ambos identifican su catálogo por `nombre` único. `Usuario` referencia a `Rol` por clave foránea; no guarda un rol como texto ni como enum.
 
 **Por qué:** decisión explícita del usuario. Además el modelo deja de codificar la autorización en el binario: agregar un rol o un permiso es un dato, no un despliegue, y la asignación rol-permiso queda auditable como cualquier otra escritura.
 
@@ -55,15 +55,15 @@ No se crea `*.module.ts` en este cambio: `AGENTS.md` §5.2 lo define como compos
 
 **Costo aceptado:** `Usuario` necesita que su rol exista antes de crearse; el alta de un alumno ya no es un `INSERT` de una fila, y el esquema no puede aplicarse sin cargar el catálogo. Se resuelve en D6.
 
-### D3 — El código de rol es un dato; el permiso se identifica por su nombre
+### D3 — Roles y permisos se identifican por su nombre
 
-La base guarda `rol.codigo` en mayúsculas con guiones bajos (`ADMINISTRADOR`, `PROFESOR`, `ALUMNO`). El código de la aplicación declara constantes con esos tres roles para las búsquedas y las comparaciones, y nunca decide autorización por el código del rol (D4). `Permiso` no tiene código: su nombre es la clave única y la identidad que usan la carga inicial, la asignación y la autorización.
+La base guarda roles y permisos con su `nombre` único. El código de la aplicación declara constantes con esos tres roles y esos tres permisos para las búsquedas y la carga inicial, y nunca decide autorización por el nombre del rol (D4).
 
-**Por qué:** el catálogo de permisos es chico y sus nombres son estables; mantener un código paralelo agregaba una segunda clave que había que sincronizar con el nombre. Los roles conservan el código porque `RN-11`, `RN-12` y las historias los nombran por código.
+**Por qué:** los catálogos son chicos y sus nombres son estables; mantener un código paralelo agregaba una segunda clave que había que sincronizar con el nombre. La autorización sigue decidiéndose por permiso, no por el nombre del rol.
 
 **Alternativa descartada:** un `enum` de TypeScript como tipo de la propiedad persistida: ataría el modelo al binario. Las constantes de nombres dan chequeo de tipos sin quitarle a la fila el papel de fuente de verdad.
 
-### D4 — La autorización se decide por permiso, no por código de rol
+### D4 — La autorización se decide por permiso, no por el nombre del rol
 
 Los permisos efectivos de un `Usuario` son la unión de los permisos de su rol, y una operación protegida exige un permiso por su nombre. Ninguna regla de negocio compara el código del rol para decidir acceso; `RN-12` y `RN-35` —pertenencia al alumno y al profesor asignado— siguen siendo reglas de identidad que el caso de uso evalúa, no permisos.
 
@@ -94,7 +94,7 @@ El catálogo inicial —tres roles, tres permisos y sus asignaciones— se carga
 
 **Consecuencia de alcance:** este cambio entrega la primera capa de aplicación del proyecto. `CreatePermisoUseCase` y `CreateRolUseCase`, sus puertos `IPermisoRepository` e `IRolRepository`, sus implementaciones MikroORM en `infrastructure/repositories/` y `AuthModule` como composition root. Es la excepción que `AGENTS.md` §5.2 admite: el borde de persistencia y el contrato nacen con su primer caso de uso.
 
-**Idempotencia:** el seeder MUST poder repetirse. Cada caso de uso consulta su puerto por su clave natural —código de rol o nombre de permiso— y no escribe si la fila ya existe, así una segunda ejecución termina sin cambios y una ejecución interrumpida converge al repetirse.
+**Idempotencia:** el seeder MUST poder repetirse. Cada caso de uso consulta su puerto por su clave natural —nombre de rol o de permiso— y no escribe si la fila ya existe, así una segunda ejecución termina sin cambios y una ejecución interrumpida converge al repetirse.
 
 **Atomicidad:** cada caso de uso escribe un solo agregado y su implementación declara la transacción con `@Transactional()` sobre el `EntityManager` de su repositorio (`AGENTS.md` §5.7). No hay una transacción única para el catálogo completo: si la ejecución se corta entre permisos y roles, la siguiente converge. Se prefiere eso a un puerto que cree dos raíces de agregado, que sería el caso de uso escondido en el repositorio.
 
@@ -157,14 +157,13 @@ Un `Alumno` y un `Profesor` persisten un atributo booleano `activo` que represen
 ### D9 — Unicidades planas, sin índices parciales
 
 - `usuario.email`: `UNIQUE` sobre el valor normalizado (recortado y en minúsculas).
-- `rol.codigo`: `UNIQUE` sobre el código normalizado en mayúsculas.
-- `permiso.nombre`: `UNIQUE` sobre el nombre recortado.
+- `rol.nombre` y `permiso.nombre`: `UNIQUE` sobre el nombre recortado.
 - `alumno.numero_documento`: `UNIQUE` plano.
 - `profesor.numero_documento`: `UNIQUE` plano.
 
 **Por qué el documento solo y no el par nombre + documento:** `RN-25` nombra el par, pero un documento único por agregado **implica** el par único y satisface la regla siendo más estricta. `HU 16` y `HU 17` piden rechazar "igual nombre y número de documento que otro ya registrado", y la única forma legítima de corregir un nombre es editar la fila existente, no dar de alta una segunda. Además, el número de documento identifica a la persona: dos personas distintas con el mismo documento no existen en el alcance del sistema, así que la restricción más fuerte no bloquea ningún caso real. La contraparte práctica es que el índice compuesto exigía `lower(nombre)`, y `lower()` no resuelve acentos ni espacios internos: habría dado una sensación de unicidad que la base no garantiza.
 
-**Por qué no índices parciales:** `AGENTS.md` §6.3 los pide cuando una clave debe poder reutilizarse después de la baja. Acá no corresponde: `RN-32` exige email único y `HU 16` y `HU 17` rechazan un email ya usado por otro usuario; liberar el email de una baja dejaría dos identidades con el mismo acceso y volvería ambiguo el login de `HU 14`. Además abre una elusión de `RN-34`: bastaría con crear un usuario nuevo con el email de alguien dado de baja para que ese email vuelva a autenticar. `RN-25` habla de alumnos y profesores *registrados* y el documento tampoco se recicla, porque `RN-33` usa el documento como credencial inicial; `RN-30` y `HU 24` resuelven el regreso por reactivación, no por un alta nueva. Un código de rol o un nombre de permiso reutilizado señalaría a otro conjunto de permisos con un historial de auditoría que ya no le corresponde. La unicidad plana es además la que rechaza el duplicado aunque dos comandos concurrentes pasen la lectura previa (`AGENTS.md` §5.7).
+**Por qué no índices parciales:** `AGENTS.md` §6.3 los pide cuando una clave debe poder reutilizarse después de la baja. Acá no corresponde: `RN-32` exige email único y `HU 16` y `HU 17` rechazan un email ya usado por otro usuario; liberar el email de una baja dejaría dos identidades con el mismo acceso y volvería ambiguo el login de `HU 14`. Además abre una elusión de `RN-34`: bastaría con crear un usuario nuevo con el email de alguien dado de baja para que ese email vuelva a autenticar. `RN-25` habla de alumnos y profesores *registrados* y el documento tampoco se recicla, porque `RN-33` usa el documento como credencial inicial; `RN-30` y `HU 24` resuelven el regreso por reactivación, no por un alta nueva. Un nombre de rol o de permiso reutilizado señalaría a otro conjunto de permisos con un historial de auditoría que ya no le corresponde. La unicidad plana es además la que rechaza el duplicado aunque dos comandos concurrentes pasen la lectura previa (`AGENTS.md` §5.7).
 
 **Decisión confirmada por el usuario el 2026-11-03:** la unicidad del email es un requisito de autenticación —la base no debe admitir dos filas con el mismo email— y no se negocia por comodidad de reutilización. La misma sesión confirmó el `UNIQUE` por documento y la reactivación como único camino de regreso.
 
@@ -238,7 +237,7 @@ Se persiste como `text`, no como entero, porque `RN-33` lo usa como contraseña 
 
 ### D16 — El email se normaliza en la entidad y se valida en el DTO
 
-La entidad recorta espacios y pasa a minúsculas antes de comparar y persistir; el formato de email no se valida en este cambio. La validación de formato corresponde al DTO del alta (`AGENTS.md` §5.6), que no forma parte de este cambio. El código de rol se normaliza en mayúsculas por el mismo motivo; el nombre de permiso solo se recorta.
+La entidad recorta espacios y pasa a minúsculas antes de comparar y persistir; el formato de email no se valida en este cambio. La validación de formato corresponde al DTO del alta (`AGENTS.md` §5.6), que no forma parte de este cambio. El nombre de rol y el de permiso solo se recortan.
 
 **Por qué:** la unicidad sin distinguir mayúsculas es una invariante de identidad y no puede depender de que cada controller normalice; el formato es contrato de transporte.
 
@@ -286,8 +285,7 @@ Derivados, sin columna: `activo` (fecha de baja nula) y `permisosEfectivos()` (u
 | Propiedad | Columna | Tipo PostgreSQL | Nullable | Restricción | Origen |
 | --- | --- | --- | --- | --- | --- |
 | `id` | `id` | `integer identity` | no | PK | — |
-| `codigo` | `codigo` | `text` | no | `UNIQUE`, normalizado a mayúsculas | `RN-11`, `RN-12`, `RN-34` |
-| `nombre` | `nombre` | `text` | no | — | `HU 14` |
+| `nombre` | `nombre` | `text` | no | `UNIQUE`, recortado | `HU 14` |
 | `descripcion` | `descripcion` | `text` | sí | — | — |
 | `permisos` | — | tabla `rol_permiso` | — | N-M, modificable solo por la raíz | D5 |
 | `createdAt` | `created_at` | `timestamptz` | no | — | §6.1 |
@@ -373,14 +371,14 @@ Clave primaria compuesta `(rol_id, permiso_id)`, que es la que impide repetir un
 - `src/modules/auth/domain/entities/usuario.entity.ts` — `Usuario`.
 - `src/modules/auth/domain/entities/rol.entity.ts` — `Rol` y su colección de `Permiso`.
 - `src/modules/auth/domain/entities/permiso.entity.ts` — `Permiso`.
-- `src/modules/auth/domain/` — constantes de los códigos de rol y de los nombres de permiso que usan el alta y la autorización.
-- `src/modules/auth/domain/interfaces/rol.repository.interface.ts` y `permiso.repository.interface.ts` — puertos de escritura, con la consulta por código de rol y por nombre de permiso que hace idempotente la carga.
+- `src/modules/auth/domain/` — constantes de los nombres de rol y de permiso que usan el alta y la carga inicial.
+- `src/modules/auth/domain/interfaces/rol.repository.interface.ts` y `permiso.repository.interface.ts` — puertos de escritura, con la consulta por nombre que hace idempotente la carga.
 - `src/modules/auth/application/use-cases/create-permiso.use-case.ts` y `create-rol.use-case.ts` — los dos únicos casos de uso de este cambio.
 - `src/modules/auth/infrastructure/repositories/mikro-orm-rol.repository.ts` y `mikro-orm-permiso.repository.ts` — implementaciones de los puertos.
 - `src/modules/auth/auth.module.ts` — composition root: `MikroOrmModule.forFeature`, vínculo puerto → implementación y registro de los casos de uso.
 - `src/modules/alumnos/domain/entities/alumno.entity.ts` — `Alumno`.
 - `src/modules/profesores/domain/entities/profesor.entity.ts` — `Profesor`.
-- `src/migrations/` — la migración inicial con las cinco tablas, la tabla intermedia `rol_permiso` generada por el ORM, índices únicos, claves foráneas y `CHECK` de coherencia, y la migración de ajuste que quita `permiso.codigo`, agrega `activo` a `alumno` y `profesor` y sus `CHECK`. Sin datos.
+- `src/migrations/` — la migración inicial con las cinco tablas, la tabla intermedia `rol_permiso` generada por el ORM, índices únicos, claves foráneas y `CHECK` de coherencia, y las migraciones de ajuste que quitan `permiso.codigo` y `rol.codigo`, y agregan `activo` a `alumno` y `profesor` con sus `CHECK`. Sin datos.
 - `src/seeder/` — entrypoint `catalogo-identidad` registrado en `registry.ts`.
 - `src/app.module.ts` — importa `AuthModule`.
 - `src/mikro-orm.config.ts` — filtro `bajaLogica` activo por defecto.
@@ -397,7 +395,7 @@ Clave primaria compuesta `(rol_id, permiso_id)`, que es la que impide repetir un
 - **[Importación cruzada de entidades entre módulos]** `alumno.entity.ts` importa `Profesor` y `Usuario`. → Decisión D10 con la justificación de `arquitectura.md` §5.4.
 - **[Filtro por defecto y reactivación]** Una reactivación que olvide desactivar el filtro no encontrará la fila. → La prueba de persistencia cubre baja y reactivación con y sin filtro.
 - **[Tabla intermedia emitida por el ORM]** `rol_permiso` depende de que `pivotTable` esté fijado y de que el ORM la genere en la migración. → El nombre se declara explícitamente en la relación y la prueba de esquema compara el DDL con el esperado.
-- **[Unicidad plana del email, de las claves y del documento]** Un email, un código de rol, un nombre de permiso o un documento de una fila dada de baja nunca se reutiliza. → Es la lectura de `RN-32` y `HU 16`/`HU 17` sobre el documento, y protege la unicidad del login, de la credencial inicial (`RN-33`) y de la auditoría. El reingreso es por reactivación (`RN-30`, `HU 24`); cambiarlo es un cambio de regla, no de esquema.
+- **[Unicidad plana del email, de las claves y del documento]** Un email, un nombre de rol, un nombre de permiso o un documento de una fila dada de baja nunca se reutiliza. → Es la lectura de `RN-32` y `HU 16`/`HU 17` sobre el documento, y protege la unicidad del login, de la credencial inicial (`RN-33`) y de la auditoría. El reingreso es por reactivación (`RN-30`, `HU 24`); cambiarlo es un cambio de regla, no de esquema.
 - **[Reactivación de profesor decidida sobre una base implícita]** `RN-30` y `RN-31` rigen al alumno y `HU 24` es específica de él; para el profesor la única mención es `HU 25`, que habilita "reactivarla" sobre cualquier persona de la nómina. → Decidido el 2026-11-03: el profesor se reactiva, sin reasignarle alumnos (`RN-27`), y su `Usuario` se reactiva en la misma unidad de trabajo (D8).
 - **[Escritura atómica sobre dos módulos]** El caso de uso del perfil escribe también la fila de `Usuario`, que pertenece a `auth`. → El puerto del módulo del perfil expone una operación con nombre propio y abre la transacción él mismo (`AGENTS.md` §5.7); importa la entidad, no providers internos, y no introduce `forwardRef`. La prueba de integración compara las dos filas.
 - **[Columnas de auditoría nulas]** `created_by_id` admite `NULL` hasta `implement-login`. → Se documenta en D13 y se cierra en ese cambio.
@@ -410,7 +408,7 @@ Clave primaria compuesta `(rol_id, permiso_id)`, que es la que impide repetir un
 1. Escribir las cinco entidades con sus invariantes y las pruebas de dominio en rojo.
 2. Implementar las invariantes hasta verde, incluida la normalización de email, de códigos y la lectura de permisos efectivos.
 3. Declarar los puertos de `Rol` y `Permiso`, implementarlos con MikroORM, registrar `AuthModule` en `AppModule` y escribir los dos casos de uso con sus pruebas de aplicación sobre dobles de los puertos.
-4. Generar la migración con `yarn db:migration:create` y revisar el SQL: cinco tablas más la intermedia `rol_permiso` que emite el ORM desde el `@ManyToMany`, índices únicos sobre email, código de rol, nombre de permiso y documento, claves foráneas, `CHECK` de baja y de edición, `CHECK` de coherencia de `activo`, `date` para nacimiento y `timestamptz` para el resto. Revisar que no contenga datos.
+4. Generar la migración con `yarn db:migration:create` y revisar el SQL: cinco tablas más la intermedia `rol_permiso` que emite el ORM desde el `@ManyToMany`, índices únicos sobre email, nombre de rol, nombre de permiso y documento, claves foráneas, `CHECK` de baja y de edición, `CHECK` de coherencia de `activo`, `date` para nacimiento y `timestamptz` para el resto. Revisar que no contenga datos.
 5. Configurar el filtro `bajaLogica` y retirar `MockEntity`; ajustar el arnés de pruebas si lo referencia.
 6. Registrar el entrypoint `catalogo-identidad` en `src/seeder/registry.ts` y verificar con la base temporal que dos ejecuciones consecutivas dejan el catálogo completo y sin duplicados.
 7. Sincronizar `docs/dominio/Analisis de dominio.md` y `yarn check:docs`.
@@ -421,12 +419,12 @@ Clave primaria compuesta `(rol_id, permiso_id)`, que es la que impide repetir un
 ## Testing Strategy
 
 - **Dominio (unitario, junto al código):** invariantes de `Usuario` (email obligatorio y normalizado, rol obligatorio, hash presente, permisos efectivos), de `Rol` (código normalizado, permiso no repetido, asignación y remoción por la raíz) y de `Permiso` (nombre obligatorio); de `Alumno` (nombre y documento obligatorios, profesor opcional) y de `Profesor`. Trazabilidad en el nombre del test con `[RN-25]`, `[RN-32]`, `[RN-33]` y `[RN-34]` donde la regla se pueda verificar en la entidad.
-- **Aplicación (unitaria, con dobles de los puertos):** los dos casos de uso verifican que un código de rol o un nombre de permiso ya existente no produce escritura, que el rol se construye con los permisos que resolvió el puerto, que la referencia a un permiso inexistente se rechaza antes de escribir y que la auditoría del alta queda con su momento y sin actor.
-- **Persistencia (integración contra PostgreSQL 18 real con Testcontainers):** unicidad de email sin distinguir mayúsculas, unicidad de códigos de rol y de nombres de permiso, unicidad de documento por agregado —incluido que el mismo documento con distinto nombre también se rechaza y que el mismo documento convive entre un `Alumno` y un `Profesor`—, unicidad del vínculo de perfil, no duplicación de un permiso en el mismo rol, `CHECK` de coherencia de baja y de edición, baja lógica y reactivación con el filtro activo, y auditoría completa de alta, edición y baja.
+- **Aplicación (unitaria, con dobles de los puertos):** los dos casos de uso verifican que un nombre de rol o de permiso ya existente no produce escritura, que el rol se construye con los permisos que resolvió el puerto, que la referencia a un permiso inexistente se rechaza antes de escribir y que la auditoría del alta queda con su momento y sin actor.
+- **Persistencia (integración contra PostgreSQL 18 real con Testcontainers):** unicidad de email sin distinguir mayúsculas, unicidad de nombres de rol y de permiso, unicidad de documento por agregado —incluido que el mismo documento con distinto nombre también se rechaza y que el mismo documento convive entre un `Alumno` y un `Profesor`—, unicidad del vínculo de perfil, no duplicación de un permiso en el mismo rol, `CHECK` de coherencia de baja y de edición, baja lógica y reactivación con el filtro activo, y auditoría completa de alta, edición y baja.
 - **Seeder (integración contra PostgreSQL 18 real):** ejecutar `yarn db:seed catalogo-identidad` sobre la base migrada deja los tres roles, los tres permisos y sus asignaciones; una segunda ejecución no agrega filas; y el rol `ALUMNO` queda con su conjunto de permisos vacío.
 - **Esquema:** `up` y `down` de la migración en una base temporal, comparación del DDL generado con el esperado para detectar columnas que caigan en un tipo por defecto, y verificación de que la migración no inserta datos.
 - **Sin e2e:** este cambio no expone HTTP.
 
 ## Open Questions
 
-- Ninguna que bloquee la implementación. El permiso de gestión del catálogo queda pendiente de `DW-13` y fuera de alcance por eso. La unicidad plana del email, del código de rol y del nombre de permiso de una fila dada de baja está confirmada por el usuario en D9; cambiarla es un cambio de regla de negocio (`RN-32`), no una decisión de diseño.
+- Ninguna que bloquee la implementación. El permiso de gestión del catálogo queda pendiente de `DW-13` y fuera de alcance por eso. La unicidad plana del email, del nombre de rol y del nombre de permiso de una fila dada de baja está confirmada por el usuario en D9; cambiarla es un cambio de regla de negocio (`RN-32`), no una decisión de diseño.

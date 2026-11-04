@@ -9,7 +9,7 @@ Este cambio define y persiste ese modelo, con la auditoría de `AGENTS.md` §6 y
 ## What Changes
 
 - Se crea la entidad **`Usuario`** con `email` obligatorio y único, `passwordHash`, la referencia obligatoria a un **`Rol`** y las seis columnas de auditoría de `AGENTS.md` §6.1 declaradas en la propia entidad.
-- Se crea la entidad **`Rol`** con `codigo` único, `nombre` y `descripción`, y su colección de **`Permiso`**.
+- Se crea la entidad **`Rol`** con `nombre` único y `descripción`, y su colección de **`Permiso`**.
 - Se crea la entidad **`Permiso`** con `nombre` único y `descripción`.
 - Se modela la **asignación muchos a muchos entre `Rol` y `Permiso`**, modificable solo a través de la raíz del rol, y se define que los permisos efectivos de un usuario son la unión de los de su rol.
 - Se cargan con el seeder `catalogo-identidad` —ejecutable con `yarn db:seed catalogo-identidad`— los tres roles, los permisos con trazabilidad a `RN`/`HU` y sus asignaciones iniciales.

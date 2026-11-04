@@ -5,7 +5,6 @@ import {
   exigirActor,
   exigirMomento,
   normalizarTextoObligatorio,
-  normalizarCodigo,
 } from '../../../../common/domain/validaciones.js';
 import { Permiso } from './permiso.entity.js';
 import type { CrearRol } from './rol.input.js';
@@ -20,9 +19,6 @@ export class Rol {
   id!: number;
 
   @Property({ type: 'text', unique: true })
-  codigo!: string;
-
-  @Property({ type: 'text' })
   nombre!: string;
 
   @Property({ type: 'text', nullable: true })
@@ -51,7 +47,6 @@ export class Rol {
 
   static crear(datos: CrearRol): Rol {
     const rol = new Rol();
-    rol.codigo = normalizarCodigo(datos.codigo);
     rol.nombre = normalizarTextoObligatorio(datos.nombre, 'NOMBRE');
     rol.descripcion = datos.descripcion ?? null;
     rol.createdAt = exigirMomento(datos.createdAt);

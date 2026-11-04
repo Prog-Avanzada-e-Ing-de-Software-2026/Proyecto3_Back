@@ -9,7 +9,7 @@ const alta = new Date('2026-01-01T10:00:00.000Z');
 const edicion = new Date('2026-02-01T10:00:00.000Z');
 
 function crearUsuario(email: string): Usuario {
-  const rol = Rol.crear({ codigo: 'ALUMNO', nombre: 'Alumno', createdAt: alta, createdById: null });
+  const rol = Rol.crear({ nombre: 'Alumno', createdAt: alta, createdById: null });
 
   return Usuario.crear({
     email,

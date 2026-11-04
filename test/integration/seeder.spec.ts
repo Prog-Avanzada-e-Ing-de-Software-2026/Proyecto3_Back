@@ -7,7 +7,7 @@ import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AuthModule } from '../../src/modules/auth/auth.module.js';
 import { CreatePermisoUseCase } from '../../src/modules/auth/application/use-cases/create-permiso.use-case.js';
-import { CODIGOS_ROL, NOMBRES_PERMISO } from '../../src/modules/auth/domain/codigos.js';
+import { NOMBRES_ROL, NOMBRES_PERMISO } from '../../src/modules/auth/domain/catalogos.js';
 import { runCatalogoIdentidad } from '../../src/seeder/catalogo-identidad.seed.js';
 import { configuracionOrm, POSTGRES_IMAGE, vaciarTablas } from '../support/postgres.js';
 
@@ -23,13 +23,13 @@ async function contar(tabla: string): Promise<number> {
   return Number(fila.total);
 }
 
-async function permisosDeRol(codigo: string): Promise<string[]> {
+async function permisosDeRol(nombre: string): Promise<string[]> {
   const filas = await orm.em.getConnection().execute<{ nombre: string }[]>(
     `select p."nombre" from "rol_permiso" rp
        join "rol" r on r."id" = rp."rol_id"
        join "permiso" p on p."id" = rp."permiso_id"
-      where r."codigo" = ? order by p."nombre";`,
-    [codigo],
+      where r."nombre" = ? order by p."nombre";`,
+    [nombre],
   );
 
   return filas.map((fila) => fila.nombre);
@@ -69,23 +69,23 @@ describe('seed catalogo-identidad', () => {
     expect(await contar('permiso')).toBe(3);
     expect(await contar('rol_permiso')).toBe(3);
 
-    expect(await permisosDeRol(CODIGOS_ROL.ADMINISTRADOR)).toEqual([
+    expect(await permisosDeRol(NOMBRES_ROL.ADMINISTRADOR)).toEqual([
       NOMBRES_PERMISO.GESTIONAR_ALUMNOS,
       NOMBRES_PERMISO.GESTIONAR_PROFESORES,
     ]);
-    expect(await permisosDeRol(CODIGOS_ROL.PROFESOR)).toEqual([NOMBRES_PERMISO.CREAR_PLAN]);
-    expect(await permisosDeRol(CODIGOS_ROL.ALUMNO)).toEqual([]);
+    expect(await permisosDeRol(NOMBRES_ROL.PROFESOR)).toEqual([NOMBRES_PERMISO.CREAR_PLAN]);
+    expect(await permisosDeRol(NOMBRES_ROL.ALUMNO)).toEqual([]);
   });
 
   it('[seeder] una segunda ejecución no agrega ni modifica filas', async () => {
     await correrSeed();
-    const antes = await orm.em.getConnection().execute<{ id: number; codigo: string }[]>(
-      'select "id", "codigo" from "rol" order by "id";',
+    const antes = await orm.em.getConnection().execute<{ id: number; nombre: string }[]>(
+      'select "id", "nombre" from "rol" order by "id";',
     );
 
     await correrSeed();
-    const despues = await orm.em.getConnection().execute<{ id: number; codigo: string }[]>(
-      'select "id", "codigo" from "rol" order by "id";',
+    const despues = await orm.em.getConnection().execute<{ id: number; nombre: string }[]>(
+      'select "id", "nombre" from "rol" order by "id";',
     );
 
     expect(despues).toEqual(antes);
