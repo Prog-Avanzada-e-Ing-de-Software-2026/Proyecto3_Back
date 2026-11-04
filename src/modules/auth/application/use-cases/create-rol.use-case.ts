@@ -4,7 +4,7 @@ import { normalizarCodigo } from '../../../../common/domain/validaciones.js';
 import { Rol } from '../../domain/entities/rol.entity.js';
 import type { IRolRepository } from '../../domain/interfaces/rol.repository.interface.js';
 import { ROL_REPOSITORY } from '../../auth.repository-tokens.js';
-import { FindPermisoByCodigoUseCase } from './find-permiso-by-codigo.use-case.js';
+import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
 
 export interface CreateRolInput {
   codigo: string;
@@ -23,7 +23,7 @@ export interface CreateRolInput {
 export class CreateRolUseCase {
   constructor(
     @Inject(ROL_REPOSITORY) private readonly roles: IRolRepository,
-    private readonly buscarPermiso: FindPermisoByCodigoUseCase,
+    private readonly buscarPermiso: FindPermisoByNombreUseCase,
   ) {}
 
   async execute(input: CreateRolInput): Promise<Rol> {
@@ -36,14 +36,14 @@ export class CreateRolUseCase {
 
     const permisos = [];
 
-    for (const codigoPermiso of input.permisos) {
-      const permiso = await this.buscarPermiso.execute(codigoPermiso);
+    for (const nombrePermiso of input.permisos) {
+      const permiso = await this.buscarPermiso.execute(nombrePermiso);
 
       if (permiso === null) {
         throw new ErrorSemantico(
           'no_encontrado',
           'PERMISO_NO_ENCONTRADO',
-          `El permiso ${codigoPermiso} no existe.`,
+          `El permiso ${nombrePermiso} no existe.`,
         );
       }
 

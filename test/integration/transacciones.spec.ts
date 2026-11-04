@@ -28,8 +28,8 @@ function indiceDe(comando: 'begin' | 'commit' | 'rollback'): number {
   );
 }
 
-function crearPermiso(codigo = 'CREAR_PLAN'): Permiso {
-  return Permiso.crear({ codigo, nombre: codigo, createdAt: alta, createdById: null });
+function crearPermiso(nombre = 'Crear plan'): Permiso {
+  return Permiso.crear({ nombre, createdAt: alta, createdById: null });
 }
 
 let container: StartedPostgreSqlContainer;

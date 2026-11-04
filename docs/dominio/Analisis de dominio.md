@@ -87,11 +87,11 @@ Lo que representa el atributo cantidad queda definido por la unidad del ejercici
 Tenemos también las entidades que representarán a los actores principales del sistema:
 
 ***Alumno:*** Representa la persona que entrena en el gimnasio y a quien van dirigidos los planes.  
-Atributos: id, nombre, fechaNacimiento, numeroDocumento, numeroTelefono, fechaIngreso, observaciones, profesorAsignado, usuario. El estado activo se deriva de la baja lógica: no se persiste como atributo independiente. El número de documento es texto para conservar los ceros a la izquierda y es único dentro de los alumnos.  
+Atributos: id, nombre, fechaNacimiento, numeroDocumento, numeroTelefono, fechaIngreso, observaciones, activo, profesorAsignado, usuario. `activo` es un booleano del dominio que el alta deja en verdadero y la baja en falso, coherente con la baja lógica. El número de documento es texto para conservar los ceros a la izquierda y es único dentro de los alumnos.  
 Comportamientos: darDeAlta(), darDeBaja(), reactivar(), reasignar(), verHistorialDeEntrenamiento(), buscarPlanActivo()  
 El atributo observaciones es simplemente un comentario que le puede servir al profesor asignado para definir el plan.  
 ***Profesor:*** Representa a la persona que trabaja en el gimnasio y arma los planes.  
-Atributos: id, nombre, fechaNacimiento, numeroDocumento, numeroTelefono, fechaIngreso, usuario. El estado activo también se deriva de la baja lógica y el documento es único dentro de los profesores.  
+Atributos: id, nombre, fechaNacimiento, numeroDocumento, numeroTelefono, fechaIngreso, activo, alumnos, usuario. `activo` es un booleano del dominio coherente con la baja lógica, y `alumnos` es la colección de solo lectura de los alumnos que lo tienen asignado. El documento es único dentro de los profesores.  
 Comportamientos: darDeAlta(), darDeBaja(), reactivar().
 
 ***Usuario:*** Representa la identidad de acceso. El email se normaliza y es único; la credencial se guarda como hash y el rol es obligatorio.  
@@ -101,7 +101,7 @@ Comportamientos: estaActivo(), permisosEfectivos(), darDeBaja(), reactivar().
 Atributos: id, codigo, nombre, descripcion, permisos.  
 Comportamientos: asignarPermiso(), quitarPermiso(), estaActivo().  
 ***Permiso:*** Es la habilitación de una operación del negocio y es raíz de su propio agregado de catálogo.  
-Atributos: id, codigo, nombre, descripcion.
+Atributos: id, nombre, descripcion. El nombre es único y es la identidad del permiso.
 
 Los permisos efectivos de un usuario son la unión de los permisos de su rol. Alumno y profesor se dan de alta con su usuario y, al darlos de baja o reactivarlos, el usuario se da de baja o se reactiva en la misma operación. La reactivación de un alumno conserva su profesor si sigue activo; la de un profesor no le reasigna alumnos, porque la baja ya los dejó sin profesor.
 

@@ -24,7 +24,7 @@ export class MikroOrmPermisoRepository implements IPermisoRepository {
     this.repositorio.getEntityManager().persist(permiso);
   }
 
-  async findByCodigo(codigo: string): Promise<Permiso | null> {
-    return this.repositorio.findOne({ codigo });
+  async findByNombre(nombre: string): Promise<Permiso | null> {
+    return this.repositorio.findOne({ nombre });
   }
 }

@@ -38,7 +38,7 @@ describe(`migración de add-usuario-identity sobre PostgreSQL 18 (${POSTGRES_IMA
   }, 120_000);
 
   it('[migracion] revierte sin dejar ninguna tabla del cambio', async () => {
-    await entorno.orm.migrator.down();
+    await entorno.orm.migrator.down({ to: 0 });
 
     expect(await tablasDeNegocio(entorno)).toEqual([]);
   }, 60_000);

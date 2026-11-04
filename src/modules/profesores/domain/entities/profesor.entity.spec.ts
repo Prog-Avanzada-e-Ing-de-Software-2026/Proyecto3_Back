@@ -60,6 +60,7 @@ describe('Profesor', () => {
     const profesor = crearProfesor();
 
     expect(profesor.usuarioId).toBe(profesor.usuario.id);
+    expect(profesor.activo).toBe(true);
   });
 
   it('[profesor][RN-30] la baja exige actor y la reactivacion restaura el estado activo', () => {
@@ -73,12 +74,14 @@ describe('Profesor', () => {
     profesor.darDeBaja(7, edicion);
 
     expect(profesor.estaActivo()).toBe(false);
+    expect(profesor.activo).toBe(false);
     expect(profesor.deletedAt).toBe(edicion);
     expect(profesor.deletedById).toBe(7);
 
     profesor.reactivar(8, edicion);
 
     expect(profesor.estaActivo()).toBe(true);
+    expect(profesor.activo).toBe(true);
     expect(profesor.deletedAt).toBeNull();
     expect(profesor.deletedById).toBeNull();
     expect(profesor.nombre).toBe('Ana Profesora');

@@ -60,17 +60,17 @@ El sistema SHALL persistir los roles como entidades con código único, nombre y
 
 ### Requirement: Catálogo de permisos
 
-El sistema SHALL persistir los permisos como entidades con código único, nombre y descripción, y MUST contener los permisos `GESTIONAR_ALUMNOS`, `GESTIONAR_PROFESORES` y `CREAR_PLAN`, que habilitan las operaciones que `HU 16` a `HU 24` y `RN-11` reservan a un rol determinado. El código de un permiso MUST NOT reutilizarse.
+El sistema SHALL persistir los permisos como entidades con nombre único y descripción, y MUST contener los permisos `Gestionar alumnos`, `Gestionar profesores` y `Crear plan`, que habilitan las operaciones que `HU 16` a `HU 24` y `RN-11` reservan a un rol determinado. El nombre de un permiso MUST NOT reutilizarse.
 
-#### Scenario: Código de permiso repetido
+#### Scenario: Nombre de permiso repetido
 
-- **WHEN** se intenta registrar un permiso con un código ya existente
-- **THEN** la operación se rechaza como código duplicado
+- **WHEN** se intenta registrar un permiso con un nombre ya existente, comparado sin espacios circundantes
+- **THEN** la operación se rechaza como nombre duplicado
 
 #### Scenario: Permisos requeridos disponibles
 
 - **WHEN** se ejecuta la carga inicial del catálogo sobre un esquema recién aplicado
-- **THEN** el catálogo contiene `GESTIONAR_ALUMNOS`, `GESTIONAR_PROFESORES` y `CREAR_PLAN`
+- **THEN** el catálogo contiene `Gestionar alumnos`, `Gestionar profesores` y `Crear plan`
 
 ### Requirement: Carga inicial del catálogo
 
@@ -117,12 +117,12 @@ Los permisos efectivos de un `Usuario` SHALL ser la unión de los permisos asign
 #### Scenario: Profesor con el permiso de armar planes
 
 - **WHEN** se consultan los permisos efectivos de un `Usuario` cuyo rol es `PROFESOR`
-- **THEN** incluyen `CREAR_PLAN`
+- **THEN** incluyen `Crear plan`
 
 #### Scenario: Alumno con permisos de gestión
 
 - **WHEN** se consultan los permisos efectivos de un `Usuario` cuyo rol es `ALUMNO`
-- **THEN** no incluyen `GESTIONAR_ALUMNOS` ni `GESTIONAR_PROFESORES`
+- **THEN** no incluyen `Gestionar alumnos` ni `Gestionar profesores`
 
 #### Scenario: Autorización por permiso
 
@@ -190,9 +190,23 @@ Un `Alumno` SHALL tener a lo sumo un `profesorAsignado`, y MUST NOT referenciar 
 - **WHEN** se intenta asignar a un `Alumno` un profesor que no existe
 - **THEN** la operación se rechaza y la asignación no cambia
 
-### Requirement: Estado activo derivado de la baja lógica
+### Requirement: Alumnos asignados al Profesor
 
-El estado activo de toda entidad persistente del modelo de identidad SHALL derivarse de su baja lógica y MUST NOT persistirse como un dato independiente: un registro está activo cuando no tiene fecha de baja y deja de estarlo cuando la tiene.
+Un `Profesor` SHALL exponer la colección de `Alumno` que lo tienen como `profesorAsignado`. La colección SHALL ser de solo lectura: la asignación se modifica únicamente desde `Alumno.profesorAsignado`.
+
+#### Scenario: Consultar los alumnos de un profesor
+
+- **WHEN** se consulta un `Profesor` con dos alumnos asignados
+- **THEN** la colección contiene esos dos alumnos
+
+#### Scenario: Asignación desde el lado del alumno
+
+- **WHEN** se asigna un `Profesor` a un `Alumno`
+- **THEN** el alumno aparece en la colección del profesor sin una segunda escritura
+
+### Requirement: Estado activo de Alumno y Profesor
+
+Un `Alumno` y un `Profesor` SHALL persistir un atributo booleano `activo` que representa si la persona está activa en el gimnasio. El alta MUST dejarlo en `true`, la baja MUST dejarlo en `false` y la reactivación MUST volver a `true`; el atributo MUST mantenerse coherente con la baja lógica: `activo` es `true` si y solo si la fecha de baja es nula.
 
 #### Scenario: Alta y baja del mismo registro
 
@@ -208,6 +222,20 @@ El estado activo de toda entidad persistente del modelo de identidad SHALL deriv
 
 - **WHEN** se reactiva un `Profesor` dado de baja
 - **THEN** vuelve a estar activo conservando su vínculo de usuario, y sus alumnos no se le reasignan automáticamente
+
+#### Scenario: Coherencia entre activo y baja lógica
+
+- **WHEN** se intenta persistir un `Alumno` o un `Profesor` cuyo `activo` no coincide con la ausencia de fecha de baja
+- **THEN** la base rechaza la escritura
+
+### Requirement: Estado activo de Usuario, Rol y Permiso
+
+El estado activo de `Usuario`, `Rol` y `Permiso` SHALL derivarse de su baja lógica y MUST NOT persistirse como un dato independiente: el registro está activo cuando no tiene fecha de baja.
+
+#### Scenario: Rol dado de baja
+
+- **WHEN** se da de baja un `Rol`
+- **THEN** deja de estar activo sin que se persista un booleano adicional
 
 ### Requirement: Coherencia de la baja lógica
 

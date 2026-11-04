@@ -10,14 +10,14 @@ Este cambio define y persiste ese modelo, con la auditoría de `AGENTS.md` §6 y
 
 - Se crea la entidad **`Usuario`** con `email` obligatorio y único, `passwordHash`, la referencia obligatoria a un **`Rol`** y las seis columnas de auditoría de `AGENTS.md` §6.1 declaradas en la propia entidad.
 - Se crea la entidad **`Rol`** con `codigo` único, `nombre` y `descripción`, y su colección de **`Permiso`**.
-- Se crea la entidad **`Permiso`** con `codigo` único, `nombre` y `descripción`.
+- Se crea la entidad **`Permiso`** con `nombre` único y `descripción`.
 - Se modela la **asignación muchos a muchos entre `Rol` y `Permiso`**, modificable solo a través de la raíz del rol, y se define que los permisos efectivos de un usuario son la unión de los de su rol.
 - Se cargan con el seeder `catalogo-identidad` —ejecutable con `yarn db:seed catalogo-identidad`— los tres roles, los permisos con trazabilidad a `RN`/`HU` y sus asignaciones iniciales.
 - Se entrega la **primera capa de aplicación del módulo `auth`** que el seeder necesita: los casos de uso de alta de permiso y de rol con sus puertos de persistencia, sus implementaciones MikroORM y `AuthModule` como composition root. Es la excepción de `AGENTS.md` §5.2: la persistencia y su contrato nacen con su primer caso de uso.
 - Se crea la entidad **`Alumno`**, raíz de su propio agregado, con `nombre`, `fechaNacimiento`, `numeroDocumento`, `numeroTelefono`, `fechaIngreso`, `observaciones`, su `usuario` (1 a 1) y su `profesorAsignado` (opcional).
-- Se crea la entidad **`Profesor`**, raíz de su propio agregado, con `nombre`, `fechaNacimiento`, `numeroDocumento`, `numeroTelefono`, `fechaIngreso` y su `usuario` (1 a 1).
-- Se agrega **una migración** que crea las cinco tablas y la tabla intermedia `rol_permiso` que emite el ORM, con sus índices únicos, sus claves foráneas y las restricciones de coherencia de la baja lógica.
-- Se define el **estado activo derivado** de la baja lógica: no se persiste un booleano `activo` paralelo a la fecha de baja, y se configura el filtro global de MikroORM que excluye las filas dadas de baja en las lecturas habituales.
+- Se crea la entidad **`Profesor`**, raíz de su propio agregado, con `nombre`, `fechaNacimiento`, `numeroDocumento`, `numeroTelefono`, `fechaIngreso` y su `usuario` (1 a 1), y expone la colección de solo lectura de sus `Alumno` asignados.
+- Se agregan **las migraciones** que crean las cinco tablas y la tabla intermedia `rol_permiso` que emite el ORM, con sus índices únicos, sus claves foráneas y las restricciones de coherencia de la baja lógica, y la migración de ajuste que quita `permiso.codigo` y agrega `activo` a `alumno` y `profesor`.
+- Se define el **estado activo** de `Alumno` y `Profesor` como un booleano persistido que el alta, la baja y la reactivación mantienen coherente con la baja lógica; en `Usuario`, `Rol` y `Permiso` el estado se deriva de la baja. Se configura el filtro global de MikroORM que excluye las filas dadas de baja en las lecturas habituales.
 - Se retira **`MockEntity`**, que ya no tiene función con entidades reales.
 - Se sincroniza la documentación de dominio: `Usuario`, `Rol` y `Permiso` entran al lenguaje ubicuo y `Alumno` y `Profesor` incorporan los atributos que exigen `HU 16` a `HU 19` y `RN-25` y que hoy el modelo no declara.
 

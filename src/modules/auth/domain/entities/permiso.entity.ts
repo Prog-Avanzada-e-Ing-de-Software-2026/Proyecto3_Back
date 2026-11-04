@@ -4,13 +4,12 @@ import {
   exigirActor,
   exigirMomento,
   normalizarTextoObligatorio,
-  normalizarCodigo,
 } from '../../../../common/domain/validaciones.js';
 import type { CrearPermiso } from './permiso.input.js';
 
 /**
  * Permiso del catálogo de autorización. Es raíz de su propio agregado y no
- * conoce a los roles que lo usan.
+ * conoce a los roles que lo usan. Su nombre es la identidad del permiso.
  */
 @Entity({ tableName: 'permiso' })
 export class Permiso {
@@ -18,9 +17,6 @@ export class Permiso {
   id!: number;
 
   @Property({ type: 'text', unique: true })
-  codigo!: string;
-
-  @Property({ type: 'text' })
   nombre!: string;
 
   @Property({ type: 'text', nullable: true })
@@ -46,7 +42,6 @@ export class Permiso {
 
   static crear(datos: CrearPermiso): Permiso {
     const permiso = new Permiso();
-    permiso.codigo = normalizarCodigo(datos.codigo);
     permiso.nombre = normalizarTextoObligatorio(datos.nombre, 'NOMBRE');
     permiso.descripcion = datos.descripcion ?? null;
     permiso.createdAt = exigirMomento(datos.createdAt);

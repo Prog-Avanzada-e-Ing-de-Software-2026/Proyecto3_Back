@@ -45,12 +45,12 @@ Todas están desarrolladas en `design.md`; acá solo el índice para ubicarlas r
 
 - `D1` Cinco entidades en tres módulos (`auth` con `Usuario`, `Rol` y `Permiso`; `alumnos`; `profesores`). Sin `*.module.ts` salvo `auth`, que sí lo necesita por los casos de uso del seeder.
 - `D2` `Rol` y `Permiso` son **entidades persistidas**, no un enum. Decisión explícita del usuario.
-- `D3` Los códigos (`ADMINISTRADOR`, `CREAR_PLAN`, …) son datos; el código de la aplicación declara constantes solo para tipar búsquedas.
+- `D3` Los códigos de rol (`ADMINISTRADOR`, `PROFESOR`, `ALUMNO`) son datos; los permisos se identifican por su `nombre` único. El código de la aplicación declara constantes solo para tipar búsquedas.
 - `D4` La autorización se decide por **permiso**, no comparando el código del rol. `RN-12` y `RN-35` son pertenencia, no permisos.
 - `D5` La asignación rol-permiso pertenece a la raíz `Rol`; la tabla intermedia la genera el ORM desde un `@ManyToMany` unidireccional con `pivotTable: 'rol_permiso'`, sin entidad y sin auditoría propia. Decisión explícita del usuario.
 - `D7` El vínculo 1-a-1 con el perfil vive en `Alumno`/`Profesor` (`usuario_id UNIQUE`); `Usuario` solo tiene `rol`.
-- `D8` El estado activo se **deriva** de la baja lógica; no se persiste un booleano `activo`. El alta, la baja y la reactivación de un perfil y de su `Usuario` comparten la misma unidad de trabajo.
-- `D9` Unicidades **planas** (email, código de rol, código de permiso, nombre+documento): ninguna clave de identidad se reutiliza después de una baja.
+- `D8` `Alumno` y `Profesor` persisten un booleano `activo`, coherente con la baja lógica por `CHECK`; `Usuario`, `Rol` y `Permiso` derivan el estado de su baja. El alta, la baja y la reactivación de un perfil y de su `Usuario` comparten la misma unidad de trabajo.
+- `D9` Unicidades **planas** (email, código de rol, nombre de permiso, documento): ninguna clave de identidad se reutiliza después de una baja.
 - `D10` Referencias entre agregados con la clase de la entidad y accesor no persistido del identificador (`arquitectura.md` §5.4).
 - `D14` `fechaNacimiento` es `date` sin zona — **excepción deliberada** a la letra de `AGENTS.md` §6.2.5.
 - `D15` `numeroDocumento` es `text` para conservar ceros a la izquierda (`RN-33` lo usa como contraseña inicial).
@@ -94,7 +94,7 @@ Se presentaron al usuario el 2026-11-02 y respondió el 2026-11-03, incluida la 
 
 - **Punto 3 — auditoría del seed.** Las filas cargadas quedan con `created_by_id` en `NULL`. Es la excepción de proceso interno declarada en `AGENTS.md` §6.2.2 y se cierra en `implement-login`, cuando exista el primer `Usuario` que pueda ser actor.
 - **Punto 4 — `fechaNacimiento`.** Se persiste como `date`: una fecha de nacimiento no es un instante y como `timestamptz` a medianoche UTC se corre de día al leerse desde otra zona. Excepción registrada a la letra de `AGENTS.md` §6.2.5.
-- **Punto 5 — unicidad del email.** `UNIQUE` plano. La base no admite dos filas con el mismo email: liberarlo en una baja haría ambiguo el login de `HU 14` y permitiría eludir `RN-34` creando un usuario nuevo con el email de alguien dado de baja. El regreso se resuelve por reactivación (`RN-30`, `HU 24`). Un código de rol o de permiso tampoco se recicla: se reactiva. **El documento se declara `UNIQUE` solo, sin el par con nombre:** un documento único por agregado implica el par de `RN-25`, el documento identifica a la persona, y así el índice no depende de acentos ni de capitalización. El mismo documento puede existir a la vez en un `Alumno` y en un `Profesor`.
+- **Punto 5 — unicidad del email.** `UNIQUE` plano. La base no admite dos filas con el mismo email: liberarlo en una baja haría ambiguo el login de `HU 14` y permitiría eludir `RN-34` creando un usuario nuevo con el email de alguien dado de baja. El regreso se resuelve por reactivación (`RN-30`, `HU 24`). Un código de rol o un nombre de permiso tampoco se recicla: se reactiva. **El documento se declara `UNIQUE` solo, sin el par con nombre:** un documento único por agregado implica el par de `RN-25`, el documento identifica a la persona, y así el índice no depende de acentos ni de capitalización. El mismo documento puede existir a la vez en un `Alumno` y en un `Profesor`.
 - **Punto 6 — tabla N-M.** La genera MikroORM desde la colección de `Rol`; no se declara a mano y no es entidad. Se mantiene unidireccional, con el único camino de escritura en la raíz. Si el vínculo necesitara columnas propias (quién y cuándo asignó), recién ahí tendría que ser entidad.
 - **Punto 7 — reactivación de profesor.** Se acepta: un `Profesor` dado de baja puede reactivarse, igual que un alumno. La base es `HU 25`, que incluye "reactivarla" sobre cualquier persona de la nómina; `RN-30` y `RN-31` son del alumno y no se oponen. No se le reasignan alumnos, porque `RN-27` ya los dejó sin profesor al darlo de baja. **El perfil y su `Usuario` se activan y desactivan en la misma unidad de trabajo:** el caso de uso del perfil es el único punto de entrada, el puerto abre la transacción, y las dos filas reciben el mismo actor y el mismo instante. Un `Usuario` sin perfil se administra por sí mismo.
 
@@ -122,8 +122,7 @@ Resumen derivado de `design.md` § *Modelo de datos*. **Ante discrepancia manda 
 | | `descripcion` | `descripcion` | `text` | sí | — |
 | | `permisos` | — | N-M vía `rol_permiso`, emitida por el ORM | — | modificable solo por la raíz (`D5`) |
 | **`Permiso`** (`permiso`) | `id` | `id` | `integer identity` | no | PK |
-| | `codigo` | `codigo` | `text` | no | `UNIQUE`, normalizado a mayúsculas |
-| | `nombre` | `nombre` | `text` | no | — |
+| | `nombre` | `nombre` | `text` | no | `UNIQUE`, recortado |
 | | `descripcion` | `descripcion` | `text` | sí | — |
 | **`Alumno`** (`alumno`) | `id` | `id` | `integer identity` | no | PK |
 | | `nombre` | `nombre` | `text` | no | — |
@@ -132,6 +131,7 @@ Resumen derivado de `design.md` § *Modelo de datos*. **Ante discrepancia manda 
 | | `numeroTelefono` | `numero_telefono` | `text` | no | — |
 | | `fechaIngreso` | `fecha_ingreso` | `timestamptz` | no | — |
 | | `observaciones` | `observaciones` | `text` | sí | — |
+| | `activo` | `activo` | `boolean` | no | `CHECK` de coherencia con `deleted_at` |
 | | `profesorAsignado` | `profesor_asignado_id` | `integer` | sí | FK → `profesor(id)` |
 | | `usuario` | `usuario_id` | `integer` | no | FK → `usuario(id)`, `UNIQUE` |
 | **`Profesor`** (`profesor`) | `id` | `id` | `integer identity` | no | PK |
@@ -140,6 +140,8 @@ Resumen derivado de `design.md` § *Modelo de datos*. **Ante discrepancia manda 
 | | `numeroDocumento` | `numero_documento` | `text` | no | `UNIQUE` |
 | | `numeroTelefono` | `numero_telefono` | `text` | no | — |
 | | `fechaIngreso` | `fecha_ingreso` | `timestamptz` | no | — |
+| | `activo` | `activo` | `boolean` | no | `CHECK` de coherencia con `deleted_at` |
+| | `alumnos` | — | colección inversa | — | `@OneToMany` por `profesorAsignado`, solo lectura |
 | | `usuario` | `usuario_id` | `integer` | no | FK → `usuario(id)`, `UNIQUE` |
 
 ### Auditoría — las seis columnas, idénticas en las cinco entidades
@@ -166,7 +168,7 @@ PK compuesta `(rol_id, permiso_id)` — es lo que impide repetir un permiso dent
 
 | Entidad | Atributo | Cómo se obtiene |
 | --- | --- | --- |
-| Todas | `activo` | `deletedAt IS NULL` (`D8`) |
+| `Usuario`, `Rol` y `Permiso` | `activo` | `deletedAt IS NULL` (`D8`) |
 | `Usuario` | `permisosEfectivos()` | unión de los permisos de su `rol` (`D4`) |
 
 ### Índices escritos a mano en la migración
@@ -177,7 +179,7 @@ Los decoradores de MikroORM no expresan expresiones, así que estos van en el SQ
 
 ### Únicos que no requieren SQL a mano
 
-- `UNIQUE` planos de `usuario.email`, `rol.codigo`, `permiso.codigo`, `alumno.numero_documento`, `profesor.numero_documento`, `alumno.usuario_id` y `profesor.usuario_id`. Los expresa el decorador de cada entidad.
+- `UNIQUE` planos de `usuario.email`, `rol.codigo`, `permiso.nombre`, `alumno.numero_documento`, `profesor.numero_documento`, `alumno.usuario_id` y `profesor.usuario_id`. Los expresa el decorador de cada entidad.
 
 ### Límites que el esquema no puede expresar
 
@@ -217,7 +219,7 @@ src/modules/auth/
 ├── application/use-cases/
 │   ├── create-permiso.use-case.ts
 │   ├── create-rol.use-case.ts
-│   └── find-permiso-by-codigo.use-case.ts
+│   └── find-permiso-by-nombre.use-case.ts
 └── infrastructure/repositories/mikro-orm-{rol,permiso}.repository.ts
 
 src/modules/alumnos/domain/entities/{alumno.entity,alumno.input}.ts

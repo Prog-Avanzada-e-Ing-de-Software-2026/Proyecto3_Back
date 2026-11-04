@@ -5,28 +5,26 @@ import { Permiso } from './permiso.entity.js';
 const alta = new Date('2026-01-01T10:00:00.000Z');
 const edicion = new Date('2026-02-01T10:00:00.000Z');
 
-function crearPermiso(codigo = 'CREAR_PLAN'): Permiso {
+function crearPermiso(nombre = 'Crear plan'): Permiso {
   return Permiso.crear({
-    codigo,
-    nombre: 'Crear plan',
+    nombre,
     createdAt: alta,
     createdById: null,
   });
 }
 
 describe('Permiso', () => {
-  it('[permiso] rechaza un codigo vacio', () => {
+  it('[permiso] rechaza un nombre vacio', () => {
     expect(() => crearPermiso('   ')).toThrow(ErrorSemantico);
   });
 
-  it('[permiso] normaliza el codigo a mayusculas sin espacios circundantes', () => {
-    expect(crearPermiso('  crear_plan  ').codigo).toBe('CREAR_PLAN');
+  it('[permiso] recorta los espacios circundantes del nombre', () => {
+    expect(crearPermiso('  Crear plan  ').nombre).toBe('Crear plan');
   });
 
-  it('[permiso] rechaza un nombre vacio', () => {
+  it('[permiso] rechaza un nombre vacio en la construccion directa', () => {
     expect(() =>
       Permiso.crear({
-        codigo: 'CREAR_PLAN',
         nombre: ' ',
         createdAt: alta,
         createdById: null,
@@ -83,7 +81,7 @@ describe('Permiso', () => {
     expect(permiso.estaActivo()).toBe(true);
     expect(permiso.deletedAt).toBeNull();
     expect(permiso.deletedById).toBeNull();
-    expect(permiso.codigo).toBe('CREAR_PLAN');
+    expect(permiso.nombre).toBe('Crear plan');
     expect(permiso.createdAt).toBe(alta);
     expect(permiso.updatedAt).toBe(reactivacion);
     expect(permiso.updatedById).toBe(9);
@@ -97,7 +95,6 @@ describe('Permiso', () => {
 
   it('[permiso] el ultimo responsable es el editor cuando hubo edicion', () => {
     const permiso = Permiso.crear({
-      codigo: 'CREAR_PLAN',
       nombre: 'Crear plan',
       createdAt: alta,
       createdById: 3,

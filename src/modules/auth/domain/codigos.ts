@@ -1,8 +1,9 @@
 /**
- * Códigos del catálogo de identidad y autorización.
+ * Claves del catálogo de identidad y autorización.
  *
- * Los códigos son datos persistidos: estas constantes solo tipan las búsquedas
- * y la carga inicial, y nunca reemplazan la fila de la base.
+ * Los roles se identifican por `codigo` y los permisos por `nombre`: ambos son
+ * datos persistidos y estas constantes solo tipan las búsquedas y la carga
+ * inicial. Nunca reemplazan la fila de la base.
  */
 export const CODIGOS_ROL = {
   ADMINISTRADOR: 'ADMINISTRADOR',
@@ -10,12 +11,12 @@ export const CODIGOS_ROL = {
   ALUMNO: 'ALUMNO',
 } as const;
 
-export const CODIGOS_PERMISO = {
-  GESTIONAR_ALUMNOS: 'GESTIONAR_ALUMNOS',
-  GESTIONAR_PROFESORES: 'GESTIONAR_PROFESORES',
-  CREAR_PLAN: 'CREAR_PLAN',
+export const NOMBRES_PERMISO = {
+  GESTIONAR_ALUMNOS: 'Gestionar alumnos',
+  GESTIONAR_PROFESORES: 'Gestionar profesores',
+  CREAR_PLAN: 'Crear plan',
 } as const;
 
 export type CodigoRol = (typeof CODIGOS_ROL)[keyof typeof CODIGOS_ROL];
 
-export type CodigoPermiso = (typeof CODIGOS_PERMISO)[keyof typeof CODIGOS_PERMISO];
+export type NombrePermiso = (typeof NOMBRES_PERMISO)[keyof typeof NOMBRES_PERMISO];

@@ -7,12 +7,13 @@ import {
   normalizarTextoObligatorio,
 } from '../../../../common/domain/validaciones.js';
 import { Usuario } from '../../../auth/domain/entities/usuario.entity.js';
+// oxlint-disable-next-line import/no-cycle -- el profesor declara la colección inversa de solo lectura sobre esta relación.
 import { Profesor } from '../../../profesores/domain/entities/profesor.entity.js';
 import type { CrearAlumno } from './alumno.input.js';
 
 /**
  * Perfil de alumno. Su identidad de acceso vive en `Usuario`; el estado activo
- * se deriva de la baja lógica.
+ * es un atributo del dominio que se mantiene coherente con la baja lógica.
  */
 @Entity({ tableName: 'alumno' })
 export class Alumno {
@@ -36,6 +37,9 @@ export class Alumno {
 
   @Property({ type: 'text', nullable: true })
   observaciones: string | null = null;
+
+  @Property({ type: 'boolean', default: true })
+  activo: boolean = true;
 
   @ManyToOne({
     entity: () => Profesor,
@@ -82,6 +86,7 @@ export class Alumno {
     alumno.numeroTelefono = normalizarTextoObligatorio(datos.numeroTelefono, 'NUMERO_TELEFONO');
     alumno.fechaIngreso = exigirMomento(datos.fechaIngreso);
     alumno.observaciones = datos.observaciones ?? null;
+    alumno.activo = true;
     alumno.profesorAsignado = datos.profesorAsignado ?? null;
     alumno.usuario = datos.usuario;
     alumno.createdAt = exigirMomento(datos.createdAt);
@@ -91,7 +96,7 @@ export class Alumno {
   }
 
   estaActivo(): boolean {
-    return this.deletedAt === null;
+    return this.activo;
   }
 
   darDeBaja(actorId: number, momento: Date): void {
@@ -106,6 +111,7 @@ export class Alumno {
       );
     }
 
+    this.activo = false;
     this.deletedAt = instante;
     this.deletedById = actor;
     this.updatedAt = instante;
@@ -120,6 +126,7 @@ export class Alumno {
       throw new ErrorSemantico('conflicto', 'ALUMNO_ACTIVO', 'El alumno no está dado de baja.');
     }
 
+    this.activo = true;
     this.deletedAt = null;
     this.deletedById = null;
     this.updatedAt = instante;

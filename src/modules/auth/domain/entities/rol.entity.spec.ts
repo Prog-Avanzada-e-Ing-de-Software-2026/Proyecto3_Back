@@ -11,10 +11,9 @@ beforeAll(() => {
   initOrmMetadata();
 });
 
-function crearPermiso(codigo: string): Permiso {
+function crearPermiso(nombre: string): Permiso {
   return Permiso.crear({
-    codigo,
-    nombre: codigo,
+    nombre,
     createdAt: alta,
     createdById: null,
   });
@@ -47,7 +46,7 @@ describe('Rol', () => {
 
   it('[rol] rechaza el mismo permiso dos veces', () => {
     const rol = crearRol();
-    const permiso = crearPermiso('CREAR_PLAN');
+    const permiso = crearPermiso('Crear plan');
 
     rol.asignarPermiso(permiso, 7, edicion);
 
@@ -56,7 +55,7 @@ describe('Rol', () => {
   });
 
   it('[rol] el mismo permiso puede asignarse a dos roles', () => {
-    const permiso = crearPermiso('CREAR_PLAN');
+    const permiso = crearPermiso('Crear plan');
     const primero = crearRol('PROFESOR');
     const segundo = crearRol('ADMINISTRADOR');
 
@@ -69,7 +68,7 @@ describe('Rol', () => {
 
   it('[rol] asignar y quitar permisos actualiza el ultimo responsable del rol', () => {
     const rol = crearRol();
-    const permiso = crearPermiso('CREAR_PLAN');
+    const permiso = crearPermiso('Crear plan');
 
     rol.asignarPermiso(permiso, 7, edicion);
 
@@ -87,14 +86,14 @@ describe('Rol', () => {
 
   it('[rol] rechaza quitar un permiso que no tiene', () => {
     const rol = crearRol();
-    const permiso = crearPermiso('CREAR_PLAN');
+    const permiso = crearPermiso('Crear plan');
 
     expect(() => rol.quitarPermiso(permiso, 7, edicion)).toThrow(ErrorSemantico);
   });
 
   it('[rol] exige actor para modificar la asignacion', () => {
     const rol = crearRol();
-    const permiso = crearPermiso('CREAR_PLAN');
+    const permiso = crearPermiso('Crear plan');
 
     expect(() => rol.asignarPermiso(permiso, undefined as unknown as number, edicion)).toThrow(
       ErrorSemantico,

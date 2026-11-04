@@ -8,6 +8,23 @@
       "name": "alumno",
       "schema": "public",
       "columns": {
+        "activo": {
+          "name": "activo",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "true",
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz(6)",
@@ -298,6 +315,12 @@
       ],
       "checks": [
         {
+          "name": "alumno_activo_coherente_check",
+          "expression": "(deleted_at IS NULL) = activo",
+          "definition": "CHECK (((deleted_at IS NULL) = activo))",
+          "columnName": "deleted_at"
+        },
+        {
           "name": "alumno_baja_coherente_check",
           "expression": "(deleted_at IS NULL) = (deleted_by_id IS NULL)",
           "definition": "CHECK (((deleted_at IS NULL) = (deleted_by_id IS NULL)))",
@@ -379,23 +402,6 @@
       "name": "permiso",
       "schema": "public",
       "columns": {
-        "codigo": {
-          "name": "codigo",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": true,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz(6)",
@@ -553,11 +559,11 @@
       "indexes": [
         {
           "columnNames": [
-            "codigo"
+            "nombre"
           ],
           "composite": false,
           "constraint": true,
-          "keyName": "permiso_codigo_unique",
+          "keyName": "permiso_nombre_unique",
           "primary": false,
           "unique": true
         },
@@ -631,6 +637,23 @@
       "name": "profesor",
       "schema": "public",
       "columns": {
+        "activo": {
+          "name": "activo",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "true",
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz(6)",
@@ -886,6 +909,12 @@
         }
       ],
       "checks": [
+        {
+          "name": "profesor_activo_coherente_check",
+          "expression": "(deleted_at IS NULL) = activo",
+          "definition": "CHECK (((deleted_at IS NULL) = activo))",
+          "columnName": "deleted_at"
+        },
         {
           "name": "profesor_baja_coherente_check",
           "expression": "(deleted_at IS NULL) = (deleted_by_id IS NULL)",

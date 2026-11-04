@@ -1,10 +1,9 @@
 import type { INestApplicationContext } from '@nestjs/common';
 import { CreatePermisoUseCase } from '../modules/auth/application/use-cases/create-permiso.use-case.js';
 import { CreateRolUseCase } from '../modules/auth/application/use-cases/create-rol.use-case.js';
-import { CODIGOS_PERMISO, CODIGOS_ROL } from '../modules/auth/domain/codigos.js';
+import { CODIGOS_ROL, NOMBRES_PERMISO } from '../modules/auth/domain/codigos.js';
 
 interface PermisoInicial {
-  codigo: string;
   nombre: string;
   descripcion: string;
 }
@@ -17,18 +16,15 @@ interface RolInicial {
 
 const PERMISOS_INICIALES: readonly PermisoInicial[] = [
   {
-    codigo: CODIGOS_PERMISO.GESTIONAR_ALUMNOS,
-    nombre: 'Gestionar alumnos',
+    nombre: NOMBRES_PERMISO.GESTIONAR_ALUMNOS,
     descripcion: 'Dar de alta, modificar, dar de baja y reactivar alumnos.',
   },
   {
-    codigo: CODIGOS_PERMISO.GESTIONAR_PROFESORES,
-    nombre: 'Gestionar profesores',
+    nombre: NOMBRES_PERMISO.GESTIONAR_PROFESORES,
     descripcion: 'Dar de alta, modificar, dar de baja y reactivar profesores.',
   },
   {
-    codigo: CODIGOS_PERMISO.CREAR_PLAN,
-    nombre: 'Crear plan',
+    nombre: NOMBRES_PERMISO.CREAR_PLAN,
     descripcion: 'Armar y modificar planes de entrenamiento.',
   },
 ];
@@ -37,12 +33,12 @@ const ROLES_INICIALES: readonly RolInicial[] = [
   {
     codigo: CODIGOS_ROL.ADMINISTRADOR,
     nombre: 'Administrador',
-    permisos: [CODIGOS_PERMISO.GESTIONAR_ALUMNOS, CODIGOS_PERMISO.GESTIONAR_PROFESORES],
+    permisos: [NOMBRES_PERMISO.GESTIONAR_ALUMNOS, NOMBRES_PERMISO.GESTIONAR_PROFESORES],
   },
   {
     codigo: CODIGOS_ROL.PROFESOR,
     nombre: 'Profesor',
-    permisos: [CODIGOS_PERMISO.CREAR_PLAN],
+    permisos: [NOMBRES_PERMISO.CREAR_PLAN],
   },
   {
     codigo: CODIGOS_ROL.ALUMNO,

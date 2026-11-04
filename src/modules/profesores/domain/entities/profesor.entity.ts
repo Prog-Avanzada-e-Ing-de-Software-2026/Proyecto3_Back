@@ -1,4 +1,5 @@
-import { Entity, OneToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
+import { Collection } from '@mikro-orm/core';
+import { Entity, OneToMany, OneToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 import {
   exigirActor,
@@ -6,12 +7,15 @@ import {
   exigirMomento,
   normalizarTextoObligatorio,
 } from '../../../../common/domain/validaciones.js';
+// oxlint-disable-next-line import/no-cycle -- la relación inversa de solo lectura cierra el ciclo del mapeo ORM, no una dependencia de módulo.
+import { Alumno } from '../../../alumnos/domain/entities/alumno.entity.js';
 import { Usuario } from '../../../auth/domain/entities/usuario.entity.js';
 import type { CrearProfesor } from './profesor.input.js';
 
 /**
  * Perfil de profesor. Su identidad de acceso vive en `Usuario`; el estado
- * activo se deriva de la baja lógica.
+ * activo es un atributo del dominio que se mantiene coherente con la baja
+ * lógica, y la colección `alumnos` expone la relación inversa de solo lectura.
  */
 @Entity({ tableName: 'profesor' })
 export class Profesor {
@@ -32,6 +36,12 @@ export class Profesor {
 
   @Property({ columnType: 'timestamptz' })
   fechaIngreso!: Date;
+
+  @Property({ type: 'boolean', default: true })
+  activo: boolean = true;
+
+  @OneToMany(() => Alumno, (alumno) => alumno.profesorAsignado)
+  alumnos = new Collection<Alumno>(this);
 
   @OneToOne(() => Usuario, {
     fieldName: 'usuario_id',
@@ -73,6 +83,7 @@ export class Profesor {
     profesor.numeroDocumento = normalizarTextoObligatorio(datos.numeroDocumento, 'NUMERO_DOCUMENTO');
     profesor.numeroTelefono = normalizarTextoObligatorio(datos.numeroTelefono, 'NUMERO_TELEFONO');
     profesor.fechaIngreso = exigirMomento(datos.fechaIngreso);
+    profesor.activo = true;
     profesor.usuario = datos.usuario;
     profesor.createdAt = exigirMomento(datos.createdAt);
     profesor.createdById = datos.createdById ?? null;
@@ -81,7 +92,7 @@ export class Profesor {
   }
 
   estaActivo(): boolean {
-    return this.deletedAt === null;
+    return this.activo;
   }
 
   darDeBaja(actorId: number, momento: Date): void {
@@ -96,6 +107,7 @@ export class Profesor {
       );
     }
 
+    this.activo = false;
     this.deletedAt = instante;
     this.deletedById = actor;
     this.updatedAt = instante;
@@ -110,6 +122,7 @@ export class Profesor {
       throw new ErrorSemantico('conflicto', 'PROFESOR_ACTIVO', 'El profesor no está dado de baja.');
     }
 
+    this.activo = true;
     this.deletedAt = null;
     this.deletedById = null;
     this.updatedAt = instante;

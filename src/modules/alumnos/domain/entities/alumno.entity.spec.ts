@@ -69,6 +69,7 @@ describe('Alumno', () => {
 
     expect(alumno.profesorAsignado).toBeNull();
     expect(alumno.estaActivo()).toBe(true);
+    expect(alumno.activo).toBe(true);
   });
 
   it('[alumno] expone el identificador de sus referencias sin persistirlo aparte', () => {
@@ -87,6 +88,7 @@ describe('Alumno', () => {
     alumno.darDeBaja(7, edicion);
 
     expect(alumno.estaActivo()).toBe(false);
+    expect(alumno.activo).toBe(false);
     expect(alumno.deletedAt).toBe(edicion);
     expect(alumno.deletedById).toBe(7);
   });
@@ -99,6 +101,7 @@ describe('Alumno', () => {
     alumno.reactivar(8, edicion);
 
     expect(alumno.estaActivo()).toBe(true);
+    expect(alumno.activo).toBe(true);
     expect(alumno.deletedAt).toBeNull();
     expect(alumno.deletedById).toBeNull();
     expect(alumno.profesorAsignado).toBe(profesor);

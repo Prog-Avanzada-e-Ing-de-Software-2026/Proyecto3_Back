@@ -7,7 +7,7 @@ import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AuthModule } from '../../src/modules/auth/auth.module.js';
 import { CreatePermisoUseCase } from '../../src/modules/auth/application/use-cases/create-permiso.use-case.js';
-import { CODIGOS_PERMISO, CODIGOS_ROL } from '../../src/modules/auth/domain/codigos.js';
+import { CODIGOS_ROL, NOMBRES_PERMISO } from '../../src/modules/auth/domain/codigos.js';
 import { runCatalogoIdentidad } from '../../src/seeder/catalogo-identidad.seed.js';
 import { configuracionOrm, POSTGRES_IMAGE, vaciarTablas } from '../support/postgres.js';
 
@@ -24,15 +24,15 @@ async function contar(tabla: string): Promise<number> {
 }
 
 async function permisosDeRol(codigo: string): Promise<string[]> {
-  const filas = await orm.em.getConnection().execute<{ codigo: string }[]>(
-    `select p."codigo" from "rol_permiso" rp
+  const filas = await orm.em.getConnection().execute<{ nombre: string }[]>(
+    `select p."nombre" from "rol_permiso" rp
        join "rol" r on r."id" = rp."rol_id"
        join "permiso" p on p."id" = rp."permiso_id"
-      where r."codigo" = ? order by p."codigo";`,
+      where r."codigo" = ? order by p."nombre";`,
     [codigo],
   );
 
-  return filas.map((fila) => fila.codigo);
+  return filas.map((fila) => fila.nombre);
 }
 
 beforeAll(async () => {
@@ -70,10 +70,10 @@ describe('seed catalogo-identidad', () => {
     expect(await contar('rol_permiso')).toBe(3);
 
     expect(await permisosDeRol(CODIGOS_ROL.ADMINISTRADOR)).toEqual([
-      CODIGOS_PERMISO.GESTIONAR_ALUMNOS,
-      CODIGOS_PERMISO.GESTIONAR_PROFESORES,
+      NOMBRES_PERMISO.GESTIONAR_ALUMNOS,
+      NOMBRES_PERMISO.GESTIONAR_PROFESORES,
     ]);
-    expect(await permisosDeRol(CODIGOS_ROL.PROFESOR)).toEqual([CODIGOS_PERMISO.CREAR_PLAN]);
+    expect(await permisosDeRol(CODIGOS_ROL.PROFESOR)).toEqual([NOMBRES_PERMISO.CREAR_PLAN]);
     expect(await permisosDeRol(CODIGOS_ROL.ALUMNO)).toEqual([]);
   });
 
@@ -97,8 +97,7 @@ describe('seed catalogo-identidad', () => {
     const crearPermiso = modulo.get(CreatePermisoUseCase);
     await RequestContext.create(orm.em, () =>
       crearPermiso.execute({
-        codigo: CODIGOS_PERMISO.CREAR_PLAN,
-        nombre: 'Crear plan',
+        nombre: NOMBRES_PERMISO.CREAR_PLAN,
       }),
     );
 

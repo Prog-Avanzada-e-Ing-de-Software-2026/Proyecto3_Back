@@ -5,7 +5,6 @@
  * las invariantes las aplica la raíz del agregado.
  */
 export interface CrearPermiso {
-  codigo: string;
   nombre: string;
   descripcion?: string | null;
   createdAt: Date;

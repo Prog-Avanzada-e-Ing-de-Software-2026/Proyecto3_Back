@@ -30,6 +30,7 @@ function crearAlumno(
   nombre = 'Juan Perez',
   usuarioRol: Rol = crearRol('ALUMNO'),
   createdById: number | null = null,
+  profesorAsignado: Profesor | null = null,
 ): Alumno {
   return Alumno.crear({
     nombre,
@@ -37,6 +38,7 @@ function crearAlumno(
     numeroDocumento: documento,
     numeroTelefono: '1155556666',
     fechaIngreso: alta,
+    profesorAsignado,
     usuario: crearUsuario(email, usuarioRol, createdById),
     createdAt: alta,
     createdById,
@@ -101,20 +103,57 @@ describe('persistencia del modelo de identidad', () => {
     await expect(persistir(segundo)).rejects.toThrow();
   });
 
-  it('[persistencia] rechaza códigos de rol y de permiso repetidos', async () => {
+  it('[persistencia] rechaza códigos de rol y nombres de permiso repetidos', async () => {
     const rol = crearRol('PROFESOR');
     await persistir(rol);
 
     await expect(persistir(crearRol('profesor'))).rejects.toThrow();
     entorno.orm.em.clear();
 
-    const permiso = Permiso.crear({ codigo: 'CREAR_PLAN', nombre: 'Crear plan', createdAt: alta });
+    const permiso = Permiso.crear({ nombre: 'Crear plan', createdAt: alta });
     await persistir(permiso);
 
     await expect(
-      persistir(
-        Permiso.crear({ codigo: 'crear_plan', nombre: 'Crear plan', createdAt: alta }),
-      ),
+      persistir(Permiso.crear({ nombre: '  Crear plan  ', createdAt: alta })),
+    ).rejects.toThrow();
+  });
+
+  it('[persistencia] carga los alumnos asignados desde el profesor', async () => {
+    const profesor = crearProfesor('profesor@gym.com', '30111222');
+    const alumno = crearAlumno(
+      'alumno@gym.com',
+      '00123456',
+      'Juan Perez',
+      crearRol('ALUMNO'),
+      null,
+      profesor,
+    );
+
+    await persistir([profesor, alumno]);
+    entorno.orm.em.clear();
+
+    const cargado = await entorno.orm.em.findOneOrFail(
+      Profesor,
+      { id: profesor.id },
+      { populate: ['alumnos'] },
+    );
+
+    expect(cargado.alumnos.getItems().map((item) => item.id)).toEqual([alumno.id]);
+  });
+
+  it('[persistencia] rechaza un estado activo incoherente con la baja logica', async () => {
+    const alumno = crearAlumno('alumno@gym.com', '00123456');
+    const profesor = crearProfesor('profesor@gym.com', '30111222');
+    await persistir([alumno, profesor]);
+    entorno.orm.em.clear();
+
+    const conexion = entorno.orm.em.getConnection();
+
+    await expect(
+      conexion.execute(`update "alumno" set "activo" = false where "id" = ${alumno.id};`),
+    ).rejects.toThrow();
+    await expect(
+      conexion.execute(`update "profesor" set "activo" = false where "id" = ${profesor.id};`),
     ).rejects.toThrow();
   });
 
@@ -172,7 +211,7 @@ describe('persistencia del modelo de identidad', () => {
 
   it('[persistencia] rechaza el mismo permiso dos veces en un rol', async () => {
     const rol = crearRol('PROFESOR');
-    const permiso = Permiso.crear({ codigo: 'CREAR_PLAN', nombre: 'Crear plan', createdAt: alta });
+    const permiso = Permiso.crear({ nombre: 'Crear plan', createdAt: alta });
     await persistir([rol, permiso]);
 
     const conexion = entorno.orm.em.getConnection();
