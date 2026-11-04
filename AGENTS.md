@@ -33,6 +33,7 @@ La **estrategia de testing** del repositorio está en `docs/agreements/testing.m
 | Revertir migración | `yarn db:migration:down` |
 | Migraciones pendientes | `yarn db:migration:pending` |
 | Verificar esquema | `yarn db:migration:check` |
+| Ejecutar un seed | `yarn db:seed <nombre>` |
 
 ## 3. Flujo SDD obligatorio (OpenSpec)
 
@@ -92,7 +93,7 @@ Solo los cambios sin efecto en comportamiento, contratos, esquema o código pued
   - Las entidades deben llamarse `*.entity.ts` (el config las busca con `./src/**/*.entity.ts`).
   - Usar los decoradores legacy de `@mikro-orm/decorators/legacy`, consistentes con el `ReflectMetadataProvider` configurado.
   - Las migraciones viven en `src/migrations`.
-  - Toda entidad persistente hereda de la base auditable (ver §6); los campos de auditoría no se declaran entidad por entidad.
+  - Toda entidad persistente declara las seis columnas de auditoría de §6.1 en su propia definición y las completa en el flujo que la crea o la modifica.
 - **Reglas de dominio:** se validan dentro de la raíz del agregado, no en controladores ni en DTOs. Un VO es inmutable; una entidad conserva identidad.
 - **Errores de dominio:** no exponer detalles de persistencia en la API. Los errores semánticos se traducen a HTTP en el límite de presentación, sin filtrar trazas ni detalles internos.
 - **Manejo de errores:** el tratamiento general está centralizado en un filtro global; `try/catch` es selectivo y solo traduce excepciones técnicas, recupera de un fallo esperable con alternativa concreta, agrega contexto sin ocultar la causa o compensa una operación no atómica. Un `catch` que solo registra y devuelve vacío está prohibido. Las excepciones del driver se traducen en `infrastructure/`; nunca llegan al cliente.
@@ -129,10 +130,10 @@ src/
 ├── app.module.ts
 ├── mikro-orm.config.ts
 ├── migrations/
+├── seeder/                  # Entrypoints de seeds; la lógica vive en cada módulo
 ├── common/                  # Solo lo transversal real, usado por dos o más módulos
-│   ├── domain/              # Base auditable, errores comunes
-│   ├── presentation/        # Filtro HTTP global, decorador de actor
-│   └── infrastructure/      # Mecanismo de auditoría
+│   ├── domain/              # Errores comunes
+│   └── presentation/        # Filtro HTTP global, decorador de actor
 └── modules/
     └── <capacidad>/         # alumnos, profesores, planes, entrenamientos, seguimiento, auth
         ├── <capacidad>.module.ts
@@ -158,6 +159,7 @@ src/
             └── queries/            # Implementación de puertos de lectura (QueryBuilder)
 ```
 
+- `seeder/` contiene solo entrypoints: levantan el contexto de Nest, resuelven un caso de uso por nombre y lo ejecutan. La carga inicial de datos se implementa como caso de uso del módulo dueño del agregado, nunca dentro de `seeder/`.
 - Crear cada subcarpeta **cuando se implemente** la funcionalidad que la necesita. Nunca carpetas vacías ni archivos ficticios para completar el árbol. **Excepción:** la implementación de persistencia y el contrato que la operación necesita se crean junto con su primer caso de uso, porque el ORM no se accede sin ese borde.
 - Los puertos de escritura viven en `domain/interfaces/<nombre>.repository.interface.ts` y devuelven agregados. Los puertos de lectura viven junto a la operación que los consume, en `application/use-cases/<nombre>.query.interface.ts`, y devuelven proyecciones de aplicación: el contrato pertenece al consumidor y la implementación, siempre a `infrastructure/`. No se exige una interfaz por operación: un contrato existente puede servir a varias lecturas.
 - **`application/` no importa nada de `@mikro-orm/*`.** Si un archivo de `application/` menciona `EntityRepository`, `EntityManager` o `QueryBuilder`, el límite está mal trazado.
@@ -231,10 +233,12 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 
 ### 5.7 Transacciones, integridad y persistencia
 
-- Usar el `EntityManager` contextual y la Unit of Work de MikroORM. No replicar `TypeOrmUnitOfWork` ni decoradores `@Transactional()` ad hoc de otros proyectos.
-- El límite transaccional coincide con el caso de uso que coordina los cambios: él decide qué operaciones forman una unidad. La ejecución —`em.transactional(...)`— pertenece a la implementación del puerto, no a `application/`. Todas las escrituras relacionadas van en el mismo contexto.
+- Usar el `EntityManager` contextual y la Unit of Work de MikroORM. El límite transaccional se declara con el decorador `@Transactional()` de MikroORM sobre el método de escritura de la implementación del puerto. No se copian `TypeOrmUnitOfWork` ni decoradores ad hoc de otros frameworks.
+- El límite transaccional coincide con el caso de uso que coordina los cambios: él decide qué operaciones forman una unidad. La ejecución —el `@Transactional()` del puerto— pertenece a la implementación del puerto, no a `application/`. Todas las escrituras relacionadas van en el mismo contexto.
+- El decorador recibe `context` apuntando al repositorio del propio adaptador (`@Transactional({ context: (self) => self.repositorio })`): así abre la transacción sobre el `EntityManager` que usa la clase y funciona también fuera de una petición HTTP, por ejemplo en el seeder, donde no hay `RequestContext`. Sin ese `context`, el decorador resuelve el `EntityManager` del contexto de la petición y falla fuera de HTTP.
+- Dentro del método decorado, escribir siempre por la API del `EntityManager` (`persist`, `find`, el `QueryBuilder` que sale de él): esas llamadas resuelven el contexto transaccional. `getConnection().execute(...)`, el SQL crudo o una conexión tomada aparte no lo resuelven y quedan fuera de la transacción.
 - El caso de uso y, cuando exista, el Query Object reciben su **puerto** por constructor. `MikroOrmModule.forFeature([...])` se configura en el módulo NestJS (`*.module.ts`) y `@InjectRepository(Entity)` se usa en las clases concretas de `infrastructure/`; ninguno de los dos aparece en los casos de uso. El vínculo puerto → implementación se declara por token en `*.module.ts`.
-- Si un comando modifica varios agregados, el puerto expone una **operación con nombre propio** (`createWithDeasignacion(...)`) y su implementación la envuelve en `em.transactional(...)`. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
+- Si un comando modifica varios agregados, el puerto expone una **operación con nombre propio** (`createWithDeasignacion(...)`) y su implementación la declara con `@Transactional()` y escribe las dos raíces en la misma transacción. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
 - Los métodos de escritura del puerto reciben y devuelven **agregados o entidades de dominio**. Recibir un DTO HTTP o un Input de aplicación es un error de diseño.
 - No llamar `flush()` desde reglas puras del dominio.
 - Una lectura previa `exists(...)` **no** garantiza una invariante concurrente: diseñar restricción, índice único parcial o bloqueo en PostgreSQL, y demostrarlo con prueba.
@@ -276,7 +280,7 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 
 ## 6. Auditoría de entidades
 
-Toda entidad persistente registra **quién** creó, editó y eliminó cada fila. Es un requisito transversal del modelo: no se decide entidad por entidad ni caso de uso por caso de uso. El detalle de implementación (base abstracta, suscriptor sobre el `EntityManager`, interceptor) es una decisión de diseño del cambio de OpenSpec que introduzca la primera entidad; lo que no se negocia son los campos ni las reglas de esta sección.
+Toda entidad persistente registra **quién** creó, editó y eliminó cada fila. Es un requisito transversal del modelo, y cada entidad lo cumple por sí misma: declara las seis columnas de §6.1 y las completa en el flujo que la crea o la modifica. No hay base abstracta compartida ni suscriptor central; la repetición entre entidades es una decisión explícita del proyecto. Lo que no se negocia son los campos ni las reglas de esta sección.
 
 Esta convención se incorporó por decisión explícita del usuario como documentación: no requiere un cambio de OpenSpec propio, pero obliga a que todo cambio posterior que cree o modifique una entidad la cumpla.
 
@@ -287,22 +291,22 @@ Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCas
 | Propiedad | Tipo | Alta | Edición | Baja |
 | --- | --- | --- | --- | --- |
 | `createdAt` | `Date` | requerido | — | — |
-| `createdById` | `string` | requerido | — | — |
-| `updatedAt` | `Date` | requerido | requerido | — |
-| `updatedById` | `string` | requerido | requerido | — |
+| `createdById` | `number` | requerido | — | — |
+| `updatedAt` | `Date \| null` | `null` | requerido | — |
+| `updatedById` | `number \| null` | `null` | requerido | — |
 | `deletedAt` | `Date \| null` | `null` | `null` | requerido |
-| `deletedById` | `string \| null` | `null` | `null` | requerido |
+| `deletedById` | `number \| null` | `null` | `null` | requerido |
 
-- En el alta, `updatedAt` y `updatedById` se inicializan con los mismos valores que `createdAt` y `createdById`: toda fila tiene un último responsable, incluso antes de la primera edición.
+- En el alta, `updatedAt` y `updatedById` quedan en `null`: todavía no hubo edición. Toda lectura que necesite el último responsable usa `COALESCE(updatedAt, createdAt)` y `COALESCE(updatedById, createdById)`.
 - `deletedAt` y `deletedById` en `null` significan "la fila no está dada de baja". Se completan juntos o no se completa ninguno.
 - `createdById`, `updatedById` y `deletedById` referencian al **actor** (`Usuario`) por identificador, nunca por nombre ni email: un nombre suelto no es auditable.
 
 ### 6.2 Reglas de implementación
 
-1. **Un solo lugar.** Los seis campos se completan en la base auditable y en el mecanismo de persistencia, nunca a mano en cada caso de uso ni en cada controlador.
+1. **Cada entidad los declara y los completa.** Las seis columnas se declaran en la entidad y se completan en el mismo caso de uso que la crea o la modifica, nunca en el controlador. La repetición entre entidades es deliberada: no se centraliza en una base abstracta ni en un suscriptor.
 2. **El actor sale del contexto de autenticación.** Jamás del body, del query string ni de un DTO. Si no hay actor identificado, la operación se rechaza; no se inventa un usuario "sistema" salvo en procesos internos explícitamente declarados.
 3. **El cliente no puede escribirlos.** Los DTOs de entrada no exponen estos campos y, si llegan en el payload, se ignoran.
-4. **Nada de escrituras que salteen el mecanismo.** `updateMany`, `nativeUpdate` o SQL crudo no pasan por el suscriptor y dejan la auditoría desactualizada. Si un caso de uso los necesita, actualiza `updatedAt` y `updatedById` explícitamente dentro de la misma transacción.
+4. **Nada de escrituras que salten el flujo.** `updateMany`, `nativeUpdate` o SQL crudo no pasan por el caso de uso y dejan la auditoría desactualizada. Si un caso de uso los necesita, actualiza `updatedAt` y `updatedById` explícitamente dentro de la misma transacción.
 5. **UTC.** Las fechas se persisten en UTC (`timestamptz`) y se serializan en ISO-8601 con zona.
 6. **La auditoría no se edita.** Ningún endpoint ni caso de uso modifica estos campos después de escritos; `createdAt` y `createdById` son inmutables por definición.
 
@@ -332,7 +336,7 @@ La estrategia —qué se prueba por capa, nivel mínimo, prioridades, aislamient
 ## 8. Base de datos y migraciones
 
 - Los cambios de esquema son de alto riesgo: requieren un cambio de OpenSpec con su `design.md` y una estrategia de rollback.
-- Toda migración que crea o altera una entidad incluye las seis columnas de auditoría (§6.1). Su nulabilidad se define en el `design.md` del cambio; una vez que exista la capacidad de identidad, las columnas de alta y edición son `NOT NULL`.
+- Toda migración que crea o altera una entidad incluye las seis columnas de auditoría (§6.1). Su nulabilidad se define en el `design.md` del cambio; una vez que exista la capacidad de identidad, las columnas de alta (`createdAt`, `createdById`) son `NOT NULL` y las de edición (`updatedAt`, `updatedById`) permanecen nullables hasta la primera edición.
 - Toda tabla cuenta con al menos un índice, y el que PostgreSQL genera para la clave primaria alcanza. Los índices adicionales sobre claves foráneas y sobre campos usados con frecuencia en búsquedas, filtros y ordenamientos se evalúan según las consultas reales de la capacidad y el rendimiento esperado, no por una lista genérica de columnas candidatas.
 - Los índices se definen en las migraciones de MikroORM, igual que el resto del esquema; un índice derivado de decoradores o del snapshot se incorpora a la migración correspondiente y nunca se crea por `schema:update`.
 - No crear índices redundantes o innecesarios: los que repiten el prefijo de otro índice, duplican lo que ya garantiza un `UNIQUE` o no tienen consulta que los justifique incrementan el costo de `INSERT`, `UPDATE` y `DELETE`. Los índices únicos parciales de §6.3 no se reemplazan por índices planos.

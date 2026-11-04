@@ -1,0 +1,1570 @@
+{
+  "name": "public",
+  "namespaces": [
+    "public"
+  ],
+  "tables": [
+    {
+      "name": "alumno",
+      "schema": "public",
+      "columns": {
+        "activo": {
+          "name": "activo",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "true",
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "created_by_id": {
+          "name": "created_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "deleted_by_id": {
+          "name": "deleted_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "fecha_ingreso": {
+          "name": "fecha_ingreso",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "fecha_nacimiento": {
+          "name": "fecha_nacimiento",
+          "type": "date",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "date"
+        },
+        "id": {
+          "name": "id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "numero_documento": {
+          "name": "numero_documento",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "numero_telefono": {
+          "name": "numero_telefono",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "observaciones": {
+          "name": "observaciones",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "profesor_asignado_id": {
+          "name": "profesor_asignado_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_by_id": {
+          "name": "updated_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "usuario_id": {
+          "name": "usuario_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "numero_documento"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "alumno_numero_documento_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "alumno_pkey",
+          "primary": true,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "usuario_id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "alumno_usuario_id_unique",
+          "primary": false,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "alumno_activo_coherente_check",
+          "expression": "(deleted_at IS NULL) = activo",
+          "definition": "CHECK (((deleted_at IS NULL) = activo))",
+          "columnName": "deleted_at"
+        },
+        {
+          "name": "alumno_baja_coherente_check",
+          "expression": "(deleted_at IS NULL) = (deleted_by_id IS NULL)",
+          "definition": "CHECK (((deleted_at IS NULL) = (deleted_by_id IS NULL)))",
+          "columnName": "deleted_at"
+        },
+        {
+          "name": "alumno_edicion_coherente_check",
+          "expression": "(updated_at IS NULL) = (updated_by_id IS NULL)",
+          "definition": "CHECK (((updated_at IS NULL) = (updated_by_id IS NULL)))",
+          "columnName": "updated_at"
+        }
+      ],
+      "triggers": [],
+      "foreignKeys": {
+        "alumno_created_by_id_foreign": {
+          "columnNames": [
+            "created_by_id"
+          ],
+          "constraintName": "alumno_created_by_id_foreign",
+          "localTableName": "public.alumno",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        },
+        "alumno_deleted_by_id_foreign": {
+          "columnNames": [
+            "deleted_by_id"
+          ],
+          "constraintName": "alumno_deleted_by_id_foreign",
+          "localTableName": "public.alumno",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        },
+        "alumno_profesor_asignado_id_foreign": {
+          "columnNames": [
+            "profesor_asignado_id"
+          ],
+          "constraintName": "alumno_profesor_asignado_id_foreign",
+          "localTableName": "public.alumno",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.profesor",
+          "deleteRule": "restrict"
+        },
+        "alumno_updated_by_id_foreign": {
+          "columnNames": [
+            "updated_by_id"
+          ],
+          "constraintName": "alumno_updated_by_id_foreign",
+          "localTableName": "public.alumno",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        },
+        "alumno_usuario_id_foreign": {
+          "columnNames": [
+            "usuario_id"
+          ],
+          "constraintName": "alumno_usuario_id_foreign",
+          "localTableName": "public.alumno",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        }
+      },
+      "comment": null
+    },
+    {
+      "name": "permiso",
+      "schema": "public",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "created_by_id": {
+          "name": "created_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "deleted_by_id": {
+          "name": "deleted_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "descripcion": {
+          "name": "descripcion",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "id": {
+          "name": "id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_by_id": {
+          "name": "updated_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "nombre"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "permiso_nombre_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "permiso_pkey",
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "permiso_baja_coherente_check",
+          "expression": "(deleted_at IS NULL) = (deleted_by_id IS NULL)",
+          "definition": "CHECK (((deleted_at IS NULL) = (deleted_by_id IS NULL)))",
+          "columnName": "deleted_at"
+        },
+        {
+          "name": "permiso_edicion_coherente_check",
+          "expression": "(updated_at IS NULL) = (updated_by_id IS NULL)",
+          "definition": "CHECK (((updated_at IS NULL) = (updated_by_id IS NULL)))",
+          "columnName": "updated_at"
+        }
+      ],
+      "triggers": [],
+      "foreignKeys": {
+        "permiso_created_by_id_foreign": {
+          "columnNames": [
+            "created_by_id"
+          ],
+          "constraintName": "permiso_created_by_id_foreign",
+          "localTableName": "public.permiso",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        },
+        "permiso_deleted_by_id_foreign": {
+          "columnNames": [
+            "deleted_by_id"
+          ],
+          "constraintName": "permiso_deleted_by_id_foreign",
+          "localTableName": "public.permiso",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        },
+        "permiso_updated_by_id_foreign": {
+          "columnNames": [
+            "updated_by_id"
+          ],
+          "constraintName": "permiso_updated_by_id_foreign",
+          "localTableName": "public.permiso",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        }
+      },
+      "comment": null
+    },
+    {
+      "name": "profesor",
+      "schema": "public",
+      "columns": {
+        "activo": {
+          "name": "activo",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "true",
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "created_by_id": {
+          "name": "created_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "deleted_by_id": {
+          "name": "deleted_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "fecha_ingreso": {
+          "name": "fecha_ingreso",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "fecha_nacimiento": {
+          "name": "fecha_nacimiento",
+          "type": "date",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "date"
+        },
+        "id": {
+          "name": "id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "numero_documento": {
+          "name": "numero_documento",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "numero_telefono": {
+          "name": "numero_telefono",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_by_id": {
+          "name": "updated_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "usuario_id": {
+          "name": "usuario_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "numero_documento"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "profesor_numero_documento_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "profesor_pkey",
+          "primary": true,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "usuario_id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "profesor_usuario_id_unique",
+          "primary": false,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "profesor_activo_coherente_check",
+          "expression": "(deleted_at IS NULL) = activo",
+          "definition": "CHECK (((deleted_at IS NULL) = activo))",
+          "columnName": "deleted_at"
+        },
+        {
+          "name": "profesor_baja_coherente_check",
+          "expression": "(deleted_at IS NULL) = (deleted_by_id IS NULL)",
+          "definition": "CHECK (((deleted_at IS NULL) = (deleted_by_id IS NULL)))",
+          "columnName": "deleted_at"
+        },
+        {
+          "name": "profesor_edicion_coherente_check",
+          "expression": "(updated_at IS NULL) = (updated_by_id IS NULL)",
+          "definition": "CHECK (((updated_at IS NULL) = (updated_by_id IS NULL)))",
+          "columnName": "updated_at"
+        }
+      ],
+      "triggers": [],
+      "foreignKeys": {
+        "profesor_created_by_id_foreign": {
+          "columnNames": [
+            "created_by_id"
+          ],
+          "constraintName": "profesor_created_by_id_foreign",
+          "localTableName": "public.profesor",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        },
+        "profesor_deleted_by_id_foreign": {
+          "columnNames": [
+            "deleted_by_id"
+          ],
+          "constraintName": "profesor_deleted_by_id_foreign",
+          "localTableName": "public.profesor",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        },
+        "profesor_updated_by_id_foreign": {
+          "columnNames": [
+            "updated_by_id"
+          ],
+          "constraintName": "profesor_updated_by_id_foreign",
+          "localTableName": "public.profesor",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        },
+        "profesor_usuario_id_foreign": {
+          "columnNames": [
+            "usuario_id"
+          ],
+          "constraintName": "profesor_usuario_id_foreign",
+          "localTableName": "public.profesor",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        }
+      },
+      "comment": null
+    },
+    {
+      "name": "rol",
+      "schema": "public",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "created_by_id": {
+          "name": "created_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "deleted_by_id": {
+          "name": "deleted_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "descripcion": {
+          "name": "descripcion",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "id": {
+          "name": "id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_by_id": {
+          "name": "updated_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "nombre"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "rol_nombre_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "rol_pkey",
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "rol_baja_coherente_check",
+          "expression": "(deleted_at IS NULL) = (deleted_by_id IS NULL)",
+          "definition": "CHECK (((deleted_at IS NULL) = (deleted_by_id IS NULL)))",
+          "columnName": "deleted_at"
+        },
+        {
+          "name": "rol_edicion_coherente_check",
+          "expression": "(updated_at IS NULL) = (updated_by_id IS NULL)",
+          "definition": "CHECK (((updated_at IS NULL) = (updated_by_id IS NULL)))",
+          "columnName": "updated_at"
+        }
+      ],
+      "triggers": [],
+      "foreignKeys": {
+        "rol_created_by_id_foreign": {
+          "columnNames": [
+            "created_by_id"
+          ],
+          "constraintName": "rol_created_by_id_foreign",
+          "localTableName": "public.rol",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        },
+        "rol_deleted_by_id_foreign": {
+          "columnNames": [
+            "deleted_by_id"
+          ],
+          "constraintName": "rol_deleted_by_id_foreign",
+          "localTableName": "public.rol",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        },
+        "rol_updated_by_id_foreign": {
+          "columnNames": [
+            "updated_by_id"
+          ],
+          "constraintName": "rol_updated_by_id_foreign",
+          "localTableName": "public.rol",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        }
+      },
+      "comment": null
+    },
+    {
+      "name": "rol_permiso",
+      "schema": "public",
+      "columns": {
+        "permiso_id": {
+          "name": "permiso_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "rol_id": {
+          "name": "rol_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "rol_id",
+            "permiso_id"
+          ],
+          "composite": true,
+          "constraint": true,
+          "keyName": "rol_permiso_pkey",
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "triggers": [],
+      "foreignKeys": {
+        "rol_permiso_permiso_id_foreign": {
+          "columnNames": [
+            "permiso_id"
+          ],
+          "constraintName": "rol_permiso_permiso_id_foreign",
+          "localTableName": "public.rol_permiso",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.permiso",
+          "updateRule": "cascade",
+          "deleteRule": "restrict"
+        },
+        "rol_permiso_rol_id_foreign": {
+          "columnNames": [
+            "rol_id"
+          ],
+          "constraintName": "rol_permiso_rol_id_foreign",
+          "localTableName": "public.rol_permiso",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.rol",
+          "updateRule": "cascade",
+          "deleteRule": "restrict"
+        }
+      },
+      "comment": null
+    },
+    {
+      "name": "usuario",
+      "schema": "public",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "created_by_id": {
+          "name": "created_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "deleted_by_id": {
+          "name": "deleted_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "id": {
+          "name": "id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "rol_id": {
+          "name": "rol_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_by_id": {
+          "name": "updated_by_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "email"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "usuario_email_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "usuario_pkey",
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "usuario_baja_coherente_check",
+          "expression": "(deleted_at IS NULL) = (deleted_by_id IS NULL)",
+          "definition": "CHECK (((deleted_at IS NULL) = (deleted_by_id IS NULL)))",
+          "columnName": "deleted_at"
+        },
+        {
+          "name": "usuario_edicion_coherente_check",
+          "expression": "(updated_at IS NULL) = (updated_by_id IS NULL)",
+          "definition": "CHECK (((updated_at IS NULL) = (updated_by_id IS NULL)))",
+          "columnName": "updated_at"
+        }
+      ],
+      "triggers": [],
+      "foreignKeys": {
+        "usuario_created_by_id_foreign": {
+          "columnNames": [
+            "created_by_id"
+          ],
+          "constraintName": "usuario_created_by_id_foreign",
+          "localTableName": "public.usuario",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        },
+        "usuario_deleted_by_id_foreign": {
+          "columnNames": [
+            "deleted_by_id"
+          ],
+          "constraintName": "usuario_deleted_by_id_foreign",
+          "localTableName": "public.usuario",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        },
+        "usuario_rol_id_foreign": {
+          "columnNames": [
+            "rol_id"
+          ],
+          "constraintName": "usuario_rol_id_foreign",
+          "localTableName": "public.usuario",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.rol",
+          "deleteRule": "restrict"
+        },
+        "usuario_updated_by_id_foreign": {
+          "columnNames": [
+            "updated_by_id"
+          ],
+          "constraintName": "usuario_updated_by_id_foreign",
+          "localTableName": "public.usuario",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.usuario",
+          "deleteRule": "restrict"
+        }
+      },
+      "comment": null
+    }
+  ],
+  "views": [],
+  "nativeEnums": {}
+}
