@@ -37,6 +37,23 @@ export const RUTAS_REDACTADAS = [
   '*.refreshToken',
 ] as const;
 
+/**
+ * Ruta solicitada sin la cadena de consulta.
+ *
+ * `req.url` incluye los parámetros (`?documento=...&token=...`) y el redactor de
+ * pino no opera dentro de una cadena: registrar solo la ruta evita filtrar esos
+ * valores al log.
+ */
+export function rutaSolicitada(url?: string): string | undefined {
+  if (typeof url !== 'string') {
+    return undefined;
+  }
+
+  const finDeRuta = url.indexOf('?');
+
+  return finDeRuta === -1 ? url : url.slice(0, finDeRuta);
+}
+
 export function buildPinoHttpOptions(env: NodeJS.ProcessEnv = process.env): Options {
   return {
     level: resolverNivelLog(env.LOG_LEVEL),
@@ -45,7 +62,7 @@ export function buildPinoHttpOptions(env: NodeJS.ProcessEnv = process.env): Opti
       req: (req: { id?: string; method?: string; url?: string }) => ({
         id: req.id,
         method: req.method,
-        url: req.url,
+        url: rutaSolicitada(req.url),
       }),
       res: (res: { statusCode?: number }) => ({ statusCode: res.statusCode }),
     },

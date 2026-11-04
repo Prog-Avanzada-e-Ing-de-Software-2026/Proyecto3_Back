@@ -82,11 +82,13 @@ describe('Fundamento HTTP (e2e)', () => {
     await request(app.getHttpServer()).get('/probe/inesperado').expect(500);
 
     const finalizaciones = eventos().filter((evento) => evento.res?.statusCode === 500);
-    const conTraza = eventos().filter((evento) => evento.err?.stack?.includes('select'));
+    const delFiltro = eventos().filter((evento) => evento.context === 'GlobalExceptionFilter');
 
     expect(finalizaciones).toHaveLength(1);
-    expect(conTraza).toHaveLength(1);
+    expect(delFiltro).toHaveLength(1);
+    expect(delFiltro[0]?.err?.stack).toContain('at ');
     expect(JSON.stringify(finalizaciones[0])).not.toContain('select');
+    expect(JSON.stringify(eventos())).not.toContain('30111222');
   });
 
   it('[http-logging] registra los fallos esperados sin traza de pila', async () => {
@@ -152,5 +154,19 @@ describe('Fundamento HTTP (e2e)', () => {
     const salida = destino.lineas.join('');
 
     expect(salida).not.toContain('token-secreto');
+  });
+
+  it('[http-logging] no registra los valores de la cadena de consulta', async () => {
+    await request(app.getHttpServer())
+      .get('/probe/ok?documento=30111222&token=token-secreto')
+      .expect(200);
+
+    const salida = destino.lineas.join('');
+
+    expect(salida).not.toContain('30111222');
+    expect(salida).not.toContain('token-secreto');
+
+    const finalizacion = eventos().find((evento) => evento.res?.statusCode === 200);
+    expect(finalizacion?.req?.url).toBe('/probe/ok');
   });
 });

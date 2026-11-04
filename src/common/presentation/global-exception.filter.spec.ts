@@ -162,8 +162,24 @@ describe('GlobalExceptionFilter', () => {
     );
 
     expect(errorLog).toHaveBeenCalledTimes(1);
-    expect(errorLog.mock.calls[0]?.[1]).toContain('causa original');
+    const traza = errorLog.mock.calls[0]?.[1] as string;
+    expect(traza).toContain('at ');
+    expect(traza).toContain('Error');
     expect(warnLog).toHaveBeenCalledTimes(1);
     expect(warnLog.mock.calls[0]?.[0]).toContain('CODIGO');
+  });
+
+  it('[http-logging] no registra en la traza un valor sensible que viaje en el mensaje', () => {
+    const filtro = new GlobalExceptionFilter();
+
+    filtro.catch(
+      new Error('select * from usuarios where documento = 30111222'),
+      crearHost({ id: 'c' } as Partial<Request>).host,
+    );
+
+    const traza = errorLog.mock.calls[0]?.[1] as string;
+    expect(traza).not.toContain('30111222');
+    expect(traza).not.toContain('select');
+    expect(traza).toContain('at ');
   });
 });

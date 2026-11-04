@@ -59,6 +59,29 @@ describe('buildPinoHttpOptions', () => {
     expect(salida).not.toContain('Bearer');
   });
 
+  it('[http-logging] no registra los valores de la cadena de consulta', () => {
+    const destino = crearDestinoEnMemoria();
+    const middleware = pinoHttp(buildPinoHttpOptions(), destino.stream);
+    const logger = middleware.logger;
+
+    logger.info(
+      {
+        req: {
+          id: 'solicitud-4',
+          method: 'GET',
+          url: '/?token=secreto&documento=30111222',
+        },
+      },
+      'solicitud atendida',
+    );
+
+    const salida = destino.lineas.join('');
+
+    expect(salida).not.toContain('secreto');
+    expect(salida).not.toContain('30111222');
+    expect(JSON.parse(destino.lineas[0]!).req.url).toBe('/');
+  });
+
   it('[http-logging] registra solo metodo, ruta e identificador de la solicitud', () => {
     const destino = crearDestinoEnMemoria();
     const middleware = pinoHttp(buildPinoHttpOptions(), destino.stream);

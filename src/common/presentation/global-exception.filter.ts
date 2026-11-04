@@ -113,10 +113,35 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const contexto = `${cuerpo.code}: ${cuerpo.message}`;
 
     if (cuerpo.statusCode >= 500) {
-      this.logger.error(contexto, exception instanceof Error ? exception.stack : undefined);
+      this.logger.error(contexto, this.trazaSinMensaje(exception));
       return;
     }
 
     this.logger.warn(contexto);
+  }
+
+  /**
+   * Traza sin el mensaje de la excepción.
+   *
+   * El mensaje de un fallo inesperado puede traer valores sensibles —un SQL con
+   * un documento, una credencial en una URL— y el redactor de pino no opera
+   * dentro de una cadena. Se conservan los marcos para ubicar el origen y el
+   * tipo de error; el código y el mensaje seguros del filtro ya se registran
+   * como `msg`.
+   */
+  private trazaSinMensaje(exception: unknown): string | undefined {
+    if (!(exception instanceof Error)) {
+      return undefined;
+    }
+
+    if (typeof exception.stack !== 'string') {
+      return exception.name;
+    }
+
+    const marcos = exception.stack.split('\n').filter((linea) => /^\s*at\s/.test(linea));
+
+    return marcos.length === 0
+      ? exception.name
+      : `${exception.name}: [mensaje omitido]\n${marcos.join('\n')}`;
   }
 }
