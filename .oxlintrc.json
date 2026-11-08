@@ -28,7 +28,7 @@
   },
   "overrides": [
     {
-      "files": ["src/modules/*/domain/**"],
+      "files": ["src/modules/*/domain/**", "src/common/domain/**"],
       "rules": {
         "no-restricted-imports": [
           "error",

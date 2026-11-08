@@ -56,7 +56,7 @@ src/
 ├── mikro-orm.config.ts
 ├── migrations/
 ├── common/                              # Solo preocupaciones transversales reales
-│   ├── domain/                          # Ej.: base auditable, errores comunes
+│   ├── domain/                          # Ej.: errores comunes
 │   ├── presentation/                    # Ej.: filtro HTTP global, decorador actor
 │   └── infrastructure/                  # Ej.: auditoría persistente
 └── modules/
@@ -277,7 +277,7 @@ Frontend
                          -> MikroORM (EntityRepository, QueryBuilder) -> PostgreSQL
 ```
 
-El borde es **obligatorio y único**: ningún caso de uso ni Query Object conoce `EntityRepository`, `EntityManager` o `QueryBuilder`. El caso de uso decide la unidad de trabajo y la pide a su puerto; la implementación de `infrastructure/` es la que abre la transacción con `em.transactional(...)`. Las reglas del dominio se mantienen protegidas y no se agregan capas intermedias: un solo puerto, una sola implementación.
+El borde es **obligatorio y único**: ningún caso de uso ni Query Object conoce `EntityRepository`, `EntityManager` o `QueryBuilder`. El caso de uso decide la unidad de trabajo y la pide a su puerto; la implementación de `infrastructure/` es la que declara la transacción con `@Transactional()` sobre el `EntityManager` de su repositorio. Las reglas del dominio se mantienen protegidas y no se agregan capas intermedias: un solo puerto, una sola implementación.
 
 NestJS `*.module.ts` es la **composition root** local: registra controladores y proveedores, vincula cada puerto con su implementación mediante un token —por ejemplo `{ provide: 'IPlanRepository', useClass: MikroOrmPlanRepository }`— e importa/exporta las dependencias necesarias. Evitar `forwardRef()` recurrente: suele indicar límites poco claros.
 
@@ -450,12 +450,12 @@ La optimización de consultas —N+1, joins que nadie consume, límites, paginac
 
 El detalle operativo de persistencia, integridad y migraciones vive en `AGENTS.md` §6–§8 y `docs/agreements/buenas_practicas.md` §5; acá queda el criterio arquitectónico.
 
-- Usar `EntityManager` contextual y Unit of Work propio de MikroORM. **No replicar** el `TypeOrmUnitOfWork` ni el decorador `@Transactional()` ad hoc del Proyecto 1.
+- Usar `EntityManager` contextual y Unit of Work propio de MikroORM. El límite transaccional se declara con el decorador `@Transactional()` de MikroORM sobre el método de escritura del adaptador, con `context` apuntando a su repositorio. **No replicar** el `TypeOrmUnitOfWork` ni decoradores ad hoc del Proyecto 1.
 - El límite transaccional coincide con el caso de uso que coordina los cambios: él decide qué operaciones forman una unidad, no el repositorio ni el controller. Todas las escrituras relacionadas van en el **mismo** contexto transaccional.
 - El **caso de uso y el Query Object, cuando existe,** declaran su dependencia de persistencia como interfaz —`IPlanRepository`, `IHistorialEntrenamientosReader`— y la reciben por constructor. No se declara una interfaz nueva por operación si un contrato existente ya cubre lo necesario. `EntityRepository`, `EntityManager` y `QueryBuilder` aparecen **solo** dentro de `infrastructure/`.
 - `MikroOrmModule.forFeature([...])` se configura en el módulo NestJS (`*.module.ts`) y `@InjectRepository(Entity)` se usa en las clases concretas de `infrastructure/`; ninguno de los dos aparece en el caso de uso ni en el Query Object. El vínculo puerto → implementación se declara en `*.module.ts` con un token explícito.
 - Todo puerto de escritura recibe y devuelve **agregados o entidades de dominio**. Recibir un DTO HTTP o un Input de aplicación es un error de diseño, no una comodidad.
-- La unidad de trabajo la decide el caso de uso y la ejecuta la implementación: si un comando modifica varios agregados, el puerto expone una operación con nombre propio (`createWithDeasignacion(...)`) y su implementación la envuelve en `em.transactional(...)`. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
+- La unidad de trabajo la decide el caso de uso y la ejecuta la implementación: si un comando modifica varios agregados, el puerto expone una operación con nombre propio (`createWithDeasignacion(...)`) y su implementación la declara con `@Transactional()` y escribe las dos raíces en la misma transacción. No se inyecta `EntityManager` en `application/` para abrir la transacción a mano.
 - No lanzar `flush()` incidentalmente desde reglas puras del dominio; persistir en el ámbito definido por aplicación.
 
 ### Baja lógica, exclusión y reactivación
@@ -467,7 +467,7 @@ La regla operativa vive en `AGENTS.md` §6.3; acá queda el criterio arquitectó
 - **Exclusión en consultas habituales.** El filtro `deletedAt IS NULL` se aplica en la implementación del puerto de lectura (§6, regla 6), no se repite a mano en cada consulta ni se delega a la memoria del desarrollador. Un registro dado de baja no aparece en listados, búsquedas, reportes ni validaciones de existencia salvo que la intención de la consulta pida explícitamente el histórico.
 - **Las comprobaciones de negocio también excluyen.** Un plan nuevo no se crea sobre un alumno dado de baja, y un ejercicio dado de baja no se ofrece en el catálogo: la validación consulta el estado vigente, no solo la existencia de la fila.
 - **Reactivación explícita.** Volver `deletedAt` y `deletedById` a `null` es un caso de uso del dominio, no un update genérico, y actualiza `updatedAt`/`updatedById` como cualquier otra edición. La reactivación conserva continuidad: el historial previo no se reescribe.
-- **Auditoría.** Los seis campos de `AGENTS.md` §6.1 se completan en el mismo mecanismo que el resto de las escrituras; la baja no los saltea y la reactivación tampoco. `createdAt` y `createdById` son inmutables.
+- **Auditoría.** Los seis campos de `AGENTS.md` §6.1 los declara cada entidad y los completa el caso de uso en su propio flujo; la entidad no los escribe y la baja no los saltea, como tampoco la reactivación. `createdAt` y `createdById` son inmutables.
 - **Integridad.** Una restricción `UNIQUE` plana queda bloqueada por la fila dada de baja: el índice único parcial sobre `WHERE deleted_at IS NULL` es parte del diseño de la tabla, no un parche posterior.
 - **Escrituras que saltean el mecanismo.** `updateMany`, `nativeUpdate` o SQL crudo no pasan por el mecanismo de auditoría: si un caso de uso los necesita, actualiza `updatedAt`/`updatedById` y la baja lógica explícitamente dentro de la misma transacción.
 
@@ -483,7 +483,9 @@ La regla operativa vive en `AGENTS.md` §8; acá queda el criterio y el fundamen
 
 ### Auditoría transversal (ver `AGENTS.md` §6)
 
-La auditoría se define en `AGENTS.md` §6 y no se repite acá: seis columnas obligatorias (`createdAt`, `createdById`, `updatedAt`, `updatedById`, `deletedAt`, `deletedById`), actor tomado del contexto de autenticación y nunca del payload, UTC, baja lógica, reactivación explícita y restricciones únicas parciales. El mecanismo concreto —base abstracta, suscriptor sobre el `EntityManager` o interceptor— se implementa en el cambio de OpenSpec que introduzca la primera entidad, cumpliendo los seis campos.
+La auditoría se define en `AGENTS.md` §6 y no se repite acá: seis columnas obligatorias (`createdAt`, `createdById`, `updatedAt`, `updatedById`, `deletedAt`, `deletedById`), actor tomado del contexto de autenticación y nunca del payload, UTC, baja lógica, reactivación explícita y restricciones únicas parciales. Cada entidad declara sus seis columnas y las completa en el caso de uso que la crea o la modifica; no hay base abstracta compartida ni suscriptor central, y esa repetición es una decisión explícita del proyecto.
+
+**Previsto, aún no implementado:** el seteo de las seis columnas y la obtención del actor se centralizan en un `AuditoriaService` de `common/application` con tres operaciones (`alta`, `edicion`, `baja`), respaldado por `nestjs-cls`. Se implementa en el cambio que introduzca el primer comando autenticado, según la decisión `D20` de `add-usuario-identity`.
 
 ---
 
@@ -634,7 +636,7 @@ Para cada CRUD de catálogo aplica la misma ruta que a cualquier comando: `Contr
 | Interfaces y puertos de persistencia | **Resuelto:** decisión registrada en §1, §3, §4 y §7 de esta guía y aplicada en `AGENTS.md` §5.1, §5.4, §5.5, §5.7 y §5.9. El acceso a datos de casos de uso y Query Objects pasa siempre por un contrato; lo que sigue prohibido es apilar capas por encima y declarar una interfaz nueva por operación cuando ya existe una adecuada. | Seguir ambos documentos: el ORM solo en `infrastructure/`; `EntityRepository`, `EntityManager` y `QueryBuilder` no aparecen en `application/` ni en `domain/`. |
 | Ubicación de los puertos | **Resuelto:** escritura en `domain/interfaces/`; lectura junto a la operación que la consume, en `application/use-cases/`; alineado en `AGENTS.md` §5.2 y §5.5. | Respetar la ubicación según la proyección devuelta: el contrato vive del lado del consumidor. |
 | Separación de lecturas | **Resuelto:** `application/` mantiene solo `use-cases/`; toda lectura se implementa como operación de aplicación con nombre —caso de uso o Query Object— y el Query Object es opcional. Alineado en `AGENTS.md` §5.2, §5.4 y §5.8. | No crear `application/queries/` como carpeta obligatoria ni una clase por lectura. |
-| Límite transaccional | **Resuelto:** el caso de uso decide la unidad de trabajo y la implementación del puerto la ejecuta con `em.transactional(...)`; alineado en `AGENTS.md` §5.7. | No inyectar `EntityManager` en `application/`; exponer una operación con nombre propio en el puerto. |
+| Límite transaccional | **Resuelto:** el caso de uso decide la unidad de trabajo y la implementación del puerto la declara con `@Transactional()`; alineado en `AGENTS.md` §5.7. | No inyectar `EntityManager` en `application/`; exponer una operación con nombre propio en el puerto. |
 | QueryBuilder y consultas de lectura | **Resuelto:** `QueryBuilder`, joins, `LEFT JOIN` y filtros dinámicos viven en `infrastructure/queries/`; el Query Object es opcional y está alineado en `AGENTS.md` §5.8. | No exigirlo en consultas simples ni permitir que cruce el puerto. |
 | Propuestas futuras | Arquitectura de lectura y módulos recomendados | No convertir sugerencias o backlog futuro en requisitos obligatorios. |
 
