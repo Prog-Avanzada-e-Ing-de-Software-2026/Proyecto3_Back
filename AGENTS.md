@@ -93,7 +93,7 @@ Solo los cambios sin efecto en comportamiento, contratos, esquema o código pued
   - Las entidades deben llamarse `*.entity.ts` (el config las busca con `./src/**/*.entity.ts`).
   - Usar los decoradores legacy de `@mikro-orm/decorators/legacy`, consistentes con el `ReflectMetadataProvider` configurado.
   - Las migraciones viven en `src/migrations`.
-  - Toda entidad persistente declara las seis columnas de auditoría de §6.1 en su propia definición y las completa en el flujo que la crea o la modifica.
+  - Toda entidad persistente declara las seis columnas de auditoría de §6.1 en su propia definición; el flujo de aplicación que la crea o la modifica las completa, nunca la entidad.
 - **Reglas de dominio:** se validan dentro de la raíz del agregado, no en controladores ni en DTOs. Un VO es inmutable; una entidad conserva identidad.
 - **Errores de dominio:** no exponer detalles de persistencia en la API. Los errores semánticos se traducen a HTTP en el límite de presentación, sin filtrar trazas ni detalles internos.
 - **Manejo de errores:** el tratamiento general está centralizado en un filtro global; `try/catch` es selectivo y solo traduce excepciones técnicas, recupera de un fallo esperable con alternativa concreta, agrega contexto sin ocultar la causa o compensa una operación no atómica. Un `catch` que solo registra y devuelve vacío está prohibido. Las excepciones del driver se traducen en `infrastructure/`; nunca llegan al cliente.
@@ -280,7 +280,7 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 
 ## 6. Auditoría de entidades
 
-Toda entidad persistente registra **quién** creó, editó y eliminó cada fila. Es un requisito transversal del modelo, y cada entidad lo cumple por sí misma: declara las seis columnas de §6.1 y las completa en el flujo que la crea o la modifica. No hay base abstracta compartida ni suscriptor central; la repetición entre entidades es una decisión explícita del proyecto. Lo que no se negocia son los campos ni las reglas de esta sección.
+Toda entidad persistente registra **quién** creó, editó y eliminó cada fila. Es un requisito transversal del modelo: cada entidad declara las seis columnas de §6.1 y el flujo de aplicación que la crea o la modifica las completa. No hay base abstracta compartida ni suscriptor central; la repetición entre entidades es una decisión explícita del proyecto. Lo que no se negocia son los campos ni las reglas de esta sección.
 
 Esta convención se incorporó por decisión explícita del usuario como documentación: no requiere un cambio de OpenSpec propio, pero obliga a que todo cambio posterior que cree o modifique una entidad la cumpla.
 
@@ -326,7 +326,7 @@ La estrategia —qué se prueba por capa, nivel mínimo, prioridades, aislamient
 - Tests e2e en `test/`, con sufijo `.e2e-spec.ts`.
 - Todo cambio de comportamiento sigue test-first: primero un test que falla (RED), luego la implementación (GREEN), luego refactor.
 - Cada test debe verificar todos los efectos observables de la regla (salida, error, datos persistidos) y pasar por la interfaz pública.
-- Toda entidad nueva cubre alta, edición y baja verificando los seis campos de auditoría (§6.1) a través de la interfaz pública, incluido que el actor provenga del contexto de autenticación y no del payload.
+- Toda entidad nueva cubre alta, edición y baja verificando los seis campos de auditoría (§6.1) a través de la interfaz pública del caso de uso que ejecuta la operación y, cuando corresponda, de la persistencia; incluye que el actor provenga del contexto de autenticación y no del payload.
 - **Qué probar por capa:** el detalle y las prioridades están en `docs/agreements/testing.md` §3. En resumen: dominio → invariantes del agregado; aplicación → autorización del actor, solapamientos, atomicidad y rollback, con un doble del puerto que verifique el Input y el agregado; persistencia → restricciones de PostgreSQL, índices declarados en migraciones, concurrencia, auditoría y baja lógica, contra base real; consultas → filtros de autorización, exclusión de registros dados de baja, filtros dinámicos, `LEFT JOIN` sobre relaciones opcionales, récords calculados, orden estable y paginación; HTTP → DTO, Input, guards, códigos y contratos de error.
 - No dar por probada la integridad transaccional haciendo mocks del ORM. En aplicación se usa un doble del puerto; la integridad se prueba contra PostgreSQL real. Si PostgreSQL real no está disponible, se reporta el bloqueo de infraestructura y se deja el test sin ejecutar: nunca se declara verde ni se sustituye por un mock, un `skip` o una aserción vacía.
 - Antes de declarar terminada una tarea: `yarn typecheck && yarn lint && yarn test`.
