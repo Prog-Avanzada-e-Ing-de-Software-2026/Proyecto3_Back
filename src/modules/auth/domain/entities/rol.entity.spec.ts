@@ -4,7 +4,6 @@ import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico
 import { Permiso } from './permiso.entity.js';
 import { Rol } from './rol.entity.js';
 
-const alta = new Date('2026-01-01T10:00:00.000Z');
 const edicion = new Date('2026-02-01T10:00:00.000Z');
 
 beforeAll(() => {
@@ -12,19 +11,11 @@ beforeAll(() => {
 });
 
 function crearPermiso(nombre: string): Permiso {
-  return Permiso.crear({
-    nombre,
-    createdAt: alta,
-    createdById: null,
-  });
+  return Permiso.crear({ nombre });
 }
 
 function crearRol(nombre = 'Profesor'): Rol {
-  return Rol.crear({
-    nombre,
-    createdAt: alta,
-    createdById: null,
-  });
+  return Rol.crear({ nombre });
 }
 
 describe('Rol', () => {
@@ -47,9 +38,9 @@ describe('Rol', () => {
     const rol = crearRol();
     const permiso = crearPermiso('Crear plan');
 
-    rol.asignarPermiso(permiso, 7, edicion);
+    rol.asignarPermiso(permiso);
 
-    expect(() => rol.asignarPermiso(permiso, 7, edicion)).toThrow(ErrorSemantico);
+    expect(() => rol.asignarPermiso(permiso)).toThrow(ErrorSemantico);
     expect(rol.permisos.getItems()).toHaveLength(1);
   });
 
@@ -58,61 +49,39 @@ describe('Rol', () => {
     const primero = crearRol('PROFESOR');
     const segundo = crearRol('Administrador');
 
-    primero.asignarPermiso(permiso, 7, edicion);
-    segundo.asignarPermiso(permiso, 7, edicion);
+    primero.asignarPermiso(permiso);
+    segundo.asignarPermiso(permiso);
 
     expect(primero.permisos.getItems()).toHaveLength(1);
     expect(segundo.permisos.getItems()).toHaveLength(1);
   });
 
-  it('[rol] asignar y quitar permisos actualiza el ultimo responsable del rol', () => {
+  it('[rol] asignar y quitar permisos no escriben auditoría', () => {
     const rol = crearRol();
     const permiso = crearPermiso('Crear plan');
 
-    rol.asignarPermiso(permiso, 7, edicion);
-
-    expect(rol.updatedAt).toBe(edicion);
-    expect(rol.updatedById).toBe(7);
-    expect(rol.ultimoResponsableId).toBe(7);
-
-    const remocion = new Date('2026-03-01T10:00:00.000Z');
-    rol.quitarPermiso(permiso, 8, remocion);
+    rol.asignarPermiso(permiso);
+    rol.quitarPermiso(permiso);
 
     expect(rol.permisos.getItems()).toHaveLength(0);
-    expect(rol.updatedAt).toBe(remocion);
-    expect(rol.updatedById).toBe(8);
+    expect(rol.updatedAt).toBeNull();
+    expect(rol.updatedById).toBeNull();
   });
 
   it('[rol] rechaza quitar un permiso que no tiene', () => {
     const rol = crearRol();
     const permiso = crearPermiso('Crear plan');
 
-    expect(() => rol.quitarPermiso(permiso, 7, edicion)).toThrow(ErrorSemantico);
+    expect(() => rol.quitarPermiso(permiso)).toThrow(ErrorSemantico);
   });
 
-  it('[rol] exige actor para modificar la asignacion', () => {
+  it('[rol] deriva el estado activo de la baja lógica', () => {
     const rol = crearRol();
-    const permiso = crearPermiso('Crear plan');
-
-    expect(() => rol.asignarPermiso(permiso, undefined as unknown as number, edicion)).toThrow(
-      ErrorSemantico,
-    );
-    expect(rol.permisos.getItems()).toHaveLength(0);
-  });
-
-  it('[rol] aplica la baja logica y la reactivacion como cualquier entidad auditada', () => {
-    const rol = crearRol();
-
-    rol.darDeBaja(7, edicion);
-
-    expect(rol.estaActivo()).toBe(false);
-    expect(rol.deletedAt).toBe(edicion);
-    expect(rol.deletedById).toBe(7);
-
-    rol.reactivar(8, edicion);
 
     expect(rol.estaActivo()).toBe(true);
-    expect(rol.deletedAt).toBeNull();
-    expect(rol.deletedById).toBeNull();
+
+    rol.deletedAt = edicion;
+
+    expect(rol.estaActivo()).toBe(false);
   });
 });

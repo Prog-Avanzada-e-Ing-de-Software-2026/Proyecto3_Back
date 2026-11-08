@@ -303,7 +303,7 @@ Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCas
 
 ### 6.2 Reglas de implementación
 
-1. **Cada entidad los declara y los completa.** Las seis columnas se declaran en la entidad y se completan en el mismo caso de uso que la crea o la modifica, nunca en el controlador. La repetición entre entidades es deliberada: no se centraliza en una base abstracta ni en un suscriptor.
+1. **Cada entidad los declara; el caso de uso los completa.** Las seis columnas se declaran en la entidad y las completa el flujo de aplicación que la crea o la modifica, nunca el controlador ni un método de la entidad. La repetición entre entidades es deliberada: no se centraliza en una base abstracta ni en un suscriptor.
 2. **El actor sale del contexto de autenticación.** Jamás del body, del query string ni de un DTO. Si no hay actor identificado, la operación se rechaza; no se inventa un usuario "sistema" salvo en procesos internos explícitamente declarados.
 3. **El cliente no puede escribirlos.** Los DTOs de entrada no exponen estos campos y, si llegan en el payload, se ignoran.
 4. **Nada de escrituras que salten el flujo.** `updateMany`, `nativeUpdate` o SQL crudo no pasan por el caso de uso y dejan la auditoría desactualizada. Si un caso de uso los necesita, actualiza `updatedAt` y `updatedById` explícitamente dentro de la misma transacción.

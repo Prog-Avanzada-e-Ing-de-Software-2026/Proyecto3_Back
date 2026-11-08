@@ -76,7 +76,7 @@ Los permisos efectivos de un `Usuario` son la unión de los permisos de su rol, 
 
 ### D5 — La asignación rol-permiso pertenece a la raíz `Rol`
 
-`Rol` es la raíz del agregado y expone su colección de `Permiso` mapeada como `@ManyToMany` **unidireccional** con `pivotTable: 'rol_permiso'`; la asignación se modifica a través de un método de `Rol`, que registra autor y momento de la edición en la propia fila del rol. `Permiso` es raíz de su propio agregado de catálogo y no conoce a los roles que lo usan. La tabla intermedia **no se declara a mano**: la genera MikroORM a partir de la colección, con clave primaria compuesta `(rol_id, permiso_id)`, y no es una entidad ni lleva auditoría propia.
+`Rol` es la raíz del agregado y expone su colección de `Permiso` mapeada como `@ManyToMany` **unidireccional** con `pivotTable: 'rol_permiso'`; la asignación se modifica a través de un método de `Rol`, que solo altera la colección, y el caso de uso completa autor y momento de la edición en la propia fila del rol. `Permiso` es raíz de su propio agregado de catálogo y no conoce a los roles que lo usan. La tabla intermedia **no se declara a mano**: la genera MikroORM a partir de la colección, con clave primaria compuesta `(rol_id, permiso_id)`, y no es una entidad ni lleva auditoría propia.
 
 **Por qué:** la invariante «un permiso no se repite dentro del mismo rol» vive en `Rol`, y quien la protege debe ser la raíz. Poner la colección en `Permiso` obligaría a dos agregados a escribir el mismo vínculo y a elegir cuál es el dueño. Delegar la tabla intermedia al ORM evita mantener a mano un esquema que ya está descrito por la relación, sin agregar una entidad para un vínculo que tiene dueño.
 
@@ -197,11 +197,11 @@ La configuración declara un filtro `bajaLogica` con condición «fecha de baja 
 
 **Riesgo asumido:** el filtro por defecto oculta la fila dada de baja; la reactivación de `RN-30` debe desactivarlo explícitamente. Queda registrado como invariante de la prueba de persistencia.
 
-### D12 — Las columnas de auditoría se declaran en cada entidad, sin base ni suscriptor
+### D12 — Las columnas de auditoría se declaran en cada entidad; las completa el caso de uso, sin base ni suscriptor
 
-Cada una de las cinco entidades declara las seis columnas y las completa el flujo que la crea o la modifica. No hay clase base, mixin ni suscriptor.
+Cada una de las cinco entidades declara las seis columnas. El caso de uso que crea o modifica la fila las completa; ningún método de la entidad escribe `createdAt`, `createdById`, `updatedAt`, `updatedById`, `deletedAt` ni `deletedById`. No hay clase base, mixin ni suscriptor.
 
-**Por qué:** decisión explícita del usuario (la repetición se acepta) y `AGENTS.md` §6.2.1, que además descarta el suscriptor porque esconde el efecto y deja la auditoría fuera del caso de uso que la origina.
+**Por qué:** decisión explícita del usuario y `AGENTS.md` §6.2. La auditoría es una preocupación transversal de infraestructura que no pertenece al lenguaje ubicuo, así que no vive como comportamiento del dominio; el suscriptor se descarta porque esconde el efecto y deja la auditoría fuera del caso de uso que la origina. Los métodos de dominio (`darDeBaja`, `reactivar`, `asignarPermiso`, `quitarPermiso`) conservan solo la regla de negocio y el atributo del dominio (`activo` o la colección de permisos).
 
 **Alternativa descartada:** base abstracta `@Entity({ abstract: true })` con las seis columnas y un suscriptor que las complete. Se implementó y se retiró en `b9144fd`.
 

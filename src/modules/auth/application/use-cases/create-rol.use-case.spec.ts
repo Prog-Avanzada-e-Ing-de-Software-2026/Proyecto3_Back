@@ -8,8 +8,6 @@ import type { IRolRepository } from '../../domain/interfaces/rol.repository.inte
 import { CreateRolUseCase } from './create-rol.use-case.js';
 import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
 
-const alta = new Date('2026-01-01T10:00:00.000Z');
-
 class PermisoRepositoryFalso implements IPermisoRepository {
   readonly guardados: Permiso[] = [];
   private readonly porNombre = new Map<string, Permiso>();
@@ -47,7 +45,7 @@ class RolRepositoryFalso implements IRolRepository {
 }
 
 function crearPermiso(nombre: string): Permiso {
-  return Permiso.crear({ nombre, createdAt: alta, createdById: null });
+  return Permiso.crear({ nombre });
 }
 
 beforeAll(() => {

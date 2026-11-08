@@ -32,9 +32,8 @@ export class CreatePermisoUseCase {
     const permiso = Permiso.crear({
       nombre,
       descripcion: input.descripcion ?? null,
-      createdAt: new Date(),
-      createdById: null,
     });
+    permiso.createdAt = new Date();
 
     await this.permisos.save(permiso);
 

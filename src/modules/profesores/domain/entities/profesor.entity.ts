@@ -2,7 +2,6 @@ import { Collection } from '@mikro-orm/core';
 import { Entity, OneToMany, OneToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 import {
-  exigirActor,
   exigirFechaCalendario,
   exigirMomento,
   normalizarTextoObligatorio,
@@ -85,8 +84,6 @@ export class Profesor {
     profesor.fechaIngreso = exigirMomento(datos.fechaIngreso);
     profesor.activo = true;
     profesor.usuario = datos.usuario;
-    profesor.createdAt = exigirMomento(datos.createdAt);
-    profesor.createdById = datos.createdById ?? null;
 
     return profesor;
   }
@@ -95,10 +92,7 @@ export class Profesor {
     return this.activo;
   }
 
-  darDeBaja(actorId: number, momento: Date): void {
-    const actor = exigirActor(actorId);
-    const instante = exigirMomento(momento);
-
+  darDeBaja(): void {
     if (!this.estaActivo()) {
       throw new ErrorSemantico(
         'conflicto',
@@ -108,37 +102,17 @@ export class Profesor {
     }
 
     this.activo = false;
-    this.deletedAt = instante;
-    this.deletedById = actor;
-    this.updatedAt = instante;
-    this.updatedById = actor;
   }
 
-  reactivar(actorId: number, momento: Date): void {
-    const actor = exigirActor(actorId);
-    const instante = exigirMomento(momento);
-
+  reactivar(): void {
     if (this.estaActivo()) {
       throw new ErrorSemantico('conflicto', 'PROFESOR_ACTIVO', 'El profesor no está dado de baja.');
     }
 
     this.activo = true;
-    this.deletedAt = null;
-    this.deletedById = null;
-    this.updatedAt = instante;
-    this.updatedById = actor;
-  }
-
-  registrarEdicion(actorId: number, momento: Date): void {
-    this.updatedById = exigirActor(actorId);
-    this.updatedAt = exigirMomento(momento);
   }
 
   get usuarioId(): number {
     return this.usuario.id;
-  }
-
-  get ultimoResponsableId(): number | null {
-    return this.updatedById ?? this.createdById;
   }
 }

@@ -53,9 +53,8 @@ export class CreateRolUseCase {
       nombre,
       descripcion: input.descripcion ?? null,
       permisos,
-      createdAt: new Date(),
-      createdById: null,
     });
+    rol.createdAt = new Date();
 
     await this.roles.save(rol);
 

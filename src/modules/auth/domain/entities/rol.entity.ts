@@ -1,11 +1,7 @@
 import { Collection } from '@mikro-orm/core';
 import { Entity, ManyToMany, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
-import {
-  exigirActor,
-  exigirMomento,
-  normalizarTextoObligatorio,
-} from '../../../../common/domain/validaciones.js';
+import { normalizarTextoObligatorio } from '../../../../common/domain/validaciones.js';
 import { Permiso } from './permiso.entity.js';
 import type { CrearRol } from './rol.input.js';
 
@@ -49,8 +45,6 @@ export class Rol {
     const rol = new Rol();
     rol.nombre = normalizarTextoObligatorio(datos.nombre, 'NOMBRE');
     rol.descripcion = datos.descripcion ?? null;
-    rol.createdAt = exigirMomento(datos.createdAt);
-    rol.createdById = datos.createdById ?? null;
 
     for (const permiso of datos.permisos ?? []) {
       if (rol.permisos.contains(permiso)) {
@@ -71,10 +65,7 @@ export class Rol {
     return this.deletedAt === null;
   }
 
-  asignarPermiso(permiso: Permiso, actorId: number, momento: Date): void {
-    const actor = exigirActor(actorId);
-    const instante = exigirMomento(momento);
-
+  asignarPermiso(permiso: Permiso): void {
     if (this.permisos.contains(permiso)) {
       throw new ErrorSemantico(
         'conflicto',
@@ -84,14 +75,9 @@ export class Rol {
     }
 
     this.permisos.add(permiso);
-    this.updatedAt = instante;
-    this.updatedById = actor;
   }
 
-  quitarPermiso(permiso: Permiso, actorId: number, momento: Date): void {
-    const actor = exigirActor(actorId);
-    const instante = exigirMomento(momento);
-
+  quitarPermiso(permiso: Permiso): void {
     if (!this.permisos.contains(permiso)) {
       throw new ErrorSemantico(
         'no_encontrado',
@@ -101,44 +87,5 @@ export class Rol {
     }
 
     this.permisos.remove(permiso);
-    this.updatedAt = instante;
-    this.updatedById = actor;
-  }
-
-  darDeBaja(actorId: number, momento: Date): void {
-    const actor = exigirActor(actorId);
-    const instante = exigirMomento(momento);
-
-    if (!this.estaActivo()) {
-      throw new ErrorSemantico('conflicto', 'ROL_YA_DADO_DE_BAJA', 'El rol ya está dado de baja.');
-    }
-
-    this.deletedAt = instante;
-    this.deletedById = actor;
-    this.updatedAt = instante;
-    this.updatedById = actor;
-  }
-
-  reactivar(actorId: number, momento: Date): void {
-    const actor = exigirActor(actorId);
-    const instante = exigirMomento(momento);
-
-    if (this.estaActivo()) {
-      throw new ErrorSemantico('conflicto', 'ROL_ACTIVO', 'El rol no está dado de baja.');
-    }
-
-    this.deletedAt = null;
-    this.deletedById = null;
-    this.updatedAt = instante;
-    this.updatedById = actor;
-  }
-
-  registrarEdicion(actorId: number, momento: Date): void {
-    this.updatedById = exigirActor(actorId);
-    this.updatedAt = exigirMomento(momento);
-  }
-
-  get ultimoResponsableId(): number | null {
-    return this.updatedById ?? this.createdById;
   }
 }

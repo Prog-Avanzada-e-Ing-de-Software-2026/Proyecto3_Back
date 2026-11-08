@@ -1,11 +1,6 @@
 import { Entity, ManyToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
-import {
-  exigirActor,
-  exigirMomento,
-  normalizarTextoObligatorio,
-  normalizarEmail,
-} from '../../../../common/domain/validaciones.js';
+import { normalizarTextoObligatorio, normalizarEmail } from '../../../../common/domain/validaciones.js';
 import type { Permiso } from './permiso.entity.js';
 import { Rol } from './rol.entity.js';
 import type { CrearUsuario } from './usuario.input.js';
@@ -58,8 +53,6 @@ export class Usuario {
     usuario.email = normalizarEmail(datos.email);
     usuario.passwordHash = normalizarTextoObligatorio(datos.passwordHash, 'CREDENCIAL');
     usuario.rol = datos.rol;
-    usuario.createdAt = exigirMomento(datos.createdAt);
-    usuario.createdById = datos.createdById ?? null;
 
     return usuario;
   }
@@ -72,52 +65,7 @@ export class Usuario {
     return this.rol.permisos.getItems().filter((permiso) => permiso.estaActivo());
   }
 
-  darDeBaja(actorId: number, momento: Date): void {
-    const actor = exigirActor(actorId);
-    const instante = exigirMomento(momento);
-
-    if (!this.estaActivo()) {
-      throw new ErrorSemantico(
-        'conflicto',
-        'USUARIO_YA_DADO_DE_BAJA',
-        'El usuario ya está dado de baja.',
-      );
-    }
-
-    this.deletedAt = instante;
-    this.deletedById = actor;
-    this.updatedAt = instante;
-    this.updatedById = actor;
-  }
-
-  reactivar(actorId: number, momento: Date): void {
-    const actor = exigirActor(actorId);
-    const instante = exigirMomento(momento);
-
-    if (this.estaActivo()) {
-      throw new ErrorSemantico(
-        'conflicto',
-        'USUARIO_ACTIVO',
-        'El usuario no está dado de baja.',
-      );
-    }
-
-    this.deletedAt = null;
-    this.deletedById = null;
-    this.updatedAt = instante;
-    this.updatedById = actor;
-  }
-
-  registrarEdicion(actorId: number, momento: Date): void {
-    this.updatedById = exigirActor(actorId);
-    this.updatedAt = exigirMomento(momento);
-  }
-
   get rolId(): number {
     return this.rol.id;
-  }
-
-  get ultimoResponsableId(): number | null {
-    return this.updatedById ?? this.createdById;
   }
 }

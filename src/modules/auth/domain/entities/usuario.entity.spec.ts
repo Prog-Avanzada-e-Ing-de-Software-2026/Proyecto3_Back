@@ -6,7 +6,6 @@ import { Permiso } from './permiso.entity.js';
 import { Rol } from './rol.entity.js';
 import { Usuario } from './usuario.entity.js';
 
-const alta = new Date('2026-01-01T10:00:00.000Z');
 const edicion = new Date('2026-02-01T10:00:00.000Z');
 
 beforeAll(() => {
@@ -14,14 +13,14 @@ beforeAll(() => {
 });
 
 function crearRol(nombre: string, permisos: Permiso[] = []): Rol {
-  const rol = Rol.crear({ nombre, createdAt: alta, createdById: null });
-  permisos.forEach((permiso) => rol.asignarPermiso(permiso, 1, alta));
+  const rol = Rol.crear({ nombre });
+  permisos.forEach((permiso) => rol.asignarPermiso(permiso));
 
   return rol;
 }
 
 function crearPermiso(nombre: string): Permiso {
-  return Permiso.crear({ nombre, createdAt: alta, createdById: null });
+  return Permiso.crear({ nombre });
 }
 
 function crearUsuario(email = 'alumno@gym.com', rol = crearRol(NOMBRES_ROL.ALUMNO)): Usuario {
@@ -29,8 +28,6 @@ function crearUsuario(email = 'alumno@gym.com', rol = crearRol(NOMBRES_ROL.ALUMN
     email,
     passwordHash: 'hash-argon2id',
     rol,
-    createdAt: alta,
-    createdById: null,
   });
 }
 
@@ -49,8 +46,6 @@ describe('Usuario', () => {
         email: 'alumno@gym.com',
         passwordHash: 'hash-argon2id',
         rol: undefined as unknown as Rol,
-        createdAt: alta,
-        createdById: null,
       }),
     ).toThrow(ErrorSemantico);
   });
@@ -61,8 +56,6 @@ describe('Usuario', () => {
         email: 'alumno@gym.com',
         passwordHash: '  ',
         rol: crearRol(NOMBRES_ROL.ALUMNO),
-        createdAt: alta,
-        createdById: null,
       }),
     ).toThrow(ErrorSemantico);
   });
@@ -96,24 +89,18 @@ describe('Usuario', () => {
     const rol = crearRol(NOMBRES_ROL.PROFESOR, [permiso]);
     const usuario = crearUsuario('profesor@gym.com', rol);
 
-    permiso.darDeBaja(1, edicion);
+    permiso.deletedAt = edicion;
 
     expect(usuario.permisosEfectivos()).toEqual([]);
   });
 
-  it('[usuario] aplica la baja logica y la reactivacion con actor', () => {
+  it('[usuario] deriva el estado activo de la baja lógica', () => {
     const usuario = crearUsuario();
 
-    usuario.darDeBaja(7, edicion);
+    expect(usuario.estaActivo()).toBe(true);
+
+    usuario.deletedAt = edicion;
 
     expect(usuario.estaActivo()).toBe(false);
-    expect(usuario.deletedAt).toBe(edicion);
-    expect(usuario.deletedById).toBe(7);
-
-    usuario.reactivar(8, edicion);
-
-    expect(usuario.estaActivo()).toBe(true);
-    expect(usuario.deletedAt).toBeNull();
-    expect(usuario.deletedById).toBeNull();
   });
 });

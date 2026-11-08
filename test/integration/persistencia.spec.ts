@@ -16,12 +16,29 @@ const edicion = new Date('2026-02-01T10:00:00.000Z');
 
 let entorno: EntornoPostgres;
 
+function asignarAlta<T extends { createdAt?: Date; createdById?: number | null }>(
+  entidad: T,
+  actorId: number | null = null,
+): T {
+  entidad.createdAt = alta;
+  entidad.createdById = actorId;
+
+  return entidad;
+}
+
 function crearRol(nombre: string): Rol {
-  return Rol.crear({ nombre, createdAt: alta });
+  return asignarAlta(Rol.crear({ nombre }));
+}
+
+function crearPermiso(nombre: string): Permiso {
+  return asignarAlta(Permiso.crear({ nombre }));
 }
 
 function crearUsuario(email: string, rol: Rol, createdById: number | null = null): Usuario {
-  return Usuario.crear({ email, passwordHash: 'hash-argon2id', rol, createdAt: alta, createdById });
+  return asignarAlta(
+    Usuario.crear({ email, passwordHash: 'hash-argon2id', rol }),
+    createdById,
+  );
 }
 
 function crearAlumno(
@@ -32,17 +49,18 @@ function crearAlumno(
   createdById: number | null = null,
   profesorAsignado: Profesor | null = null,
 ): Alumno {
-  return Alumno.crear({
-    nombre,
-    fechaNacimiento: '2000-03-15',
-    numeroDocumento: documento,
-    numeroTelefono: '1155556666',
-    fechaIngreso: alta,
-    profesorAsignado,
-    usuario: crearUsuario(email, usuarioRol, createdById),
-    createdAt: alta,
+  return asignarAlta(
+    Alumno.crear({
+      nombre,
+      fechaNacimiento: '2000-03-15',
+      numeroDocumento: documento,
+      numeroTelefono: '1155556666',
+      fechaIngreso: alta,
+      profesorAsignado,
+      usuario: crearUsuario(email, usuarioRol, createdById),
+    }),
     createdById,
-  });
+  );
 }
 
 function crearProfesor(
@@ -51,15 +69,16 @@ function crearProfesor(
   nombre = 'Ana Profesora',
   usuarioRol: Rol = crearRol('Profesor'),
 ): Profesor {
-  return Profesor.crear({
-    nombre,
-    fechaNacimiento: '1985-05-04',
-    numeroDocumento: documento,
-    numeroTelefono: '1144445555',
-    fechaIngreso: alta,
-    usuario: crearUsuario(email, usuarioRol),
-    createdAt: alta,
-  });
+  return asignarAlta(
+    Profesor.crear({
+      nombre,
+      fechaNacimiento: '1985-05-04',
+      numeroDocumento: documento,
+      numeroTelefono: '1144445555',
+      fechaIngreso: alta,
+      usuario: crearUsuario(email, usuarioRol),
+    }),
+  );
 }
 
 async function crearAdministrador(): Promise<Usuario> {
@@ -110,12 +129,10 @@ describe('persistencia del modelo de identidad', () => {
     await expect(persistir(crearRol('  Profesor  '))).rejects.toThrow();
     entorno.orm.em.clear();
 
-    const permiso = Permiso.crear({ nombre: 'Crear plan', createdAt: alta });
+    const permiso = crearPermiso('Crear plan');
     await persistir(permiso);
 
-    await expect(
-      persistir(Permiso.crear({ nombre: '  Crear plan  ', createdAt: alta })),
-    ).rejects.toThrow();
+    await expect(persistir(crearPermiso('  Crear plan  '))).rejects.toThrow();
   });
 
   it('[persistencia] carga los alumnos asignados desde el profesor', async () => {
@@ -187,7 +204,6 @@ describe('persistencia del modelo de identidad', () => {
       numeroTelefono: '1100000000',
       fechaIngreso: alta,
       usuario: alumno.usuario,
-      createdAt: alta,
     });
 
     await expect(persistir(segundo)).rejects.toThrow();
@@ -211,7 +227,7 @@ describe('persistencia del modelo de identidad', () => {
 
   it('[persistencia] rechaza el mismo permiso dos veces en un rol', async () => {
     const rol = crearRol('Profesor');
-    const permiso = Permiso.crear({ nombre: 'Crear plan', createdAt: alta });
+    const permiso = crearPermiso('Crear plan');
     await persistir([rol, permiso]);
 
     const conexion = entorno.orm.em.getConnection();
@@ -249,7 +265,10 @@ describe('persistencia del modelo de identidad', () => {
     const rol = crearRol('Profesor');
     await persistir(rol);
 
-    rol.darDeBaja(administrador.id, edicion);
+    rol.deletedAt = edicion;
+    rol.deletedById = administrador.id;
+    rol.updatedAt = edicion;
+    rol.updatedById = administrador.id;
     await entorno.orm.em.flush();
     entorno.orm.em.clear();
 
@@ -264,7 +283,10 @@ describe('persistencia del modelo de identidad', () => {
       { filters: { bajaLogica: false } },
     );
     const reactivacion = new Date('2026-04-01T10:00:00.000Z');
-    paraReactivar.reactivar(administrador.id, reactivacion);
+    paraReactivar.deletedAt = null;
+    paraReactivar.deletedById = null;
+    paraReactivar.updatedAt = reactivacion;
+    paraReactivar.updatedById = administrador.id;
     await entorno.orm.em.flush();
     entorno.orm.em.clear();
 
@@ -283,7 +305,8 @@ describe('persistencia del modelo de identidad', () => {
     const rol = crearRol('Profesor');
     await persistir(rol);
 
-    rol.registrarEdicion(administrador.id, edicion);
+    rol.updatedAt = edicion;
+    rol.updatedById = administrador.id;
     await entorno.orm.em.flush();
     entorno.orm.em.clear();
 
@@ -293,12 +316,15 @@ describe('persistencia del modelo de identidad', () => {
     expect(editado.createdById).toBeNull();
     expect(editado.updatedAt).toEqual(edicion);
     expect(editado.updatedById).toBe(administrador.id);
-    expect(editado.ultimoResponsableId).toBe(administrador.id);
+    expect(editado.updatedById ?? editado.createdById).toBe(administrador.id);
     expect(editado.deletedAt).toBeNull();
     expect(editado.deletedById).toBeNull();
 
     const baja = new Date('2026-03-01T10:00:00.000Z');
-    editado.darDeBaja(administrador.id, baja);
+    editado.deletedAt = baja;
+    editado.deletedById = administrador.id;
+    editado.updatedAt = baja;
+    editado.updatedById = administrador.id;
     await entorno.orm.em.flush();
     entorno.orm.em.clear();
 

@@ -4,8 +4,9 @@ import type { Profesor } from '../../../profesores/domain/entities/profesor.enti
 /**
  * Datos de construcción de un `Alumno`.
  *
- * Es el contrato de entrada de `Alumno.crear`: no valida nada por sí mismo y
- * las invariantes las aplica la raíz del agregado.
+ * Es el contrato de entrada de `Alumno.crear`: no valida nada por sí mismo y las
+ * invariantes las aplica la raíz del agregado. La auditoría del alta la completa
+ * el caso de uso.
  */
 export interface CrearAlumno {
   nombre: string;
@@ -16,6 +17,4 @@ export interface CrearAlumno {
   observaciones?: string | null;
   profesorAsignado?: Profesor | null;
   usuario: Usuario;
-  createdAt: Date;
-  createdById?: number | null;
 }

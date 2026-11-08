@@ -6,17 +6,14 @@ import { Profesor } from '../../../profesores/domain/entities/profesor.entity.js
 import { Alumno } from './alumno.entity.js';
 
 const alta = new Date('2026-01-01T10:00:00.000Z');
-const edicion = new Date('2026-02-01T10:00:00.000Z');
 
 function crearUsuario(email: string): Usuario {
-  const rol = Rol.crear({ nombre: 'Alumno', createdAt: alta, createdById: null });
+  const rol = Rol.crear({ nombre: 'Alumno' });
 
   return Usuario.crear({
     email,
     passwordHash: 'hash-argon2id',
     rol,
-    createdAt: alta,
-    createdById: null,
   });
 }
 
@@ -28,8 +25,6 @@ function crearProfesor(): Profesor {
     numeroTelefono: '1144445555',
     fechaIngreso: alta,
     usuario: crearUsuario('ana@gym.com'),
-    createdAt: alta,
-    createdById: null,
   });
 }
 
@@ -41,8 +36,6 @@ function crearAlumno(overrides: Partial<Parameters<typeof Alumno.crear>[0]> = {}
     numeroTelefono: '1155556666',
     fechaIngreso: alta,
     usuario: crearUsuario('juan@gym.com'),
-    createdAt: alta,
-    createdById: null,
     ...overrides,
   });
 }
@@ -79,44 +72,42 @@ describe('Alumno', () => {
     expect(alumno.profesorAsignadoId).toBeNull();
   });
 
-  it('[alumno] la baja exige actor y escribe fecha y autor juntos', () => {
+  it('[alumno] la baja solo cambia el estado activo y no escribe auditoría', () => {
     const alumno = crearAlumno();
 
-    expect(() => alumno.darDeBaja(undefined as unknown as number, edicion)).toThrow(ErrorSemantico);
-    expect(alumno.estaActivo()).toBe(true);
-
-    alumno.darDeBaja(7, edicion);
+    alumno.darDeBaja();
 
     expect(alumno.estaActivo()).toBe(false);
     expect(alumno.activo).toBe(false);
-    expect(alumno.deletedAt).toBe(edicion);
-    expect(alumno.deletedById).toBe(7);
+    expect(alumno.deletedAt).toBeNull();
+    expect(alumno.deletedById).toBeNull();
+    expect(alumno.updatedAt).toBeNull();
+    expect(alumno.updatedById).toBeNull();
   });
 
-  it('[alumno][RN-30] la reactivacion limpia la baja y conserva el resto del registro', () => {
+  it('[alumno] rechaza dar de baja dos veces', () => {
+    const alumno = crearAlumno();
+    alumno.darDeBaja();
+
+    expect(() => alumno.darDeBaja()).toThrow(ErrorSemantico);
+  });
+
+  it('[alumno][RN-30] la reactivacion conserva el resto del registro', () => {
     const profesor = crearProfesor();
     const alumno = crearAlumno({ profesorAsignado: profesor });
-    alumno.darDeBaja(7, edicion);
+    alumno.darDeBaja();
 
-    alumno.reactivar(8, edicion);
+    alumno.reactivar();
 
     expect(alumno.estaActivo()).toBe(true);
     expect(alumno.activo).toBe(true);
-    expect(alumno.deletedAt).toBeNull();
-    expect(alumno.deletedById).toBeNull();
     expect(alumno.profesorAsignado).toBe(profesor);
     expect(alumno.nombre).toBe('Juan Perez');
   });
 
-  it('[alumno] una edicion actualiza el ultimo responsable y no toca los datos de alta', () => {
+  it('[alumno] rechaza reactivar un alumno activo', () => {
     const alumno = crearAlumno();
 
-    alumno.registrarEdicion(9, edicion);
-
-    expect(alumno.updatedAt).toBe(edicion);
-    expect(alumno.updatedById).toBe(9);
-    expect(alumno.ultimoResponsableId).toBe(9);
-    expect(alumno.createdAt).toBe(alta);
-    expect(alumno.createdById).toBeNull();
+    expect(() => alumno.reactivar()).toThrow(ErrorSemantico);
   });
 });
