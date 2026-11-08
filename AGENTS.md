@@ -316,7 +316,7 @@ Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCas
 - **Exclusión en las consultas habituales.** Los registros dados de baja no aparecen en listados, búsquedas, reportes ni validaciones de existencia. El filtro `deletedAt IS NULL` lo aplica la implementación del puerto de lectura (§5.8), no cada consulta a mano; incluir el histórico se pide explícitamente. Las comprobaciones de negocio también excluyen: no se crea un plan sobre un alumno dado de baja.
 - **Borrado físico** solo en catálogos sin referencias y cuando la historia no importa (por ejemplo, una máquina nunca usada, `HU 28`). Al borrar la fila desaparece su auditoría: si el dominio exige conservarla, la baja debe ser lógica.
 - **Índices únicos sobre entidades con baja lógica:** un `UNIQUE` plano queda bloqueado por la fila dada de baja. Usar índices parciales (`WHERE deleted_at IS NULL`).
-- **Reactivación explícita.** Volver a poner `deletedAt` y `deletedById` en `null` es un caso de uso del dominio con nombre propio, no un update genérico, y actualiza `updatedAt` y `updatedById` como cualquier otra edición. La reactivación conserva el historial previo.
+- **Reactivación explícita.** Volver a poner `deletedAt` y `deletedById` en `null` es un caso de uso con nombre propio, no un update genérico, y actualiza `updatedAt` y `updatedById` como cualquier otra edición. La reactivación conserva el historial previo.
 
 ## 7. Testing y verificación
 
