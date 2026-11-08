@@ -485,6 +485,8 @@ La regla operativa vive en `AGENTS.md` §8; acá queda el criterio y el fundamen
 
 La auditoría se define en `AGENTS.md` §6 y no se repite acá: seis columnas obligatorias (`createdAt`, `createdById`, `updatedAt`, `updatedById`, `deletedAt`, `deletedById`), actor tomado del contexto de autenticación y nunca del payload, UTC, baja lógica, reactivación explícita y restricciones únicas parciales. Cada entidad declara sus seis columnas y las completa en el caso de uso que la crea o la modifica; no hay base abstracta compartida ni suscriptor central, y esa repetición es una decisión explícita del proyecto.
 
+**Previsto, aún no implementado:** el seteo de las seis columnas y la obtención del actor se centralizan en un `AuditoriaService` de `common/application` con tres operaciones (`alta`, `edicion`, `baja`), respaldado por `nestjs-cls`. Se implementa en el cambio que introduzca el primer comando autenticado, según la decisión `D20` de `add-usuario-identity`.
+
 ---
 
 ## 8. Errores, autorización y contrato API

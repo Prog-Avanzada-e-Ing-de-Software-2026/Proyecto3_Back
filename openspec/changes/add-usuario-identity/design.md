@@ -259,6 +259,43 @@ Se elimina `src/mock/mock.entity.ts` y su referencia en el arnés de pruebas.
 
 **Por qué:** `AGENTS.md` §1 y §4 hacen de `docs/dominio/` la fuente del lenguaje ubicuo y prohíben renombrar conceptos solo en el código; dejar el modelo desactualizado haría que la próxima lectura del dominio contradiga las entidades.
 
+### D20 — La auditoría se completa con un `AuditoriaService` respaldado por `nestjs-cls` (preparado, no implementado en este cambio)
+
+La escritura de las seis columnas se centraliza en un helper de aplicación con tres operaciones, una por tipo de auditoría:
+
+```ts
+@Injectable()
+export class AuditoriaService {
+  constructor(private readonly cls: ClsService<{ usuarioId: number }>) {}
+
+  alta<T extends EntidadAuditable>(entidad: T, actorId?: number | null): T;
+  edicion<T extends EntidadAuditable>(entidad: T, actorId?: number | null): T;
+  baja<T extends EntidadAuditable>(entidad: T, actorId?: number | null): T;
+}
+```
+
+- `alta` setea `createdAt = new Date()` y `createdById`; deja `updatedAt`/`updatedById` en `null`.
+- `edicion` setea `updatedAt = new Date()` y `updatedById`.
+- `baja` setea `deletedAt`/`deletedById` y, con el mismo instante y actor, `updatedAt`/`updatedById` (`AGENTS.md` §6.3), y devuelve la entidad.
+- La reactivación no suma una cuarta función: el caso de uso limpia `deletedAt`/`deletedById` (y `Alumno`/`Profesor` reactivan `activo`) y llama a `edicion`.
+- El actor se resuelve, en este orden: `actorId` explícito cuando la operación lo declara (el seeder pasa `null` como proceso interno de §6.2.2); si no, `cls.get('usuarioId')`; si no hay contexto activo (`cls.isActive() === false`) o falta la clave, `ErrorSemantico('no_autenticado', 'ACTOR_REQUERIDO', ...)`. Nunca se toma del payload.
+- El caso de uso llama a la operación después del comportamiento de dominio y antes de persistir: `alumno.darDeBaja(); auditoria.baja(alumno);`.
+
+**Ubicación y cableado:** `src/common/application/auditoria/auditoria.service.ts`, usado por los casos de uso de todos los módulos. `ClsModule.forRoot({ global: true, middleware: { mount: true } })` en `AppModule`; el guard de autenticación setea `usuarioId` con el identificador del `Usuario` autenticado. Los procesos fuera de HTTP (seeder, CLI) no tienen middleware: o pasan el actor explícito, o envuelven la ejecución con `cls.run()` y setean la clave.
+
+**Por qué:** el actor debe salir del contexto de autenticación, jamás del payload (`AGENTS.md` §6.2.2), y `nestjs-cls` lo propaga sin arrastrar `actorId` por cada firma. Centralizar el seteado evita que cada caso de uso repita la regla de la baja (`deletedAt`/`deletedById` + `updatedAt`/`updatedById`) y deja la entidad con atributos y reglas de negocio, como fija D12.
+
+**Alternativas descartadas:**
+
+- Pasar `actorId` por cada caso de uso sin CLS: funciona, pero multiplica parámetros y es fácil olvidar la actualización de edición.
+- Un suscriptor o interceptor del ORM: lo descarta D12 porque esconde el efecto y saca la auditoría del caso de uso que la origina.
+- Métodos de auditoría en la entidad: es exactamente lo que D12 y `AGENTS.md` §6.2.1 retiraron.
+- Resolver el actor con `ClsServiceManager.getClsService()` estático: evita la inyección, pero impide sustituirlo en pruebas y esconde la dependencia; se prefiere el `ClsService` inyectado.
+
+**Cuándo se implementa:** en el cambio que introduzca el primer comando autenticado (`implement-login` o la primera historia de `HU 16`–`HU 24`), porque hasta entonces no existe un `Usuario` actor fuera del seeder. Ese cambio agrega la dependencia `nestjs-cls`, registra `ClsModule`, migra `CreateRolUseCase` y `CreatePermisoUseCase` a `auditoria.alta(entidad, null)` y cubre el helper con un doble de `ClsService` y una prueba de integración que setea el actor con `cls.run()`.
+
+**Diferido:** este cambio no agrega la dependencia, no crea el archivo ni cablea `ClsModule`; solo deja la decisión registrada.
+
 ## Modelo de datos
 
 Los identificadores son `integer identity`, no `bigint`: el driver de PostgreSQL devuelve `bigint` como `string`, y `AGENTS.md` §6.1 fija `number` para los identificadores de auditoría. Los nombres de columna los genera `UnderscoreNamingStrategy` a partir de la propiedad en camelCase; las propiedades nullable declaran `type` explícito por la limitación de `ReflectMetadataProvider` registrada en `Risks`.

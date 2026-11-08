@@ -44,3 +44,4 @@
 - Ejecutar `openspec validate add-usuario-identity --strict` y presentar el resultado.
 - Implementar en `feature/add-usuario-identity` con commits convencionales que incluyan `Refs: openspec/changes/add-usuario-identity`, sin push, PR ni merge sin autorización.
 - Archivar el cambio solo con todas las tareas verificadas y la validación estricta en verde.
+- Diferido a un cambio posterior: implementar `AuditoriaService` con `nestjs-cls` según `D20` en el cambio que introduzca el primer comando autenticado (`implement-login` o la primera historia de `HU 16`–`HU 24`).
