@@ -7,9 +7,13 @@ import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AuthModule } from '../../src/modules/auth/auth.module.js';
 import { CreatePermisoUseCase } from '../../src/modules/auth/application/use-cases/create-permiso.use-case.js';
-import { NOMBRES_ROL, NOMBRES_PERMISO } from '../../src/modules/auth/domain/catalogos.js';
+import { NOMBRES_ROL, NOMBRES_PERMISO } from '../../src/seeder/catalogos.js';
 import { runCatalogoIdentidad } from '../../src/seeder/catalogo-identidad.seed.js';
-import { configuracionOrm, POSTGRES_IMAGE, vaciarTablas } from '../support/postgres.js';
+import {
+  configuracionOrm,
+  POSTGRES_IMAGE,
+  vaciarTablas,
+} from '../support/postgres.js';
 
 let container: StartedPostgreSqlContainer;
 let modulo: TestingModule;
@@ -18,7 +22,9 @@ let orm: MikroORM;
 async function contar(tabla: string): Promise<number> {
   const [fila] = await orm.em
     .getConnection()
-    .execute<{ total: string }[]>(`select count(*)::text as total from "${tabla}";`);
+    .execute<{ total: string }[]>(
+      `select count(*)::text as total from "${tabla}";`,
+    );
 
   return Number(fila.total);
 }
@@ -39,7 +45,9 @@ beforeAll(async () => {
   container = await new PostgreSqlContainer(POSTGRES_IMAGE).start();
   modulo = await Test.createTestingModule({
     imports: [
-      MikroOrmModule.forRoot(configuracionOrm(container, { allowGlobalContext: false })),
+      MikroOrmModule.forRoot(
+        configuracionOrm(container, { allowGlobalContext: false }),
+      ),
       AuthModule,
     ],
   }).compile();
@@ -73,20 +81,26 @@ describe('seed catalogo-identidad', () => {
       NOMBRES_PERMISO.GESTIONAR_ALUMNOS,
       NOMBRES_PERMISO.GESTIONAR_PROFESORES,
     ]);
-    expect(await permisosDeRol(NOMBRES_ROL.PROFESOR)).toEqual([NOMBRES_PERMISO.CREAR_PLAN]);
+    expect(await permisosDeRol(NOMBRES_ROL.PROFESOR)).toEqual([
+      NOMBRES_PERMISO.CREAR_PLAN,
+    ]);
     expect(await permisosDeRol(NOMBRES_ROL.ALUMNO)).toEqual([]);
   });
 
   it('[seeder] una segunda ejecución no agrega ni modifica filas', async () => {
     await correrSeed();
-    const antes = await orm.em.getConnection().execute<{ id: number; nombre: string }[]>(
-      'select "id", "nombre" from "rol" order by "id";',
-    );
+    const antes = await orm.em
+      .getConnection()
+      .execute<{ id: number; nombre: string }[]>(
+        'select "id", "nombre" from "rol" order by "id";',
+      );
 
     await correrSeed();
-    const despues = await orm.em.getConnection().execute<{ id: number; nombre: string }[]>(
-      'select "id", "nombre" from "rol" order by "id";',
-    );
+    const despues = await orm.em
+      .getConnection()
+      .execute<{ id: number; nombre: string }[]>(
+        'select "id", "nombre" from "rol" order by "id";',
+      );
 
     expect(despues).toEqual(antes);
     expect(await contar('rol')).toBe(3);

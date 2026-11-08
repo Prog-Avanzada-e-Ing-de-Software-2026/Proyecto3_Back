@@ -1,7 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { initOrmMetadata } from '../../../../../test/support/orm-metadata.js';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
-import { NOMBRES_ROL, NOMBRES_PERMISO } from '../catalogos.js';
 import { Permiso } from './permiso.entity.js';
 import { Rol } from './rol.entity.js';
 import { Usuario } from './usuario.entity.js';
@@ -23,7 +22,10 @@ function crearPermiso(nombre: string): Permiso {
   return Permiso.crear({ nombre });
 }
 
-function crearUsuario(email = 'alumno@gym.com', rol = crearRol(NOMBRES_ROL.ALUMNO)): Usuario {
+function crearUsuario(
+  email = 'alumno@gym.com',
+  rol = crearRol('Alumno'),
+): Usuario {
   return Usuario.crear({
     email,
     passwordHash: 'hash-argon2id',
@@ -55,7 +57,7 @@ describe('Usuario', () => {
       Usuario.crear({
         email: 'alumno@gym.com',
         passwordHash: '  ',
-        rol: crearRol(NOMBRES_ROL.ALUMNO),
+        rol: crearRol('Alumno'),
       }),
     ).toThrow(ErrorSemantico);
   });
@@ -70,23 +72,23 @@ describe('Usuario', () => {
   });
 
   it('[usuario] los permisos efectivos son los del rol', () => {
-    const rol = crearRol(NOMBRES_ROL.PROFESOR, [crearPermiso(NOMBRES_PERMISO.CREAR_PLAN)]);
+    const rol = crearRol('Profesor', [crearPermiso('Crear plan')]);
     const usuario = crearUsuario('profesor@gym.com', rol);
 
-    expect(usuario.permisosEfectivos().map((permiso) => permiso.nombre)).toEqual([
-      NOMBRES_PERMISO.CREAR_PLAN,
-    ]);
+    expect(
+      usuario.permisosEfectivos().map((permiso) => permiso.nombre),
+    ).toEqual(['Crear plan']);
   });
 
   it('[usuario] un rol sin permisos no habilita ninguna operacion de gestion', () => {
-    const usuario = crearUsuario('alumno@gym.com', crearRol(NOMBRES_ROL.ALUMNO));
+    const usuario = crearUsuario('alumno@gym.com', crearRol('Alumno'));
 
     expect(usuario.permisosEfectivos()).toEqual([]);
   });
 
   it('[usuario] excluye de los permisos efectivos el permiso dado de baja', () => {
-    const permiso = crearPermiso(NOMBRES_PERMISO.CREAR_PLAN);
-    const rol = crearRol(NOMBRES_ROL.PROFESOR, [permiso]);
+    const permiso = crearPermiso('Crear plan');
+    const rol = crearRol('Profesor', [permiso]);
     const usuario = crearUsuario('profesor@gym.com', rol);
 
     permiso.deletedAt = edicion;

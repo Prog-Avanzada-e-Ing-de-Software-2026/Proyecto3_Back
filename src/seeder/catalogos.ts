@@ -1,9 +1,9 @@
 /**
- * Claves del catálogo de identidad y autorización.
+ * Nombres del catálogo inicial de identidad y autorización.
  *
- * Roles y permisos se identifican por `nombre`: ambos son datos persistidos y
- * estas constantes solo tipan las búsquedas y la carga inicial. Nunca
- * reemplazan la fila de la base.
+ * Son datos de la carga inicial, no el catálogo real: roles y permisos se
+ * identifican por `nombre` en la base y estas constantes solo tipan el seed.
+ * Nunca reemplazan la fila persistida.
  */
 export const NOMBRES_ROL = {
   ADMINISTRADOR: 'Administrador',
@@ -19,4 +19,5 @@ export const NOMBRES_PERMISO = {
 
 export type NombreRol = (typeof NOMBRES_ROL)[keyof typeof NOMBRES_ROL];
 
-export type NombrePermiso = (typeof NOMBRES_PERMISO)[keyof typeof NOMBRES_PERMISO];
+export type NombrePermiso =
+  (typeof NOMBRES_PERMISO)[keyof typeof NOMBRES_PERMISO];

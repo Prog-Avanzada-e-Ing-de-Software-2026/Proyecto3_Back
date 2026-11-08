@@ -1,16 +1,17 @@
 import type { INestApplicationContext } from '@nestjs/common';
 import { CreatePermisoUseCase } from '../modules/auth/application/use-cases/create-permiso.use-case.js';
 import { CreateRolUseCase } from '../modules/auth/application/use-cases/create-rol.use-case.js';
-import { NOMBRES_PERMISO, NOMBRES_ROL } from '../modules/auth/domain/catalogos.js';
+import { NOMBRES_PERMISO, NOMBRES_ROL } from './catalogos.js';
+import type { NombrePermiso, NombreRol } from './catalogos.js';
 
 interface PermisoInicial {
-  nombre: string;
+  nombre: NombrePermiso;
   descripcion: string;
 }
 
 interface RolInicial {
-  nombre: string;
-  permisos: string[];
+  nombre: NombreRol;
+  permisos: NombrePermiso[];
 }
 
 const PERMISOS_INICIALES: readonly PermisoInicial[] = [
@@ -31,7 +32,10 @@ const PERMISOS_INICIALES: readonly PermisoInicial[] = [
 const ROLES_INICIALES: readonly RolInicial[] = [
   {
     nombre: NOMBRES_ROL.ADMINISTRADOR,
-    permisos: [NOMBRES_PERMISO.GESTIONAR_ALUMNOS, NOMBRES_PERMISO.GESTIONAR_PROFESORES],
+    permisos: [
+      NOMBRES_PERMISO.GESTIONAR_ALUMNOS,
+      NOMBRES_PERMISO.GESTIONAR_PROFESORES,
+    ],
   },
   {
     nombre: NOMBRES_ROL.PROFESOR,
@@ -50,7 +54,9 @@ const ROLES_INICIALES: readonly RolInicial[] = [
  * creación, la validación y la auditoría viven en el módulo, no acá. Es
  * idempotente, así que repetirla no duplica filas.
  */
-export async function runCatalogoIdentidad(app: INestApplicationContext): Promise<void> {
+export async function runCatalogoIdentidad(
+  app: INestApplicationContext,
+): Promise<void> {
   const crearPermiso = app.get(CreatePermisoUseCase);
   const crearRol = app.get(CreateRolUseCase);
 
