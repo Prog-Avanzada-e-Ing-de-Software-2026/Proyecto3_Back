@@ -436,7 +436,8 @@ El repositorio sigue **GitFlow** adaptado al flujo de OpenSpec. `main` conserva 
 - Revisar `git diff` completo antes de cada commit; no commitear archivos generados ni secretos.
 - No usar `--no-verify` para saltear hooks.
 - **Trazabilidad en el PR:** todo Pull Request declara la historia de usuario que implementa en una línea `HU: <n>` y las reglas de negocio afectadas en una línea `Reglas: RN-01, RN-05`, en la sección *Trazabilidad* de la plantilla de Pull Request del repositorio. El gate de CI (`scripts/check-rules.mjs`) exige que cada regla declarada tenga al menos un test que pase, identificado en el nombre del test con el tag `[RN-nn]`. La línea `HU:` es la que permite calcular el Lead Time, que termina con el merge del PR a `develop`. Con `workflow_dispatch` y `enforce_all_rules` se exige el 100% de las 42 reglas antes del despliegue final.
-- El push, la creación de PR y el merge son decisiones del usuario.
+- **Versionado:** el número interno del backend, el versionado externo de las entregas y el uso de tags se rigen por `docs/agreements/versionado.md`. Todo PR hacia `develop` o `main` declara en su descripción la versión interna que le corresponde, y el tag `vX.Y.Z` se crea sobre el commit resultante de la integración.
+- El push, la creación de PR, el tag y el merge son decisiones del usuario.
 
 ## 11. CodeGraph
 

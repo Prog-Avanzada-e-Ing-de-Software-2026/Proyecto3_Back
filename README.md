@@ -37,6 +37,7 @@ y a las historias de usuario (`HU 1`..`HU 29`) del dominio.
 | [`docs/agreements/arquitectura.md`](docs/agreements/arquitectura.md) | Estructura de carpetas, capas y límites entre módulos |
 | [`docs/agreements/testing.md`](docs/agreements/testing.md) | Estrategia de pruebas por capa |
 | [`docs/agreements/buenas_practicas.md`](docs/agreements/buenas_practicas.md) | Contratos HTTP, persistencia, logging y ramas |
+| [`docs/agreements/versionado.md`](docs/agreements/versionado.md) | Versionado interno y externo, criterios de incremento y tags |
 | [`openspec/`](openspec) | Especificaciones vigentes y cambios propuestos |
 
 ## Requisitos previos
@@ -319,7 +320,9 @@ El repositorio sigue **GitFlow**: `main` conserva las versiones estables y
 `develop` integra el trabajo; ninguna de las dos recibe commits directos. Los
 commits siguen [Conventional Commits](https://www.conventionalcommits.org/) y
 todo commit que implementa un cambio lleva el footer
-`Refs: openspec/changes/<change-name>`.
+`Refs: openspec/changes/<change-name>`. El versionado interno, el de las
+entregas y los tags `vX.Y.Z` se rigen por
+[`docs/agreements/versionado.md`](docs/agreements/versionado.md).
 
 El CI corre en cada push y pull request a `main` y `develop`:
 
