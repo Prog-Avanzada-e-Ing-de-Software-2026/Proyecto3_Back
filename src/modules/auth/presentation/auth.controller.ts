@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res } from '@nestjs/common';
 import {
   ApiOkResponse,
   ApiOperation,
@@ -6,9 +6,10 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
+import { ActorActual } from '../../../common/presentation/auth/actor-actual.decorator.js';
 import { Public } from '../../../common/presentation/auth/public.decorator.js';
 import { LoginUseCase } from '../application/use-cases/login.use-case.js';
-import { RefreshSesionUseCase } from '../application/use-cases/refresh-sesion.use-case.js';
+import { ReadSesionUseCase } from '../application/use-cases/read-sesion.use-case.js';
 import type { SesionOtorgada } from '../application/use-cases/sesion-otorgada.result.js';
 import { LoginDto } from './dto/login.dto.js';
 import { COOKIE_REFRESH, SesionService } from './sesion.service.js';
@@ -18,7 +19,7 @@ import { COOKIE_REFRESH, SesionService } from './sesion.service.js';
 export class AuthController {
   constructor(
     private readonly login: LoginUseCase,
-    private readonly refresh: RefreshSesionUseCase,
+    private readonly sesionActual: ReadSesionUseCase,
     private readonly sesion: SesionService,
   ) {}
 
@@ -41,6 +42,14 @@ export class AuthController {
     return resultado;
   }
 
+  @Get('me')
+  @ApiOperation({ summary: 'Devuelve el usuario autenticado con su rol y sus permisos' })
+  @ApiOkResponse({ description: 'Identidad, rol y permisos efectivos del usuario de la sesión.' })
+  @ApiUnauthorizedResponse({ description: 'No hay una sesión válida' })
+  async consultarIdentidad(@ActorActual() actorId: number): Promise<SesionOtorgada> {
+    return this.sesionActual.execute(actorId);
+  }
+
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
@@ -52,7 +61,7 @@ export class AuthController {
     @Res({ passthrough: true }) respuesta: Response,
   ): Promise<SesionOtorgada> {
     const usuarioId = await this.sesion.verificar(solicitud.cookies?.[COOKIE_REFRESH], 'refresh');
-    const resultado = await this.refresh.execute(usuarioId);
+    const resultado = await this.sesionActual.execute(usuarioId);
 
     await this.sesion.renovarAcceso(respuesta, resultado.id);
 

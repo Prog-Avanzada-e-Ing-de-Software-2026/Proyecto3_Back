@@ -9,7 +9,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { GlobalExceptionFilter } from '../src/common/presentation/global-exception.filter.js';
 import { LoginUseCase } from '../src/modules/auth/application/use-cases/login.use-case.js';
-import { RefreshSesionUseCase } from '../src/modules/auth/application/use-cases/refresh-sesion.use-case.js';
+import { ReadSesionUseCase } from '../src/modules/auth/application/use-cases/read-sesion.use-case.js';
 import {
   PASSWORD_HASHER,
   USUARIO_REPOSITORY,
@@ -62,7 +62,7 @@ function crearModulo(usuarios: Usuario[]): new () => object {
     controllers: [AuthController],
     providers: [
       LoginUseCase,
-      RefreshSesionUseCase,
+      ReadSesionUseCase,
       SesionService,
       { provide: USUARIO_REPOSITORY, useValue: new UsuarioRepositoryFalso(usuarios) },
       { provide: CONFIGURACION_SESION, useValue: CONFIGURACION },
@@ -337,11 +337,53 @@ describe('Autenticación (e2e)', () => {
     expect(respuesta.body).not.toHaveProperty('createdById');
   });
 
+  it('[autenticacion-sesion] devuelve la identidad del usuario autenticado', async () => {
+    const galletas = await iniciarSesion();
+    const respuesta = await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Cookie', `access=${valorDe(galletas.access)}`)
+      .expect(200);
+
+    expect(respuesta.body).toEqual({
+      id: 7,
+      email: 'alumno@gym.com',
+      rol: 'Alumno',
+      permisos: ['Crear plan'],
+    });
+  });
+
+  it('[autenticacion-sesion] la consulta de identidad no emite cookies nuevas', async () => {
+    const galletas = await iniciarSesion();
+    const respuesta = await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Cookie', `access=${valorDe(galletas.access)}`)
+      .expect(200);
+
+    expect(galletasDe(respuesta)).toEqual({});
+  });
+
+  it('[autenticacion-sesion] la consulta sin sesión responde 401 sin datos del usuario', async () => {
+    const respuesta = await request(app.getHttpServer()).get('/api/auth/me').expect(401);
+
+    expect(respuesta.body.code).toBe('SESION_INVALIDA');
+    expect(respuesta.body).not.toHaveProperty('email');
+  });
+
+  it('[RN-34] la consulta de identidad de un usuario dado de baja responde 401', async () => {
+    const access = await firmarToken({ sub: 8, tipo: 'access' }, { secreto: SECRETO_ACCESS });
+
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Cookie', `access=${access}`)
+      .expect(401);
+  });
+
   it('[implement-login] publica la documentación y no atiende rutas fuera del prefijo', async () => {
     const documentacion = await request(app.getHttpServer()).get('/api/docs-json').expect(200);
 
     expect(Object.keys(documentacion.body.paths)).toContain('/api/auth/login');
     expect(Object.keys(documentacion.body.paths)).toContain('/api/auth/refresh');
+    expect(Object.keys(documentacion.body.paths)).toContain('/api/auth/me');
     await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: 'alumno@gym.com', password: CLAVE })

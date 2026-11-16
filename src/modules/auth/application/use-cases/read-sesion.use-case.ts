@@ -6,14 +6,15 @@ import { sesionOtorgadaDe } from './sesion-otorgada.result.js';
 import type { SesionOtorgada } from './sesion-otorgada.result.js';
 
 /**
- * Renueva la sesión a partir del usuario que identificó el refresh.
+ * Lee la sesión vigente de un usuario identificado.
  *
- * Vuelve a leer el usuario en lugar de confiar en el token: `RN-34` exige que
- * la baja corte el acceso, y un refresh de una semana sería justamente la forma
- * de sobrevivir a esa baja.
+ * Lo usan la renovación —cuyo controller además emite la cookie de access— y la
+ * consulta de la identidad propia. Vuelve a leer el usuario en lugar de confiar
+ * en el token: `RN-34` exige que la baja corte el acceso, y un refresh de una
+ * semana sería justamente la forma de sobrevivir a esa baja.
  */
 @Injectable()
-export class RefreshSesionUseCase {
+export class ReadSesionUseCase {
   constructor(@Inject(USUARIO_REPOSITORY) private readonly usuarios: IUsuarioRepository) {}
 
   async execute(usuarioId: number): Promise<SesionOtorgada> {

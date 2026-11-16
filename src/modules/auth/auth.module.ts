@@ -10,7 +10,7 @@ import { FindRolByIdUseCase } from './application/use-cases/find-rol-by-id.use-c
 import { ListPermisosUseCase } from './application/use-cases/list-permisos.use-case.js';
 import { ListRolesUseCase } from './application/use-cases/list-roles.use-case.js';
 import { LoginUseCase } from './application/use-cases/login.use-case.js';
-import { RefreshSesionUseCase } from './application/use-cases/refresh-sesion.use-case.js';
+import { ReadSesionUseCase } from './application/use-cases/read-sesion.use-case.js';
 import { ReplaceRolPermisosUseCase } from './application/use-cases/replace-rol-permisos.use-case.js';
 import { UpdatePermisoUseCase } from './application/use-cases/update-permiso.use-case.js';
 import { UpdateRolUseCase } from './application/use-cases/update-rol.use-case.js';
@@ -61,7 +61,7 @@ import { SesionService } from './presentation/sesion.service.js';
     ListPermisosUseCase,
     ListRolesUseCase,
     LoginUseCase,
-    RefreshSesionUseCase,
+    ReadSesionUseCase,
     ReplaceRolPermisosUseCase,
     UpdatePermisoUseCase,
     UpdateRolUseCase,
