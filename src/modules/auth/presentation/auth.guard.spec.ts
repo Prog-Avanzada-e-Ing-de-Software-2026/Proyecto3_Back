@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { initOrmMetadata } from '../../../../test/support/orm-metadata.js';
 import { ErrorSemantico } from '../../../common/domain/errors/error-semantico.js';
 import { CLAVE_RUTA_PUBLICA } from '../../../common/presentation/auth/public.decorator.js';
+import { CLAVE_PERMISO } from '../../../common/presentation/auth/requiere-permiso.decorator.js';
 import type { SolicitudAutenticada } from '../../../common/presentation/auth/solicitud-autenticada.js';
 import { Permiso } from '../domain/entities/permiso.entity.js';
 import { Rol } from '../domain/entities/rol.entity.js';
@@ -43,12 +44,19 @@ function crearUsuario(id: number): Usuario {
   return usuario;
 }
 
-function contexto(solicitud: Partial<SolicitudAutenticada>, publica = false): ExecutionContext {
+function contexto(
+  solicitud: Partial<SolicitudAutenticada>,
+  opciones: { publica?: boolean; permiso?: string } = {},
+): ExecutionContext {
   const handler = (): void => {};
   const clase = class Controlador {};
 
-  if (publica) {
+  if (opciones.publica === true) {
     Reflect.defineMetadata(CLAVE_RUTA_PUBLICA, true, handler);
+  }
+
+  if (opciones.permiso !== undefined) {
+    Reflect.defineMetadata(CLAVE_PERMISO, opciones.permiso, handler);
   }
 
   return {
@@ -94,7 +102,7 @@ describe('AuthGuard', () => {
   });
 
   it('[autenticacion-sesion] deja pasar una ruta pública sin token', async () => {
-    await expect(guard().canActivate(contexto({}, true))).resolves.toBe(true);
+    await expect(guard().canActivate(contexto({}, { publica: true }))).resolves.toBe(true);
   });
 
   it('[autenticacion-sesion] rechaza una petición sin cookie de access', async () => {
@@ -152,5 +160,44 @@ describe('AuthGuard', () => {
 
     await expect(guard([crearUsuario(1)]).canActivate(contexto(solicitud))).resolves.toBe(true);
     expect(solicitud.actorId).toBe(1);
+  });
+  it('[identidad-usuario] deja pasar una operación que no declara permiso', async () => {
+    const token = await firmar({ sub: 1, tipo: 'access' });
+
+    await expect(
+      guard([crearUsuario(1)]).canActivate(contexto(conCookie({}, token))),
+    ).resolves.toBe(true);
+  });
+
+  it('[identidad-usuario] deja pasar cuando el usuario tiene el permiso declarado', async () => {
+    const token = await firmar({ sub: 1, tipo: 'access' });
+
+    await expect(
+      guard([crearUsuario(1)]).canActivate(
+        contexto(conCookie({}, token), { permiso: 'Crear plan' }),
+      ),
+    ).resolves.toBe(true);
+  });
+
+  it('[identidad-usuario] rechaza con prohibido cuando falta el permiso declarado', async () => {
+    const token = await firmar({ sub: 1, tipo: 'access' });
+
+    await expect(
+      guard([crearUsuario(1)]).canActivate(
+        contexto(conCookie({}, token), { permiso: 'Gestionar alumnos' }),
+      ),
+    ).rejects.toMatchObject({ categoria: 'prohibido', codigo: 'SIN_PERMISO' });
+  });
+
+  it('[identidad-usuario] responde 401 antes de evaluar permisos si no hay sesión', async () => {
+    await expect(
+      guard().canActivate(contexto({}, { permiso: 'Gestionar alumnos' })),
+    ).rejects.toMatchObject({ categoria: 'no_autenticado', codigo: 'SESION_INVALIDA' });
+  });
+
+  it('[identidad-usuario] una ruta pública no evalúa permisos aunque los declare', async () => {
+    await expect(
+      guard().canActivate(contexto({}, { publica: true, permiso: 'Gestionar alumnos' })),
+    ).resolves.toBe(true);
   });
 });
