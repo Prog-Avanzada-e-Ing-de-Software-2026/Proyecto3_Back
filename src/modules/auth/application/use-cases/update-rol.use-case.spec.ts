@@ -71,6 +71,28 @@ describe('UpdateRolUseCase', () => {
     ).resolves.toBeDefined();
   });
 
+  it('[identidad-usuario] rechaza una edición sin campos y no escribe', async () => {
+    const roles = new RolRepositoryFalso();
+    roles.precargar(rolGuardado('Entrenador'));
+    const antes = roles.guardados[0]?.updatedAt ?? null;
+
+    await expect(new UpdateRolUseCase(roles).execute({ id: 1 })).rejects.toMatchObject({
+      codigo: 'SIN_CAMBIOS',
+    });
+
+    expect(roles.guardados[0]?.updatedAt).toBe(antes);
+  });
+
+  it('[identidad-usuario] acepta limpiar la descripción con null', async () => {
+    const roles = new RolRepositoryFalso();
+    roles.precargar(rolGuardado('Entrenador'));
+
+    const rol = await new UpdateRolUseCase(roles).execute({ id: 1, descripcion: null });
+
+    expect(rol.descripcion).toBeNull();
+    expect(rol.updatedAt).toBeInstanceOf(Date);
+  });
+
   it('[identidad-usuario] rechaza un rol inexistente', async () => {
     await expect(
       new UpdateRolUseCase(new RolRepositoryFalso()).execute({ id: 99, nombre: 'Otro' }),

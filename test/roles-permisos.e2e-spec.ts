@@ -275,6 +275,17 @@ describe('Catálogo de roles y permisos (e2e)', () => {
     expect(respuesta.body.code).toBe('ROL_DUPLICADO');
   });
 
+  it('[identidad-usuario] rechaza un PATCH sin campos con entrada inválida', async () => {
+    const access = await accessPara(1);
+    const respuesta = await request(app.getHttpServer())
+      .patch('/api/roles/2')
+      .set('Cookie', `access=${access}`)
+      .send({})
+      .expect(400);
+
+    expect(respuesta.body.code).toBe('SIN_CAMBIOS');
+  });
+
   it('[identidad-usuario] rechaza renombrar un rol requerido', async () => {
     const access = await accessPara(1);
     const respuesta = await request(app.getHttpServer())

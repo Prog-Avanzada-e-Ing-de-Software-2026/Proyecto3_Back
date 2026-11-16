@@ -54,6 +54,17 @@ describe('UpdatePermisoUseCase', () => {
     ).rejects.toMatchObject({ codigo: 'PERMISO_DUPLICADO' });
   });
 
+  it('[identidad-usuario] rechaza una edición sin campos y no escribe', async () => {
+    const permisos = new PermisoRepositoryFalso();
+    permisos.precargar(permisoGuardado('Gestionar materiales'));
+
+    await expect(new UpdatePermisoUseCase(permisos).execute({ id: 1 })).rejects.toMatchObject({
+      codigo: 'SIN_CAMBIOS',
+    });
+
+    expect(permisos.guardados[0]?.updatedAt).toBeNull();
+  });
+
   it('[identidad-usuario] rechaza un permiso inexistente', async () => {
     await expect(
       new UpdatePermisoUseCase(new PermisoRepositoryFalso()).execute({ id: 99 }),

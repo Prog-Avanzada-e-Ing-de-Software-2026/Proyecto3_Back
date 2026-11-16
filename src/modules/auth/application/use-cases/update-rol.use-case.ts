@@ -31,6 +31,14 @@ export class UpdateRolUseCase {
       throw new ErrorSemantico('no_encontrado', 'ROL_NO_ENCONTRADO', 'El rol no existe.');
     }
 
+    if (input.nombre === undefined && input.descripcion === undefined) {
+      throw new ErrorSemantico(
+        'entrada_invalida',
+        'SIN_CAMBIOS',
+        'La edición requiere al menos un campo.',
+      );
+    }
+
     if (input.nombre !== undefined) {
       const nombre = normalizarTextoObligatorio(input.nombre, 'NOMBRE');
 
