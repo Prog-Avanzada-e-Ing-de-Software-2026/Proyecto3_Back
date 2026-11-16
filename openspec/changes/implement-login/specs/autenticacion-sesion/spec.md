@@ -1,0 +1,101 @@
+# Spec Delta
+
+## Purpose
+
+Define cómo un usuario acredita su identidad ante el sistema, cómo esa sesión deja de conceder acceso y qué garantías de confidencialidad y de rechazo sostiene el acceso a las operaciones protegidas.
+
+## ADDED Requirements
+
+### Requirement: Inicio de sesión con credenciales válidas
+
+El sistema SHALL conceder una sesión a un usuario activo que presente el email y la contraseña correctos, y MUST devolver en la misma respuesta el rol y los permisos efectivos del usuario para que el cliente muestre solo las funciones que le corresponden.
+
+#### Scenario: Credenciales correctas
+
+- **WHEN** un `Usuario` activo inicia sesión con su email y su contraseña
+- **THEN** el sistema concede la sesión y responde con el rol del usuario y sus permisos efectivos
+
+#### Scenario: Email con distinta capitalización
+
+- **WHEN** un `Usuario` inicia sesión con su email escrito en mayúsculas y la contraseña correcta
+- **THEN** el sistema concede la sesión igual que con el email en minúsculas
+
+#### Scenario: Funciones correspondientes al rol
+
+- **WHEN** inicia sesión un usuario cuyo rol es `Alumno`
+- **THEN** los permisos devueltos no incluyen `Gestionar alumnos` ni `Gestionar profesores`
+
+### Requirement: Rechazo de credenciales inválidas sin revelar el dato fallido
+
+El sistema MUST rechazar el inicio de sesión cuando el email no corresponde a ningún usuario o la contraseña no verifica, y MUST responder el mismo mensaje en ambos casos, sin indicar cuál de los dos datos falló.
+
+#### Scenario: Contraseña incorrecta
+
+- **WHEN** se intenta iniciar sesión con un email registrado y una contraseña incorrecta
+- **THEN** el sistema rechaza la operación y no concede sesión
+
+#### Scenario: Email no registrado
+
+- **WHEN** se intenta iniciar sesión con un email que no pertenece a ningún usuario
+- **THEN** el sistema rechaza la operación con el mismo mensaje y el mismo estado que en el caso de contraseña incorrecta
+
+### Requirement: Acceso de usuarios dados de baja
+
+El sistema MUST rechazar el inicio de sesión de un `Usuario` dado de baja y MUST dejar de conceder acceso a una sesión ya emitida cuando el usuario es dado de baja, sin esperar a que la sesión expire.
+
+#### Scenario: Inicio de sesión de un usuario dado de baja
+
+- **WHEN** un `Usuario` dado de baja intenta iniciar sesión con credenciales que antes eran válidas
+- **THEN** el sistema rechaza la operación y no concede sesión
+
+#### Scenario: Baja posterior al inicio de sesión
+
+- **WHEN** un usuario con sesión activa es dado de baja y luego intenta una operación protegida
+- **THEN** el sistema rechaza la operación como no autenticada
+
+### Requirement: Cierre de sesión e invalidación
+
+El sistema SHALL permitir cerrar la sesión al usuario autenticado y MUST dejar de conceder acceso a las operaciones protegidas con la sesión cerrada.
+
+#### Scenario: Cierre de sesión
+
+- **WHEN** un usuario autenticado cierra su sesión
+- **THEN** el sistema responde que la operación se completó y la siguiente operación protegida se rechaza como no autenticada
+
+#### Scenario: Cierre de sesión sin sesión activa
+
+- **WHEN** se invoca el cierre de sesión sin una sesión válida
+- **THEN** el sistema responde el resultado del contrato de error para una credencial ausente y no crea ninguna sesión
+
+### Requirement: Protección de las operaciones que exigen sesión
+
+Toda operación protegida MUST rechazar la petición cuando no presenta una sesión válida, antes de ejecutar cualquier efecto sobre los datos, y MUST responder con el estado y el cuerpo de error que el contrato HTTP define para una credencial ausente o inválida.
+
+#### Scenario: Operación protegida sin sesión
+
+- **WHEN** se invoca una operación protegida sin sesión
+- **THEN** el sistema responde `401` con el código estable del contrato de error y no persiste ningún cambio
+
+#### Scenario: Operación protegida con sesión vencida
+
+- **WHEN** se invoca una operación protegida con una sesión cuyo token ya venció
+- **THEN** el sistema responde `401` y no ejecuta la operación
+
+#### Scenario: Operación protegida con token manipulado
+
+- **WHEN** se invoca una operación protegida con un token alterado o firmado con otra clave
+- **THEN** el sistema responde `401` y no ejecuta la operación
+
+### Requirement: Confidencialidad de la credencial y de la sesión
+
+El sistema MUST NOT incluir el hash de contraseña ni el token de sesión en el cuerpo de ninguna respuesta, y MUST NOT aceptar el actor de una operación desde la entrada del cliente.
+
+#### Scenario: Respuesta del inicio de sesión
+
+- **WHEN** se inspecciona la respuesta de un inicio de sesión exitoso
+- **THEN** ninguna propiedad del cuerpo contiene el hash de contraseña ni el valor del token
+
+#### Scenario: Actor enviado por el cliente
+
+- **WHEN** una petición incluye un identificador de actor en el cuerpo o en la cabecera de consulta
+- **THEN** ese valor se ignora y la operación usa el actor de la sesión
