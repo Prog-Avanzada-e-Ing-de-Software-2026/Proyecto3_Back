@@ -4,9 +4,16 @@ import { JwtModule } from '@nestjs/jwt';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { CreatePermisoUseCase } from './application/use-cases/create-permiso.use-case.js';
 import { CreateRolUseCase } from './application/use-cases/create-rol.use-case.js';
+import { FindPermisoByIdUseCase } from './application/use-cases/find-permiso-by-id.use-case.js';
 import { FindPermisoByNombreUseCase } from './application/use-cases/find-permiso-by-nombre.use-case.js';
+import { FindRolByIdUseCase } from './application/use-cases/find-rol-by-id.use-case.js';
+import { ListPermisosUseCase } from './application/use-cases/list-permisos.use-case.js';
+import { ListRolesUseCase } from './application/use-cases/list-roles.use-case.js';
 import { LoginUseCase } from './application/use-cases/login.use-case.js';
 import { RefreshSesionUseCase } from './application/use-cases/refresh-sesion.use-case.js';
+import { ReplaceRolPermisosUseCase } from './application/use-cases/replace-rol-permisos.use-case.js';
+import { UpdatePermisoUseCase } from './application/use-cases/update-permiso.use-case.js';
+import { UpdateRolUseCase } from './application/use-cases/update-rol.use-case.js';
 import {
   PASSWORD_HASHER,
   PERMISO_REPOSITORY,
@@ -26,6 +33,8 @@ import { MikroOrmRolRepository } from './infrastructure/repositories/mikro-orm-r
 import { MikroOrmUsuarioRepository } from './infrastructure/repositories/mikro-orm-usuario.repository.js';
 import { Argon2PasswordHasher } from './infrastructure/services/argon2-password-hasher.js';
 import { AuthController } from './presentation/auth.controller.js';
+import { PermisosController } from './presentation/permisos.controller.js';
+import { RolesController } from './presentation/roles.controller.js';
 import { AuthGuard } from './presentation/auth.guard.js';
 import { SesionService } from './presentation/sesion.service.js';
 
@@ -42,13 +51,20 @@ import { SesionService } from './presentation/sesion.service.js';
     // firma y en cada verificación.
     JwtModule.register({ signOptions: { algorithm: ALGORITMO_FIRMA } }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, RolesController, PermisosController],
   providers: [
     CreatePermisoUseCase,
     CreateRolUseCase,
+    FindPermisoByIdUseCase,
     FindPermisoByNombreUseCase,
+    FindRolByIdUseCase,
+    ListPermisosUseCase,
+    ListRolesUseCase,
     LoginUseCase,
     RefreshSesionUseCase,
+    ReplaceRolPermisosUseCase,
+    UpdatePermisoUseCase,
+    UpdateRolUseCase,
     { provide: CONFIGURACION_SESION, useFactory: () => leerConfiguracionSesion() },
     SesionService,
     { provide: PERMISO_REPOSITORY, useClass: MikroOrmPermisoRepository },

@@ -1,8 +1,10 @@
 import type { INestApplicationContext } from '@nestjs/common';
 import { CreatePermisoUseCase } from '../modules/auth/application/use-cases/create-permiso.use-case.js';
 import { CreateRolUseCase } from '../modules/auth/application/use-cases/create-rol.use-case.js';
-import { NOMBRES_PERMISO, NOMBRES_ROL } from './catalogos.js';
-import type { NombrePermiso, NombreRol } from './catalogos.js';
+import { ListPermisosUseCase } from '../modules/auth/application/use-cases/list-permisos.use-case.js';
+import { ListRolesUseCase } from '../modules/auth/application/use-cases/list-roles.use-case.js';
+import { NOMBRES_PERMISO, NOMBRES_ROL } from '../modules/auth/domain/catalogos.js';
+import type { NombrePermiso, NombreRol } from '../modules/auth/domain/catalogos.js';
 
 interface PermisoInicial {
   nombre: NombrePermiso;
@@ -27,6 +29,14 @@ const PERMISOS_INICIALES: readonly PermisoInicial[] = [
     nombre: NOMBRES_PERMISO.CREAR_PLAN,
     descripcion: 'Armar y modificar planes de entrenamiento.',
   },
+  {
+    nombre: NOMBRES_PERMISO.GESTIONAR_ROLES,
+    descripcion: 'Dar de alta y editar roles del catálogo de autorización.',
+  },
+  {
+    nombre: NOMBRES_PERMISO.GESTIONAR_PERMISOS,
+    descripcion: 'Dar de alta y editar permisos del catálogo de autorización.',
+  },
 ];
 
 const ROLES_INICIALES: readonly RolInicial[] = [
@@ -35,6 +45,8 @@ const ROLES_INICIALES: readonly RolInicial[] = [
     permisos: [
       NOMBRES_PERMISO.GESTIONAR_ALUMNOS,
       NOMBRES_PERMISO.GESTIONAR_PROFESORES,
+      NOMBRES_PERMISO.GESTIONAR_ROLES,
+      NOMBRES_PERMISO.GESTIONAR_PERMISOS,
     ],
   },
   {
@@ -59,12 +71,25 @@ export async function runCatalogoIdentidad(
 ): Promise<void> {
   const crearPermiso = app.get(CreatePermisoUseCase);
   const crearRol = app.get(CreateRolUseCase);
+  const listarPermisos = app.get(ListPermisosUseCase);
+  const listarRoles = app.get(ListRolesUseCase);
+
+  // El alta rechaza duplicados; decidir qué falta es tarea de la carga inicial.
+  const permisosExistentes = new Set(
+    (await listarPermisos.execute()).map((permiso) => permiso.nombre),
+  );
 
   for (const permiso of PERMISOS_INICIALES) {
-    await crearPermiso.execute(permiso);
+    if (!permisosExistentes.has(permiso.nombre)) {
+      await crearPermiso.execute(permiso);
+    }
   }
 
+  const rolesExistentes = new Set((await listarRoles.execute()).map((rol) => rol.nombre));
+
   for (const rol of ROLES_INICIALES) {
-    await crearRol.execute(rol);
+    if (!rolesExistentes.has(rol.nombre)) {
+      await crearRol.execute(rol);
+    }
   }
 }

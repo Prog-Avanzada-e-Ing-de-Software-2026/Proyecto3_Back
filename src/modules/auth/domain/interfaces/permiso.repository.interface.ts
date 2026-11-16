@@ -1,13 +1,19 @@
 import type { Permiso } from '../entities/permiso.entity.js';
 
 /**
- * Puerto de escritura del catálogo de permisos.
+ * Puerto de persistencia y lectura del catálogo de permisos.
  *
- * La consulta por nombre es la que hace idempotente la carga inicial: el caso
- * de uso no escribe si la fila ya existe.
+ * `existeNombre` ignora el filtro de baja lógica a propósito: el nombre de un
+ * permiso dado de baja no se libera, así que la unicidad tiene que verlo.
  */
 export interface IPermisoRepository {
   save(permiso: Permiso): Promise<void>;
 
   findByNombre(nombre: string): Promise<Permiso | null>;
+
+  findById(id: number): Promise<Permiso | null>;
+
+  findAll(): Promise<Permiso[]>;
+
+  existeNombre(nombre: string, exceptoId?: number): Promise<boolean>;
 }

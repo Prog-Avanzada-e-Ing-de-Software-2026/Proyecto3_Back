@@ -19,7 +19,7 @@ import {
 } from '../src/modules/auth/infrastructure/config/jwt-config.js';
 import { AuthGuard } from '../src/modules/auth/presentation/auth.guard.js';
 import { SesionService } from '../src/modules/auth/presentation/sesion.service.js';
-import { NOMBRES_PERMISO } from '../src/seeder/catalogos.js';
+import { NOMBRES_PERMISO } from '../src/modules/auth/domain/catalogos.js';
 import { initOrmMetadata } from './support/orm-metadata.js';
 
 const CONFIGURACION = leerConfiguracionSesion();

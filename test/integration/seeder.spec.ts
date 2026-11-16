@@ -7,7 +7,7 @@ import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AuthModule } from '../../src/modules/auth/auth.module.js';
 import { CreatePermisoUseCase } from '../../src/modules/auth/application/use-cases/create-permiso.use-case.js';
-import { NOMBRES_ROL, NOMBRES_PERMISO } from '../../src/seeder/catalogos.js';
+import { NOMBRES_ROL, NOMBRES_PERMISO } from '../../src/modules/auth/domain/catalogos.js';
 import { runCatalogoIdentidad } from '../../src/seeder/catalogo-identidad.seed.js';
 import {
   configuracionOrm,
@@ -70,16 +70,18 @@ afterAll(async () => {
 });
 
 describe('seed catalogo-identidad', () => {
-  it('[seeder] deja los tres roles, los tres permisos y sus asignaciones', async () => {
+  it('[seeder] deja los tres roles, los cinco permisos y sus asignaciones', async () => {
     await correrSeed();
 
     expect(await contar('rol')).toBe(3);
-    expect(await contar('permiso')).toBe(3);
-    expect(await contar('rol_permiso')).toBe(3);
+    expect(await contar('permiso')).toBe(5);
+    expect(await contar('rol_permiso')).toBe(5);
 
     expect(await permisosDeRol(NOMBRES_ROL.ADMINISTRADOR)).toEqual([
       NOMBRES_PERMISO.GESTIONAR_ALUMNOS,
+      NOMBRES_PERMISO.GESTIONAR_PERMISOS,
       NOMBRES_PERMISO.GESTIONAR_PROFESORES,
+      NOMBRES_PERMISO.GESTIONAR_ROLES,
     ]);
     expect(await permisosDeRol(NOMBRES_ROL.PROFESOR)).toEqual([
       NOMBRES_PERMISO.CREAR_PLAN,
@@ -104,7 +106,7 @@ describe('seed catalogo-identidad', () => {
 
     expect(despues).toEqual(antes);
     expect(await contar('rol')).toBe(3);
-    expect(await contar('permiso')).toBe(3);
+    expect(await contar('permiso')).toBe(5);
   });
 
   it('[seeder] converge después de una ejecución interrumpida entre permisos y roles', async () => {
@@ -117,8 +119,8 @@ describe('seed catalogo-identidad', () => {
 
     await correrSeed();
 
-    expect(await contar('permiso')).toBe(3);
+    expect(await contar('permiso')).toBe(5);
     expect(await contar('rol')).toBe(3);
-    expect(await contar('rol_permiso')).toBe(3);
+    expect(await contar('rol_permiso')).toBe(5);
   });
 });

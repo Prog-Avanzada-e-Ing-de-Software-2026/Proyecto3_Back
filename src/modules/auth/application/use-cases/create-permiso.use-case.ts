@@ -1,19 +1,22 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 import { normalizarTextoObligatorio } from '../../../../common/domain/validaciones.js';
+import { PERMISO_REPOSITORY } from '../../auth.repository-tokens.js';
 import { Permiso } from '../../domain/entities/permiso.entity.js';
 import type { IPermisoRepository } from '../../domain/interfaces/permiso.repository.interface.js';
-import { PERMISO_REPOSITORY } from '../../auth.repository-tokens.js';
 
 export interface CreatePermisoInput {
   nombre: string;
   descripcion?: string | null;
+  /** Ausente solo en procesos internos declarados, como la carga inicial. */
+  actorId?: number | null;
 }
 
 /**
- * Alta idempotente de un permiso del catálogo.
+ * Alta de un permiso del catálogo.
  *
- * Si el nombre ya existe no escribe: la carga inicial puede repetirse sin
- * duplicar filas.
+ * Rechaza el nombre duplicado, incluido el de un permiso dado de baja: el
+ * nombre no se libera y la operación devuelve conflicto, no "no existe".
  */
 @Injectable()
 export class CreatePermisoUseCase {
@@ -23,10 +26,9 @@ export class CreatePermisoUseCase {
 
   async execute(input: CreatePermisoInput): Promise<Permiso> {
     const nombre = normalizarTextoObligatorio(input.nombre, 'NOMBRE');
-    const existente = await this.permisos.findByNombre(nombre);
 
-    if (existente !== null) {
-      return existente;
+    if (await this.permisos.existeNombre(nombre)) {
+      throw new ErrorSemantico('conflicto', 'PERMISO_DUPLICADO', `El permiso ${nombre} ya existe.`);
     }
 
     const permiso = Permiso.crear({
@@ -34,6 +36,7 @@ export class CreatePermisoUseCase {
       descripcion: input.descripcion ?? null,
     });
     permiso.createdAt = new Date();
+    permiso.createdById = input.actorId ?? null;
 
     await this.permisos.save(permiso);
 
