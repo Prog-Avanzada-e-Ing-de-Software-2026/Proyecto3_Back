@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define cómo un usuario acredita su identidad ante el sistema, cuándo esa sesión deja de conceder acceso y qué garantías de confidencialidad y de rechazo sostiene el acceso a las operaciones protegidas.
+Define cómo un usuario acredita su identidad ante el sistema, cómo renueva una sesión de vida corta, cuándo esa sesión deja de conceder acceso y qué garantías de rechazo sostiene el acceso a las operaciones protegidas.
 
 ## ADDED Requirements
 
@@ -71,6 +71,35 @@ Toda operación protegida MUST rechazar la petición cuando no presenta una sesi
 
 - **WHEN** se invoca una operación protegida con un token alterado o firmado con otra clave
 - **THEN** el sistema responde `401` y no ejecuta la operación
+
+### Requirement: Duración y renovación de la sesión
+
+El sistema SHALL conceder un token de acceso de vida corta y un token de renovación de vida larga, y SHALL emitir un token de acceso nuevo cuando se presente un token de renovación válido, sin pedir la contraseña otra vez.
+
+#### Scenario: Sesión recién iniciada
+
+- **WHEN** un usuario inicia sesión con credenciales válidas
+- **THEN** recibe un token de acceso de vida corta y uno de renovación de vida larga
+
+#### Scenario: Renovación del acceso
+
+- **WHEN** se presenta un token de renovación válido
+- **THEN** el sistema emite un token de acceso nuevo y devuelve el rol y los permisos efectivos
+
+#### Scenario: Renovación sin token
+
+- **WHEN** se invoca la renovación sin token de renovación
+- **THEN** el sistema responde `401` y no emite ningún token
+
+#### Scenario: Token de acceso presentado como renovación
+
+- **WHEN** se presenta un token de acceso donde se espera el de renovación
+- **THEN** el sistema responde `401` y no emite ningún token
+
+#### Scenario: Renovación de un usuario dado de baja
+
+- **WHEN** se presenta el token de renovación de un usuario dado de baja
+- **THEN** el sistema responde `401` y no emite ningún token
 
 ### Requirement: Confidencialidad de la credencial y de la sesión
 

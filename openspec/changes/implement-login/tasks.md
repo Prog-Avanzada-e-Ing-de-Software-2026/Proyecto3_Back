@@ -17,10 +17,11 @@
 
 ## 4. Sesión y borde HTTP
 
-- [x] 4.1 Implementar el emisor de sesión sobre `JwtService`: firma HS256 con `sub` e `iat`, TTL de 8 h, cookie `httpOnly` con `SameSite=Lax`, `Secure` en producción y `Path=/`, y expiración en el cierre. Verificación: test unitario del emisor que compruebe los atributos de la cookie, el TTL y que el cuerpo no contiene el token. Trazabilidad: `autenticacion-sesion` — Confidencialidad de la credencial y de la sesión; `design.md` D1, D7.
+- [x] 4.1 Implementar `SesionService` sobre `JwtService`: firma HS256 con `sub` y `tipo`, `access` de 15 min en `Path=/` y `refresh` de 7 días en `Path=/api/auth`, ambos `SameSite=Lax`, `Secure` en producción y **sin `httpOnly`**, y verificación que compara el tipo. Verificación: test e2e que compruebe las dos cookies, la ausencia de `HttpOnly`, los dos vencimientos decodificados y que un `refresh` presentado como `access` se rechaza. Trazabilidad: `autenticacion-sesion` — Duración y renovación de la sesión; `design.md` D1.
 - [x] 4.2 Implementar `AuthGuard` como `APP_GUARD`, el decorador `@Public()` y el decorador `@ActorActual()`, con verificación de firma, expiración, lectura del usuario por el puerto y rechazo por baja. Verificación: test unitario del guard con `Reflector` y puerto dobles que cubra ruta pública, token ausente, token vencido, token con firma alterada, usuario dado de baja y usuario válido con actor disponible. Trazabilidad: `autenticacion-sesion` — Protección de las operaciones que exigen sesión, Acceso de usuarios dados de baja, Actor desde la sesión; `design.md` D4, D5.
-- [x] 4.3 Implementar `AuthController` con `POST /api/auth/login`, el `LoginDto` con `class-validator` y la traducción DTO → Input → Result. Verificación: test e2e sobre la app creada desde `AppModule` que cubra login con cookie y rechazo con credenciales inválidas. Trazabilidad: `HU 14`, `autenticacion-sesion` — Inicio de sesión con credenciales válidas; `design.md` D7.
-- [x] 4.4 Exponer en el Result del login el rol y los permisos efectivos, y documentar ambos endpoints con `@ApiOperation` y los decoradores de respuesta. Verificación: test e2e que compruebe que un `Alumno` no recibe `Gestionar alumnos` ni `Gestionar profesores` en la respuesta. Trazabilidad: `HU 14`, `identidad-usuario` — Permisos efectivos del usuario.
+- [x] 4.3 Implementar `AuthController` con `POST /api/auth/login`, el `LoginDto` con `class-validator` y la traducción DTO → Input → Result. Verificación: test e2e sobre la app creada desde `AppModule` que cubra login con las dos cookies y rechazo con credenciales inválidas. Trazabilidad: `HU 14`, `autenticacion-sesion` — Inicio de sesión con credenciales válidas; `design.md` D7.
+- [x] 4.4 Exponer en el Result del login el rol y los permisos efectivos, y documentar los endpoints con `@ApiOperation` y los decoradores de respuesta. Verificación: test e2e que compruebe que un `Alumno` no recibe `Gestionar alumnos` ni `Gestionar profesores` en la respuesta. Trazabilidad: `HU 14`, `identidad-usuario` — Permisos efectivos del usuario.
+- [x] 4.5 Implementar `RefreshSesionUseCase` y `POST /api/auth/refresh`: verificar el `refresh`, releer el usuario, rechazarlo si está dado de baja o su rol lo está, y emitir **solo** la cookie `access`. Verificación: test e2e de renovación exitosa sin `refresh` en la respuesta, sin cookie, con un `access` en su lugar, con un `refresh` vencido y con un usuario dado de baja. Trazabilidad: `autenticacion-sesion` — Duración y renovación de la sesión; `RN-34`; `design.md` D7.
 
 ## 5. Piezas transversales diferidas
 
@@ -29,7 +30,7 @@
 
 ## 6. Verificación de integración
 
-- [x] 6.1 Cubrir en e2e los requisitos de `autenticacion-sesion`: login válido, capitalización del email, credenciales inválidas con el mismo cuerpo, alta y baja del acceso, operación protegida sin sesión, token manipulado y confidencialidad de la respuesta. Verificación: `yarn test:e2e` en verde con esos casos nombrados por requisito.
+- [x] 6.1 Cubrir en e2e los requisitos de `autenticacion-sesion`: login válido, capitalización del email, credenciales inválidas con el mismo cuerpo, alta y baja del acceso, renovación del access, operación protegida sin sesión, token manipulado y confidencialidad de la respuesta. Verificación: `yarn test:e2e` en verde con esos casos nombrados por requisito.
 - [x] 6.2 Ejecutar la verificación completa del repositorio. Verificación: `yarn typecheck && yarn lint && yarn test && yarn test:e2e` en verde y `openspec validate implement-login --strict` con código 0.
 
 ## Workflow follow-up

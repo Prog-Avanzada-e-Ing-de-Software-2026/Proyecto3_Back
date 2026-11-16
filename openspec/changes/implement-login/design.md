@@ -26,19 +26,31 @@ Ver `proposal.md` — Why. El estado actual que condiciona el enfoque:
 
 ## Decisions
 
-### D1 — JWT firmado en cookie `httpOnly`, y verificación contra la base en cada petición
+### D1 — Dos JWT en cookies legibles por JavaScript, sin estado en el servidor
 
-La sesión es un JWT firmado con HS256 que viaja en una cookie `httpOnly`, `SameSite=Lax`, `Secure` en producción y `Path=/`. El token solo transporta `sub` (identificador del usuario) y `iat`.
+La sesión son dos JWT firmados con HS256 en cookies `SameSite=Lax`, `Secure` en producción y **sin `httpOnly`**:
 
-**Por qué:** decisión del usuario. Entre las alternativas, la cookie `httpOnly` es la única que no expone el token a JavaScript del cliente, y por eso es la que menos depende de la disciplina del front-end.
+| Cookie | Contenido | Vida | `Path` |
+| --- | --- | --- | --- |
+| `access` | `sub`, `tipo: 'access'` | 15 min | `/` |
+| `refresh` | `sub`, `tipo: 'refresh'` | 7 días | `/api/auth` |
 
-**Consecuencia asumida y explícita:** el guard **lee el `Usuario` de la base en cada petición**. `identidad-usuario` y `RN-34` exigen que la baja corte el acceso, y un token sin estado no lo puede saber; además el actor y sus permisos se necesitan igual para la auditoría. Con esa lectura, la ventaja teórica del JWT —no consultar la base— no se materializa: lo que se gana es no necesitar tabla de sesiones, no evitar la consulta. Se documenta para que nadie optimice después leyendo el token como fuente de verdad.
+El `tipo` va dentro del token y se compara al verificar: los dos comparten secreto y algoritmo, así que sin esa marca un access serviría como refresh y la sesión de un cuarto de hora se volvería eterna.
+
+**Por qué:** decisión del usuario. El cierre de sesión se resuelve en el front, y para que el front pueda **borrar** las cookies no pueden ser `httpOnly`.
+
+**Consecuencias asumidas, explícitas y verificadas en pruebas:**
+
+- Un XSS puede **leer** las dos cookies. La elección lo acepta; se verifica en el e2e que ninguna lleve `HttpOnly`.
+- **No hay revocación**: sin tabla y sin rotación, borrar la cookie solo afecta a ese navegador. Un refresh copiado sigue sirviendo hasta siete días. El logout del front no invalida nada del lado del servidor.
+- El guard y `/refresh` **leen el `Usuario` de la base** en cada uso: `RN-34` exige que la baja corte el acceso, y un token sin estado no lo sabe. Con esa lectura, lo que el JWT ahorra es la tabla, no la consulta.
 
 **Alternativas descartadas:**
 
-- **Sesión opaca en tabla + cookie:** equivalente en costo por petición y con revocación inmediata real. Descartada por el usuario.
-- **JWT `Bearer` en cabecera:** el cliente decide dónde guardarlo; con `localStorage` queda expuesto a XSS. Descartada.
-- **Token con los permisos adentro:** evita navegar el rol, pero deja permisos obsoletos hasta que expire el token y contradice que la autorización se decida contra el catálogo persistido.
+- **Cookies `httpOnly` + `POST /logout` que las expire:** protegía los tokens de XSS y hacía el cierre real, pero el usuario decidió que el logout sea del front y no del back.
+- **Refresh con `jti` y tabla de revocación + rotación:** habilitaba logout real y detección de reuso. Descartada explícitamente: «no quiero tablas ni nada».
+- **Sesión opaca en tabla:** revocación inmediata, pero con el mismo costo por petición y una tabla que el usuario descartó.
+- **JWT `Bearer` en cabecera:** el cliente decide dónde guardarlo; ya no aportaba nada frente a una cookie legible.
 
 ### D2 — `argon2id` para el hash
 
@@ -99,18 +111,22 @@ El puerto expone `findByEmail(email)` y `findById(id)` **sin** filtrar la baja l
 - **Reutilizar un lector que excluya la baja:** obliga a devolver "no encontrado" para un usuario dado de baja y deja la decisión de negocio fuera del dominio.
 - **Dos métodos, uno con y otro sin baja:** dos puertos para el mismo dato; el llamador elige según lo que necesita, lo cual es exactamente el error que se quiere evitar.
 
-### D7 — Contrato del endpoint de sesión
+### D7 — Contrato de los dos endpoints de sesión
 
-- `POST /api/auth/login`, cuerpo `{ email, password }` → `200` con `{ usuario: { id, email, rol: { nombre }, permisos: string[] } }` y la cookie de sesión.
+- `POST /api/auth/login`, cuerpo `{ email, password }` → `200` con `{ id, email, rol, permisos }` y las dos cookies.
+- `POST /api/auth/refresh`, sin cuerpo → `200` con la misma proyección y **solo** la cookie `access` renovada.
 
-El rechazo por credenciales inválidas responde `401` con un mensaje único, sin distinguir email inexistente, contraseña incorrecta ni usuario dado de baja.
+Los dos son `@Public()`: el guard no puede exigir un access válido para renovar un access vencido. `/refresh` se autentica con la cookie `refresh`, cuyo `tipo` se compara dentro del token.
 
-**`logout` no existe.** Decisión del usuario: el cierre de sesión se resuelve en el cliente y no tiene ruta propia. Consecuencia que queda registrada: como la cookie es `httpOnly`, el cliente **no puede borrarla**; al cerrar sesión el navegador la conserva hasta que vence, y hasta entonces la sigue enviando. Lo único que corta el acceso antes de ese plazo es la baja del usuario (`RN-34`), que el guard evalúa en cada petición. Si más adelante se necesita un cierre real, aparece junto con el par de tokens de `D1`.
+`/refresh` vuelve a leer el `Usuario` y lo rechaza si está dado de baja o si su rol lo está (`RN-34`): un refresh de siete días sería si no la forma de sobrevivir a la baja.
+
+**`logout` no existe.** Decisión del usuario: el cierre de sesión se resuelve en el front, que borra las dos cookies porque son legibles. El back no participa y, como no hay estado, tampoco podría invalidar el refresh.
 
 **Alternativas descartadas:**
 
-- **`logout` protegido que expire la cookie:** era el diseño anterior. Resolvía el borrado en el servidor y daba al arnés una ruta protegida real, pero el usuario decidió que el cierre pertenece al cliente.
-- **`GET /api/auth/me`:** no lo pide `HU 14` y el login ya devuelve rol y permisos; sería un endpoint sin consumidor.
+- **`logout` protegido que expire las cookies:** era el diseño anterior; el usuario decidió que el cierre pertenece al cliente.
+- **`/refresh` que también rote el refresh:** sin tabla no hay forma de invalidar el anterior, así que la rotación sería cosmética y agregaría una cookie por request sin beneficio.
+- **`GET /api/auth/me`:** no lo pide `HU 14` y el login y `/refresh` ya devuelven rol y permisos; sería un endpoint sin consumidor.
 
 ### D8 — `ValidationPipe` y Swagger entran acá
 
@@ -128,12 +144,14 @@ El rechazo por credenciales inválidas responde `401` con un mensaje único, sin
 
 ## Risks / Trade-offs
 
-- **[Revocación]** Un token robado sigue siendo válido hasta que expira; el logout solo borra la cookie del cliente. → TTL corto y configurable (8 h por defecto), `Secure` en producción, y verificación de baja en cada petición, que es el caso de negocio realmente exigido.
-- **[CSRF]** La cookie viaja automáticamente: `SameSite=Lax` bloquea el envío en peticiones cross-site no navegacionales, que es lo que cubre estos endpoints `POST`. → Riesgo residual aceptado y declarado; si aparecen operaciones de negocio con efectos amplios, se evalúa token CSRF.
-- **[Costo por request]** Una lectura de `Usuario` con su rol y permisos en cada petición. → Se resuelve con un `populate` explícito del rol y sus permisos en el adaptador, y se mide en la prueba del adaptador; si el volumen lo exige, se cachea por rol, no por usuario.
-- **[Memoria del hash]** `argon2id` reserva 19 MiB por verificación concurrente. → Con `p=1` y `t=2` cada login cuesta ~10 ms y el consumo es acotado; se mide en el test del adaptador y los parámetros quedan explícitos para poder ajustarlos.
+- **[XSS y tokens legibles]** Las dos cookies viajan sin `httpOnly`, así que cualquier script en la página puede leerlas y exfiltrarlas. → Decisión explícita del usuario para que el front pueda cerrar sesión solo. Se asume como riesgo aceptado; la mitigación disponible es sanear el cliente, no el back.
+- **[Revocación]** Sin tabla ni rotación, un refresh copiado sigue siendo válido siete días y el logout del front no lo invalida en el servidor. → Aceptado: el caso de negocio que sí se cubre es la baja del usuario (`RN-34`), que el guard y `/refresh` verifican contra la base.
+- **[Access de 15 minutos]** El front tiene que llamar a `/refresh` y reintentar cuando recibe `401`; sin ese reintento, la sesión se corta cada cuarto de hora. → Contrato documentado en `D7`; el `401` con `SESION_INVALIDA` es la señal única para refrescar.
+- **[CSRF]** Las cookies viajan automáticamente: `SameSite=Lax` bloquea el envío en peticiones cross-site no navegacionales, que es lo que cubren los dos `POST`. → Riesgo residual aceptado y declarado; si aparecen operaciones de negocio con efectos amplios, se evalúa token CSRF.
+- **[Costo por request]** Una lectura de `Usuario` con su rol y permisos en cada petición. → `populate` explícito en el adaptador y medición en su prueba; si el volumen lo exige, se cachea por rol, no por usuario.
+- **[Memoria del hash]** `argon2id` reserva 19 MiB por verificación concurrente. → Con `p=1` y `t=2` cada login cuesta ~10 ms y el consumo es acotado; los parámetros quedan explícitos para poder ajustarlos.
 - **[Secreto ausente]** Firmar con un valor por defecto convertiría un error de despliegue en una sesión falsificable. → El arranque falla con un mensaje explícito; el `.env` no se versiona.
-- **[Dependencia nueva en el arnés]** `cookie-parser` y `@nestjs/jwt` entran a la matriz de e2e. → Se prueban sobre la app real creada desde `AppModule` y `main.ts`, no sobre módulos de sonda.
+- **[Arnés duplicado]** `test/auth.e2e-spec.ts` repite el prefijo, el `ValidationPipe`, `cookie-parser` y Swagger de `main.ts`. → `main.ts` arranca al importarse y no se puede reutilizar; la duplicación está documentada y cubierta por pruebas de contrato.
 
 ## Migration Plan
 

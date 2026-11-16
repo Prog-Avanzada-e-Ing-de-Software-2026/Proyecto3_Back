@@ -9,8 +9,9 @@ El backend ya persiste la identidad (`Usuario`, `Rol`, `Permiso`, `Alumno`, `Pro
 ## What Changes
 
 - Se expone **inicio de sesión** con email y contraseña, con un único mensaje de rechazo que no revela cuál de los dos datos falló (`HU 14`).
-- La sesión viaja en una **cookie `httpOnly`** con un token firmado; ninguna respuesta devuelve la credencial ni el token en el cuerpo.
-- El inicio de sesión devuelve **el rol y los permisos efectivos** del usuario, para que el cliente muestre solo las funciones que le corresponden (`HU 14`, `RN-11`, `RN-12`).
+- La sesión viaja en **dos cookies legibles por el cliente**: un `access` de vida corta y un `refresh` de vida larga. Ninguna respuesta devuelve la credencial ni los tokens en el cuerpo.
+- Se expone **renovación de la sesión**: el cliente cambia un `refresh` válido por un `access` nuevo sin volver a escribir la contraseña.
+- El inicio de sesión y la renovación devuelven **el rol y los permisos efectivos** del usuario, para que el cliente muestre solo las funciones que le corresponden (`HU 14`, `RN-11`, `RN-12`).
 - Se **rechaza el acceso** a cualquier usuario dado de baja, tanto al iniciar sesión como en cada petición posterior (`RN-34`).
 - Se incorpora un **guard global de autenticación** que rechaza toda operación protegida sin sesión válida y deja el sistema cerrado por defecto: una ruta nueva nace protegida salvo que se declare pública.
 - Se incorpora el **contexto de actor** de la petición: el identificador del usuario autenticado queda disponible para los casos de uso que escriben auditoría, y nunca se toma del cliente.
@@ -47,5 +48,7 @@ Ninguna. `identidad-usuario` ya especifica el hash almacenado, el email único, 
   - **Alta de alumno (`HU 16`) y de profesor (`HU 17`)**: van en `add-alta-alumno` y `add-alta-profesor`. Este cambio no crea personas ni credenciales iniciales.
   - **Alta del administrador inicial** y administración de roles y permisos por API.
   - **Protección CSRF por token**: se mitiga con los atributos de la cookie y se registra como riesgo residual en `design.md`.
-  - Refresco silencioso del token, segundo factor, bloqueo por intentos fallidos y recuperación de sesión entre dispositivos.
+  - **Cierre de sesión en el backend**: lo resuelve el cliente borrando las cookies. Sin estado en el servidor no hay nada que invalidar.
+  - **Revocación y rotación del refresh**: requieren una tabla de tokens, descartada explícitamente por el usuario.
+  - Segundo factor, bloqueo por intentos fallidos y sesiones simultáneas por dispositivo.
   - Cualquier regla de negocio de planes o entrenamientos.

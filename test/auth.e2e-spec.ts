@@ -1,15 +1,15 @@
 import type { INestApplication } from '@nestjs/common';
-import { ValidationPipe } from '@nestjs/common';
+import { Module, ValidationPipe } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { Test } from '@nestjs/testing';
-import { JwtModule } from '@nestjs/jwt';
-import { Module } from '@nestjs/common';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Test } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { GlobalExceptionFilter } from '../src/common/presentation/global-exception.filter.js';
 import { LoginUseCase } from '../src/modules/auth/application/use-cases/login.use-case.js';
+import { RefreshSesionUseCase } from '../src/modules/auth/application/use-cases/refresh-sesion.use-case.js';
 import {
   PASSWORD_HASHER,
   USUARIO_REPOSITORY,
@@ -19,8 +19,11 @@ import { Rol } from '../src/modules/auth/domain/entities/rol.entity.js';
 import { Usuario } from '../src/modules/auth/domain/entities/usuario.entity.js';
 import type { IPasswordHasher } from '../src/modules/auth/domain/interfaces/password-hasher.interface.js';
 import type { IUsuarioRepository } from '../src/modules/auth/domain/interfaces/usuario.repository.interface.js';
+import {
+  DURACION_ACCESS_SEGUNDOS,
+  DURACION_REFRESH_SEGUNDOS,
+} from '../src/modules/auth/infrastructure/config/jwt-config.js';
 import { Argon2PasswordHasher } from '../src/modules/auth/infrastructure/services/argon2-password-hasher.js';
-import { OPCIONES_FIRMA_SESION } from '../src/modules/auth/infrastructure/config/jwt-config.js';
 import { AuthController } from '../src/modules/auth/presentation/auth.controller.js';
 import { AuthGuard } from '../src/modules/auth/presentation/auth.guard.js';
 import { SesionService } from '../src/modules/auth/presentation/sesion.service.js';
@@ -43,10 +46,11 @@ class UsuarioRepositoryFalso implements IUsuarioRepository {
 
 function crearModulo(usuarios: Usuario[]): new () => object {
   @Module({
-    imports: [JwtModule.register({ secret: SECRETO, signOptions: OPCIONES_FIRMA_SESION })],
+    imports: [JwtModule.register({ secret: SECRETO, signOptions: { algorithm: 'HS256' } })],
     controllers: [AuthController],
     providers: [
       LoginUseCase,
+      RefreshSesionUseCase,
       SesionService,
       { provide: USUARIO_REPOSITORY, useValue: new UsuarioRepositoryFalso(usuarios) },
       { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
@@ -82,14 +86,41 @@ async function crearAplicacion(usuarios: Usuario[]): Promise<INestApplication> {
   return app;
 }
 
-function galletasDe(respuesta: request.Response): string[] {
+function galletasDe(respuesta: request.Response): Record<string, string> {
   const cabecera: unknown = respuesta.headers['set-cookie'];
+  const galletas = Array.isArray(cabecera) ? cabecera : [];
+  const porNombre: Record<string, string> = {};
 
-  return Array.isArray(cabecera) ? cabecera : [];
+  for (const galleta of galletas) {
+    const [par] = galleta.split(';');
+    const indice = (par ?? '').indexOf('=');
+
+    porNombre[(par ?? '').slice(0, indice)] = galleta;
+  }
+
+  return porNombre;
+}
+
+function valorDe(galleta: string | undefined): string {
+  const par = (galleta ?? '').split(';')[0] ?? '';
+
+  return par.slice(par.indexOf('=') + 1);
+}
+
+interface ContenidoToken {
+  sub: number;
+  tipo: string;
+  iat?: number;
+  exp?: number;
+}
+
+function decodificar(token: string): ContenidoToken {
+  return JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf8')) as ContenidoToken;
 }
 
 describe('Autenticación (e2e)', () => {
   let app: INestApplication;
+  let jwt: JwtService;
   let usuario: Usuario;
   let dadoDeBaja: Usuario;
 
@@ -108,6 +139,8 @@ describe('Autenticación (e2e)', () => {
     dadoDeBaja = Usuario.crear({ email: 'baja@gym.com', passwordHash: hash, rol });
     dadoDeBaja.id = 8;
     dadoDeBaja.deletedAt = new Date('2026-03-01T10:00:00.000Z');
+
+    jwt = new JwtService({ secret: SECRETO });
   });
 
   beforeEach(async () => {
@@ -118,7 +151,16 @@ describe('Autenticación (e2e)', () => {
     await app.close();
   });
 
-  it('[HU 14] inicia sesión bajo el prefijo y deja la sesión en una cookie httpOnly', async () => {
+  async function iniciarSesion(): Promise<Record<string, string>> {
+    const respuesta = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'alumno@gym.com', password: CLAVE })
+      .expect(200);
+
+    return galletasDe(respuesta);
+  }
+
+  it('[HU 14] inicia sesión y devuelve rol y permisos efectivos', async () => {
     const respuesta = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'alumno@gym.com', password: CLAVE })
@@ -130,51 +172,87 @@ describe('Autenticación (e2e)', () => {
       rol: 'Alumno',
       permisos: ['Crear plan'],
     });
-
-    const galletas = galletasDe(respuesta);
-    const sesion = galletas.find((galleta) => galleta.startsWith('sesion='));
-
-    expect(sesion).toBeDefined();
-    expect(sesion).toContain('HttpOnly');
-    expect(sesion).toContain('Path=/');
-    expect(sesion).toMatch(/SameSite=Lax/i);
-    expect(sesion).toContain('Max-Age=28800');
   });
 
-  it('[autenticacion-sesion] el token emitido vence junto con la cookie', async () => {
-    const respuesta = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: 'alumno@gym.com', password: CLAVE })
-      .expect(200);
+  it('[autenticacion-sesion] emite una cookie de access y otra de refresh', async () => {
+    const galletas = await iniciarSesion();
 
-    const token = galletasDe(respuesta)
-      .find((galleta) => galleta.startsWith('sesion='))
-      ?.split(';')[0]
-      ?.slice('sesion='.length);
-    const contenido = JSON.parse(
-      Buffer.from((token ?? '').split('.')[1] ?? '', 'base64url').toString('utf8'),
-    ) as { sub: number; exp?: number; iat?: number };
-
-    expect(typeof contenido.exp).toBe('number');
-    expect((contenido.exp ?? 0) - (contenido.iat ?? 0)).toBe(8 * 60 * 60);
+    expect(Object.keys(galletas).sort()).toEqual(['access', 'refresh']);
   });
 
-  it('[autenticacion-sesion] no expone el hash ni el token en el cuerpo', async () => {
+  it('[autenticacion-sesion] emite las dos cookies legibles por JavaScript', async () => {
+    const galletas = await iniciarSesion();
+
+    expect(galletas.access).not.toMatch(/HttpOnly/i);
+    expect(galletas.refresh).not.toMatch(/HttpOnly/i);
+    expect(galletas.access).toMatch(/SameSite=Lax/i);
+    expect(galletas.refresh).toMatch(/SameSite=Lax/i);
+  });
+
+  it('[autenticacion-sesion] el access vence en 15 minutos y el refresh en 7 días', async () => {
+    const galletas = await iniciarSesion();
+    const access = decodificar(valorDe(galletas.access));
+    const refresh = decodificar(valorDe(galletas.refresh));
+
+    expect(access.tipo).toBe('access');
+    expect((access.exp ?? 0) - (access.iat ?? 0)).toBe(DURACION_ACCESS_SEGUNDOS);
+    expect(refresh.tipo).toBe('refresh');
+    expect((refresh.exp ?? 0) - (refresh.iat ?? 0)).toBe(DURACION_REFRESH_SEGUNDOS);
+  });
+
+  it('[autenticacion-sesion] el refresh renueva el access sin volver a emitir el refresh', async () => {
+    const galletas = await iniciarSesion();
     const respuesta = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: 'alumno@gym.com', password: CLAVE })
+      .post('/api/auth/refresh')
+      .set('Cookie', `refresh=${valorDe(galletas.refresh)}`)
       .expect(200);
 
-    const texto = JSON.stringify(respuesta.body);
-    const token = galletasDe(respuesta)
-      .find((galleta) => galleta.startsWith('sesion='))
-      ?.split(';')[0]
-      ?.slice('sesion='.length);
+    const renovadas = galletasDe(respuesta);
 
-    expect(texto).not.toContain('argon2');
-    expect(texto).not.toContain(CLAVE);
-    expect(token).toBeDefined();
-    expect(texto).not.toContain(token);
+    expect(Object.keys(renovadas)).toEqual(['access']);
+    expect(decodificar(valorDe(renovadas.access)).sub).toBe(7);
+    expect(respuesta.body).toEqual({
+      id: 7,
+      email: 'alumno@gym.com',
+      rol: 'Alumno',
+      permisos: ['Crear plan'],
+    });
+  });
+
+  it('[autenticacion-sesion] el refresh exige la cookie de refresh, no la de access', async () => {
+    const galletas = await iniciarSesion();
+
+    await request(app.getHttpServer()).post('/api/auth/refresh').expect(401);
+    await request(app.getHttpServer())
+      .post('/api/auth/refresh')
+      .set('Cookie', `refresh=${valorDe(galletas.access)}`)
+      .expect(401);
+  });
+
+  it('[autenticacion-sesion] rechaza un refresh vencido', async () => {
+    const vencido = await jwt.signAsync(
+      { sub: 7, tipo: 'refresh' },
+      { expiresIn: DURACION_ACCESS_SEGUNDOS * -1 },
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/auth/refresh')
+      .set('Cookie', `refresh=${vencido}`)
+      .expect(401);
+  });
+
+  it('[RN-34] el refresh de un usuario dado de baja no emite un access nuevo', async () => {
+    const deBaja = await jwt.signAsync(
+      { sub: 8, tipo: 'refresh' },
+      { expiresIn: DURACION_REFRESH_SEGUNDOS },
+    );
+
+    const respuesta = await request(app.getHttpServer())
+      .post('/api/auth/refresh')
+      .set('Cookie', `refresh=${deBaja}`)
+      .expect(401);
+
+    expect(galletasDe(respuesta)).toEqual({});
   });
 
   it('[autenticacion-sesion] acepta el email en distinta capitalización', async () => {
@@ -200,7 +278,7 @@ describe('Autenticación (e2e)', () => {
     expect(incorrecta.body.code).toBe('CREDENCIALES_INVALIDAS');
     expect(inexistente.body.code).toBe(incorrecta.body.code);
     expect(inexistente.body.message).toBe(incorrecta.body.message);
-    expect(galletasDe(incorrecta)).toEqual([]);
+    expect(galletasDe(incorrecta)).toEqual({});
   });
 
   it('[RN-34] rechaza a un usuario dado de baja con el mismo cuerpo que una credencial inválida', async () => {
@@ -216,7 +294,21 @@ describe('Autenticación (e2e)', () => {
 
     expect(dadoDeBajaRespuesta.body.code).toBe(incorrecta.body.code);
     expect(dadoDeBajaRespuesta.body.message).toBe(incorrecta.body.message);
-    expect(galletasDe(dadoDeBajaRespuesta)).toEqual([]);
+    expect(galletasDe(dadoDeBajaRespuesta)).toEqual({});
+  });
+
+  it('[autenticacion-sesion] no expone el hash ni los tokens en el cuerpo', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'alumno@gym.com', password: CLAVE })
+      .expect(200);
+
+    const texto = JSON.stringify(respuesta.body);
+
+    expect(texto).not.toContain('argon2');
+    expect(texto).not.toContain(CLAVE);
+    expect(texto).not.toContain(valorDe(galletasDe(respuesta).access));
+    expect(texto).not.toContain(valorDe(galletasDe(respuesta).refresh));
   });
 
   it('[autenticacion-sesion] descarta campos no declarados en el cuerpo', async () => {
@@ -232,6 +324,7 @@ describe('Autenticación (e2e)', () => {
     const documentacion = await request(app.getHttpServer()).get('/api/docs-json').expect(200);
 
     expect(Object.keys(documentacion.body.paths)).toContain('/api/auth/login');
+    expect(Object.keys(documentacion.body.paths)).toContain('/api/auth/refresh');
     await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: 'alumno@gym.com', password: CLAVE })

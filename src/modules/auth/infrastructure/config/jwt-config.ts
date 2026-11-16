@@ -1,19 +1,21 @@
 const LONGITUD_MINIMA_SECRETO = 32;
 
-/** Duración de la sesión: un turno de trabajo. */
-export const DURACION_SESION_SEGUNDOS = 8 * 60 * 60;
+/** Algoritmo de firma de las dos cookies de sesión. */
+export const ALGORITMO_FIRMA = 'HS256';
 
-/**
- * Opciones de firma del token de sesión.
- *
- * El vencimiento se declara acá y no en el módulo para que la cookie y el token
- * compartan la misma fuente: dos valores distintos dejarían un token válido
- * después de que el navegador dejó de enviarlo.
- */
-export const OPCIONES_FIRMA_SESION = {
-  algorithm: 'HS256',
-  expiresIn: DURACION_SESION_SEGUNDOS,
-} as const;
+/** El access vive un cuarto de hora: el front lo renueva con el refresh. */
+export const DURACION_ACCESS_SEGUNDOS = 15 * 60;
+
+/** El refresh vive una semana. */
+export const DURACION_REFRESH_SEGUNDOS = 7 * 24 * 60 * 60;
+
+export type TipoToken = 'access' | 'refresh';
+
+/** Cada token lleva su tipo en el contenido: uno no sirve como el otro. */
+export const DURACION_POR_TIPO: Record<TipoToken, number> = {
+  access: DURACION_ACCESS_SEGUNDOS,
+  refresh: DURACION_REFRESH_SEGUNDOS,
+};
 
 /**
  * Lee el secreto de firma de la sesión.

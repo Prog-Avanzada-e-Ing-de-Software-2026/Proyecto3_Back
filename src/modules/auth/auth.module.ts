@@ -6,6 +6,7 @@ import { CreatePermisoUseCase } from './application/use-cases/create-permiso.use
 import { CreateRolUseCase } from './application/use-cases/create-rol.use-case.js';
 import { FindPermisoByNombreUseCase } from './application/use-cases/find-permiso-by-nombre.use-case.js';
 import { LoginUseCase } from './application/use-cases/login.use-case.js';
+import { RefreshSesionUseCase } from './application/use-cases/refresh-sesion.use-case.js';
 import {
   PASSWORD_HASHER,
   PERMISO_REPOSITORY,
@@ -15,7 +16,7 @@ import {
 import { Permiso } from './domain/entities/permiso.entity.js';
 import { Rol } from './domain/entities/rol.entity.js';
 import { Usuario } from './domain/entities/usuario.entity.js';
-import { leerSecretoJwt, OPCIONES_FIRMA_SESION } from './infrastructure/config/jwt-config.js';
+import { ALGORITMO_FIRMA, leerSecretoJwt } from './infrastructure/config/jwt-config.js';
 import { MikroOrmPermisoRepository } from './infrastructure/repositories/mikro-orm-permiso.repository.js';
 import { MikroOrmRolRepository } from './infrastructure/repositories/mikro-orm-rol.repository.js';
 import { MikroOrmUsuarioRepository } from './infrastructure/repositories/mikro-orm-usuario.repository.js';
@@ -36,7 +37,7 @@ import { SesionService } from './presentation/sesion.service.js';
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: leerSecretoJwt(),
-        signOptions: OPCIONES_FIRMA_SESION,
+        signOptions: { algorithm: ALGORITMO_FIRMA },
       }),
     }),
   ],
@@ -46,6 +47,7 @@ import { SesionService } from './presentation/sesion.service.js';
     CreateRolUseCase,
     FindPermisoByNombreUseCase,
     LoginUseCase,
+    RefreshSesionUseCase,
     SesionService,
     { provide: PERMISO_REPOSITORY, useClass: MikroOrmPermisoRepository },
     { provide: ROL_REPOSITORY, useClass: MikroOrmRolRepository },

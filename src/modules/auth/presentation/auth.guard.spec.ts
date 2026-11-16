@@ -11,7 +11,7 @@ import { Rol } from '../domain/entities/rol.entity.js';
 import { Usuario } from '../domain/entities/usuario.entity.js';
 import type { IUsuarioRepository } from '../domain/interfaces/usuario.repository.interface.js';
 import { AuthGuard } from './auth.guard.js';
-import { COOKIE_SESION } from './sesion.service.js';
+import { COOKIE_ACCESS, SesionService } from './sesion.service.js';
 
 const SECRETO = 'un-secreto-de-pruebas-con-longitud-suficiente';
 
@@ -53,11 +53,26 @@ function contexto(solicitud: Partial<SolicitudAutenticada>, publica = false): Ex
 }
 
 function guard(usuarios: Usuario[] = [], jwt = new JwtService({ secret: SECRETO })): AuthGuard {
-  return new AuthGuard(new Reflector(), jwt, new UsuarioRepositoryFalso(usuarios));
+  return new AuthGuard(new Reflector(), new SesionService(jwt), new UsuarioRepositoryFalso(usuarios));
 }
 
-function conCookie(solicitud: Record<string, unknown>, token: string): Partial<SolicitudAutenticada> {
-  return { ...solicitud, cookies: { [COOKIE_SESION]: token } };
+function conCookie(
+  solicitud: Record<string, unknown>,
+  token: string,
+  nombre: string = COOKIE_ACCESS,
+): Partial<SolicitudAutenticada> {
+  return { ...solicitud, cookies: { [nombre]: token } };
+}
+
+function firmar(
+  contenido: Record<string, unknown>,
+  opciones: { secreto?: string; expiresIn?: number } = {},
+): Promise<string> {
+  const servicio = new JwtService({ secret: opciones.secreto ?? SECRETO });
+
+  return opciones.expiresIn === undefined
+    ? servicio.signAsync(contenido)
+    : servicio.signAsync(contenido, { expiresIn: opciones.expiresIn });
 }
 
 describe('AuthGuard', () => {
@@ -69,22 +84,22 @@ describe('AuthGuard', () => {
     await expect(guard().canActivate(contexto({}, true))).resolves.toBe(true);
   });
 
-  it('[autenticacion-sesion] rechaza una petición sin cookie de sesión', async () => {
+  it('[autenticacion-sesion] rechaza una petición sin cookie de access', async () => {
     await expect(guard().canActivate(contexto({}))).rejects.toBeInstanceOf(ErrorSemantico);
   });
 
-  it('[autenticacion-sesion] rechaza un token vencido', async () => {
-    const jwt = new JwtService({ secret: SECRETO });
-    const vencido = await jwt.signAsync({ sub: 1 }, { expiresIn: '-1s' });
+  it('[autenticacion-sesion] rechaza un access vencido', async () => {
+    const vencido = await firmar({ sub: 1, tipo: 'access' }, { expiresIn: -1 });
 
     await expect(
-      guard([crearUsuario(1)], jwt).canActivate(contexto(conCookie({}, vencido))),
+      guard([crearUsuario(1)]).canActivate(contexto(conCookie({}, vencido))),
     ).rejects.toBeInstanceOf(ErrorSemantico);
   });
 
   it('[autenticacion-sesion] rechaza un token firmado con otra clave', async () => {
-    const ajeno = await new JwtService({ secret: 'otro-secreto-con-longitud-suficiente-distinto' }).signAsync(
-      { sub: 1 },
+    const ajeno = await firmar(
+      { sub: 1, tipo: 'access' },
+      { secreto: 'otro-secreto-con-longitud-suficiente-distinto' },
     );
 
     await expect(
@@ -92,10 +107,18 @@ describe('AuthGuard', () => {
     ).rejects.toBeInstanceOf(ErrorSemantico);
   });
 
+  it('[autenticacion-sesion] rechaza un refresh presentado como access', async () => {
+    const refresh = await firmar({ sub: 1, tipo: 'refresh' });
+
+    await expect(
+      guard([crearUsuario(1)]).canActivate(contexto(conCookie({}, refresh))),
+    ).rejects.toBeInstanceOf(ErrorSemantico);
+  });
+
   it('[RN-34] rechaza la sesión de un usuario dado de baja', async () => {
     const usuario = crearUsuario(1);
     usuario.deletedAt = new Date('2026-03-01T10:00:00.000Z');
-    const token = await new JwtService({ secret: SECRETO }).signAsync({ sub: 1 });
+    const token = await firmar({ sub: 1, tipo: 'access' });
 
     await expect(
       guard([usuario]).canActivate(contexto(conCookie({}, token))),
@@ -103,7 +126,7 @@ describe('AuthGuard', () => {
   });
 
   it('[autenticacion-sesion] rechaza un token cuyo usuario ya no existe', async () => {
-    const token = await new JwtService({ secret: SECRETO }).signAsync({ sub: 99 });
+    const token = await firmar({ sub: 99, tipo: 'access' });
 
     await expect(guard().canActivate(contexto(conCookie({}, token)))).rejects.toBeInstanceOf(
       ErrorSemantico,
@@ -111,7 +134,7 @@ describe('AuthGuard', () => {
   });
 
   it('[autenticacion-sesion] deja el actor de la sesión en la petición', async () => {
-    const token = await new JwtService({ secret: SECRETO }).signAsync({ sub: 1 });
+    const token = await firmar({ sub: 1, tipo: 'access' });
     const solicitud = conCookie({}, token);
 
     await expect(guard([crearUsuario(1)]).canActivate(contexto(solicitud))).resolves.toBe(true);

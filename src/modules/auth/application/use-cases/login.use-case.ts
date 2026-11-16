@@ -4,17 +4,12 @@ import { PASSWORD_HASHER, USUARIO_REPOSITORY } from '../../auth.repository-token
 import { CredencialesInvalidasError } from '../../domain/errors/credenciales-invalidas.error.js';
 import type { IPasswordHasher } from '../../domain/interfaces/password-hasher.interface.js';
 import type { IUsuarioRepository } from '../../domain/interfaces/usuario.repository.interface.js';
+import { sesionOtorgadaDe } from './sesion-otorgada.result.js';
+import type { SesionOtorgada } from './sesion-otorgada.result.js';
 
 export interface LoginInput {
   email: string;
   password: string;
-}
-
-export interface LoginResult {
-  id: number;
-  email: string;
-  rol: string;
-  permisos: string[];
 }
 
 /**
@@ -31,7 +26,7 @@ export class LoginUseCase {
     @Inject(PASSWORD_HASHER) private readonly hasher: IPasswordHasher,
   ) {}
 
-  async execute(input: LoginInput): Promise<LoginResult> {
+  async execute(input: LoginInput): Promise<SesionOtorgada> {
     const usuario = await this.usuarios.findByEmail(normalizarEmail(input.email));
 
     if (usuario === null || !usuario.estaActivo() || !usuario.rol.estaActivo()) {
@@ -44,11 +39,6 @@ export class LoginUseCase {
       throw new CredencialesInvalidasError();
     }
 
-    return {
-      id: usuario.id,
-      email: usuario.email,
-      rol: usuario.rol.nombre,
-      permisos: usuario.permisosEfectivos().map((permiso) => permiso.nombre),
-    };
+    return sesionOtorgadaDe(usuario);
   }
 }
