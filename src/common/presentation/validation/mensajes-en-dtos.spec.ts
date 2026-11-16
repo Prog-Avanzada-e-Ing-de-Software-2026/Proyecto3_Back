@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
  * Gate de redacción: el mensaje que ve el cliente vive en el decorador del DTO,
  * así que un decorador sin `message` expondría el texto inglés de
  * `class-validator`. El test recorre todos los DTO del proyecto para que un DTO
- * nuevo quede cubierto sin registrar nada a mano.
+ * nuevo quede cubierto sin registrar nada a mano. Comprueba que el mensaje
+ * exista; que su redacción sea la correcta en español es revisión humana.
  */
 const modulosDto = import.meta.glob(
   '/src/modules/**/presentation/dto/*.dto.ts',
@@ -44,7 +45,7 @@ describe('Mensajes de validación de los DTO', () => {
           (metadato) => !SIN_RESTRICCION.has(metadato.type),
         );
 
-        if (metadatos.length === 0) {
+        if (restricciones.length === 0) {
           continue;
         }
 

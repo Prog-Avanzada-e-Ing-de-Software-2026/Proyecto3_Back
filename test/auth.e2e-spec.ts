@@ -370,7 +370,20 @@ describe('Autenticación (e2e)', () => {
     expect(respuesta.body.errores).toEqual([
       { campo: 'correo', mensaje: 'La propiedad "correo" no está admitida en la solicitud.' },
       { campo: 'email', mensaje: 'El email no tiene un formato válido.' },
+      { campo: 'email', mensaje: 'El email es obligatorio.' },
     ]);
+  });
+
+  it('[http-error-contract] informa la ausencia del email como obligatorio', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ password: CLAVE })
+      .expect(400);
+
+    expect(respuesta.body.errores).toContainEqual({
+      campo: 'email',
+      mensaje: 'El email es obligatorio.',
+    });
   });
 
   it('[autenticacion-sesion] devuelve la identidad del usuario autenticado', async () => {

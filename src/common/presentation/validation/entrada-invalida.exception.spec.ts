@@ -25,4 +25,10 @@ describe('EntradaInvalidaException', () => {
     expect(esErrorConDetalle(new Error('inesperado'))).toBe(false);
     expect(esErrorConDetalle(null)).toBe(false);
   });
+
+  it('[http-error-contract] repite el mensaje del 400 que responde el filtro', () => {
+    expect(new EntradaInvalidaException([]).message).toBe(
+      'La solicitud no es válida.',
+    );
+  });
 });

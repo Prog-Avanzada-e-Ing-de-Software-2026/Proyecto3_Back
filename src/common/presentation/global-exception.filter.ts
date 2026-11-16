@@ -99,7 +99,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return {
         statusCode: estado,
         code: CODIGOS_POR_ESTADO[estado] ?? CODE_GENERICO,
-        message: MENSAJES_POR_ESTADO[estado] ?? MENSAJE_CLIENTE,
+        message: mensajePorEstado(estado),
         requestId,
         errores: exception.errores,
       };

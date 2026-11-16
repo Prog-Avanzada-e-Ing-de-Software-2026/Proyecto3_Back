@@ -385,5 +385,40 @@ describe('Catálogo de roles y permisos (e2e)', () => {
     >;
     expect(respuestas['400']?.content?.['application/json']?.schema?.properties?.['errores'])
       .toBeDefined();
+
+    const operacionesConCuerpo = Object.entries(
+      documentacion.body.paths as Record<
+        string,
+        Record<string, { requestBody?: unknown; responses?: Record<string, unknown> }>
+      >,
+    ).flatMap(([ruta, operaciones]) =>
+      Object.entries(operaciones)
+        .filter(([, operacion]) => operacion?.requestBody !== undefined)
+        .map(([metodo, operacion]) => ({ ruta, metodo, operacion })),
+    );
+
+    expect(operacionesConCuerpo.length).toBeGreaterThan(0);
+
+    for (const { ruta, metodo, operacion } of operacionesConCuerpo) {
+      const respuestasDelEndpoint = operacion.responses as Record<
+        string,
+        {
+          content?: {
+            'application/json'?: { schema?: { properties?: Record<string, unknown> } };
+          };
+        }
+      >;
+
+      expect({ ruta, metodo, tiene400: respuestasDelEndpoint['400'] !== undefined }).toEqual({
+        ruta,
+        metodo,
+        tiene400: true,
+      });
+      expect(
+        respuestasDelEndpoint['400']?.content?.['application/json']?.schema?.properties?.[
+          'errores'
+        ],
+      ).toBeDefined();
+    }
   });
 });

@@ -10,6 +10,7 @@ import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
  */
 export class LoginDto {
   @ApiProperty({ example: 'alumno@gym.com', description: 'Email del usuario' })
+  @IsNotEmpty({ message: 'El email es obligatorio.' })
   @IsEmail({}, { message: 'El email no tiene un formato válido.' })
   email!: string;
 

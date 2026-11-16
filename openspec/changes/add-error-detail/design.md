@@ -5,10 +5,10 @@
 Ver `proposal.md` — Why. El estado actual que condiciona el enfoque:
 
 - `GlobalExceptionFilter` es el único lugar que arma cuerpos de error y está registrado como `APP_FILTER`. `construirCuerpo` tiene tres ramas: `ErrorSemantico`, `HttpException` (mensaje fijo por estado) y cualquier otra cosa → `500`.
-- El `ValidationPipe` se registra en `src/main.ts` con `{ transform: true, whitelist: true }` y esas mismas opciones están copiadas en `test/auth.e2e-spec.ts:90` y `test/roles-permisos.e2e-spec.ts:165`. La duplicación ya figuraba como riesgo aceptado en el design de `implement-login` (arnés duplicado).
+- El `ValidationPipe` se registra en `src/main.ts` con `{ transform: true, whitelist: true }` y esas mismas opciones están copiadas en la construcción literal del arnés de autenticación y en la del arnés de roles y permisos. La duplicación ya figuraba como riesgo aceptado en el design de `implement-login` (arnés duplicado).
 - `class-validator` produce los mensajes por defecto en inglés, indexados por nombre de restricción (`isEmail`, `isNotEmpty`, `whitelist`, …). Hoy nadie los lee: el filtro descarta `exception.getResponse()`.
 - Los seis DTO vigentes son planos; ninguno declara DTOs anidados.
-- `test/probe.e2e-spec.ts:68` compara las claves exactas del cuerpo (`code`, `message`, `requestId`, `statusCode`) en fallos semánticos, y `test/auth.e2e-spec.ts:331` fija hoy que un campo no declarado se descarta en silencio.
+- La suite de sonda compara las claves exactas del cuerpo (`code`, `message`, `requestId`, `statusCode`) en fallos semánticos, y el arnés de autenticación fija hoy que un campo no declarado se descarta en silencio.
 - `AGENTS.md` §5.6 y §6.2 fijan `forbidNonWhitelisted` desactivado y que los campos no declarados «se ignoran».
 
 ## Goals / Non-Goals
