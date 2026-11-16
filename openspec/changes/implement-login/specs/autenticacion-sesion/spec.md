@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define cómo un usuario acredita su identidad ante el sistema, cómo esa sesión deja de conceder acceso y qué garantías de confidencialidad y de rechazo sostiene el acceso a las operaciones protegidas.
+Define cómo un usuario acredita su identidad ante el sistema, cuándo esa sesión deja de conceder acceso y qué garantías de confidencialidad y de rechazo sostiene el acceso a las operaciones protegidas.
 
 ## ADDED Requirements
 
@@ -52,20 +52,6 @@ El sistema MUST rechazar el inicio de sesión de un `Usuario` dado de baja y MUS
 
 - **WHEN** un usuario con sesión activa es dado de baja y luego intenta una operación protegida
 - **THEN** el sistema rechaza la operación como no autenticada
-
-### Requirement: Cierre de sesión e invalidación
-
-El sistema SHALL permitir cerrar la sesión al usuario autenticado y MUST dejar de conceder acceso a las operaciones protegidas con la sesión cerrada.
-
-#### Scenario: Cierre de sesión
-
-- **WHEN** un usuario autenticado cierra su sesión
-- **THEN** el sistema responde que la operación se completó y la siguiente operación protegida se rechaza como no autenticada
-
-#### Scenario: Cierre de sesión sin sesión activa
-
-- **WHEN** se invoca el cierre de sesión sin una sesión válida
-- **THEN** el sistema responde el resultado del contrato de error para una credencial ausente y no crea ninguna sesión
 
 ### Requirement: Protección de las operaciones que exigen sesión
 

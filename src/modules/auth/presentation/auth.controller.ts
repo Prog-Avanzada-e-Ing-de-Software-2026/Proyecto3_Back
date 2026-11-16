@@ -1,6 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Res } from '@nestjs/common';
 import {
-  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -40,14 +39,5 @@ export class AuthController {
     await this.sesion.establecer(respuesta, resultado.id);
 
     return resultado;
-  }
-
-  @Post('logout')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Cierra la sesión del usuario autenticado' })
-  @ApiNoContentResponse({ description: 'Sesión cerrada' })
-  @ApiUnauthorizedResponse({ description: 'No hay sesión válida' })
-  cerrarSesion(@Res({ passthrough: true }) respuesta: Response): void {
-    this.sesion.eliminar(respuesta);
   }
 }

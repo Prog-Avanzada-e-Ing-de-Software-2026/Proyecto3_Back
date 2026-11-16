@@ -23,7 +23,26 @@ describe('AppController (e2e)', () => {
       .expect(401)
       .expect(({ body }) => {
         expect(body.code).toBe('SESION_INVALIDA');
+        expect(body.requestId).toBeDefined();
       });
+  });
+
+  it('[autenticacion-sesion] rechaza una cookie de sesión manipulada', () => {
+    return request(app.getHttpServer())
+      .get('/api')
+      .set('Cookie', 'sesion=token.manipulado.invalido')
+      .expect(401);
+  });
+
+  it('[autenticacion-sesion] el login es público: el guard no intercepta la ruta', async () => {
+    // El 401 de este caso viene de la credencial, no del guard: sin la marca
+    // @Public() la respuesta sería SESION_INVALIDA antes de evaluar el cuerpo.
+    const respuesta = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'nadie@gym.com', password: '30123456' })
+      .expect(401);
+
+    expect(respuesta.body.code).toBe('CREDENCIALES_INVALIDAS');
   });
 
   it('no atiende rutas fuera del prefijo global', () => {

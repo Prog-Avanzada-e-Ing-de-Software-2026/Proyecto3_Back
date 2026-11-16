@@ -219,35 +219,6 @@ describe('Autenticación (e2e)', () => {
     expect(galletasDe(dadoDeBajaRespuesta)).toEqual([]);
   });
 
-  it('[autenticacion-sesion] cierra la sesión y deja de conceder acceso', async () => {
-    const ingreso = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: 'alumno@gym.com', password: CLAVE })
-      .expect(200);
-    const sesion = galletasDe(ingreso).find((galleta) => galleta.startsWith('sesion=')) ?? '';
-
-    const salida = await request(app.getHttpServer())
-      .post('/api/auth/logout')
-      .set('Cookie', sesion.split(';')[0] ?? '')
-      .expect(204);
-
-    expect(galletasDe(salida).join(';')).toContain('sesion=;');
-  });
-
-  it('[autenticacion-sesion] rechaza una operación protegida sin sesión', async () => {
-    const respuesta = await request(app.getHttpServer()).post('/api/auth/logout').expect(401);
-
-    expect(respuesta.body.code).toBe('SESION_INVALIDA');
-    expect(respuesta.body.requestId).toBeDefined();
-  });
-
-  it('[autenticacion-sesion] rechaza una sesión con la firma alterada', async () => {
-    await request(app.getHttpServer())
-      .post('/api/auth/logout')
-      .set('Cookie', 'sesion=token.manipulado.invalido')
-      .expect(401);
-  });
-
   it('[autenticacion-sesion] descarta campos no declarados en el cuerpo', async () => {
     const respuesta = await request(app.getHttpServer())
       .post('/api/auth/login')

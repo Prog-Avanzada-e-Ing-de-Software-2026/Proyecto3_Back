@@ -99,21 +99,18 @@ El puerto expone `findByEmail(email)` y `findById(id)` **sin** filtrar la baja l
 - **Reutilizar un lector que excluya la baja:** obliga a devolver "no encontrado" para un usuario dado de baja y deja la decisión de negocio fuera del dominio.
 - **Dos métodos, uno con y otro sin baja:** dos puertos para el mismo dato; el llamador elige según lo que necesita, lo cual es exactamente el error que se quiere evitar.
 
-### D7 — Contrato de los dos endpoints
+### D7 — Contrato del endpoint de sesión
 
 - `POST /api/auth/login`, cuerpo `{ email, password }` → `200` con `{ usuario: { id, email, rol: { nombre }, permisos: string[] } }` y la cookie de sesión.
-- `POST /api/auth/logout` → `204` y la cookie expirada.
-
-`logout` queda **protegido**: sin sesión responde `401` con el contrato de error. Además de ser coherente, da al arnés una operación protegida real sobre la que probar el guard, que de otro modo no tendría consumidor en este cambio.
-
-`logout` no tiene caso de uso: no hay estado del servidor que cambiar, y su comportamiento se agota en expirar la cookie. Se implementa en el controller y se declara acá para no dejar la excepción de `AGENTS.md` §5.5 sin justificar; cuando exista revocación server-side, el caso de uso aparece con el estado que lo justifique.
 
 El rechazo por credenciales inválidas responde `401` con un mensaje único, sin distinguir email inexistente, contraseña incorrecta ni usuario dado de baja.
 
+**`logout` no existe.** Decisión del usuario: el cierre de sesión se resuelve en el cliente y no tiene ruta propia. Consecuencia que queda registrada: como la cookie es `httpOnly`, el cliente **no puede borrarla**; al cerrar sesión el navegador la conserva hasta que vence, y hasta entonces la sigue enviando. Lo único que corta el acceso antes de ese plazo es la baja del usuario (`RN-34`), que el guard evalúa en cada petición. Si más adelante se necesita un cierre real, aparece junto con el par de tokens de `D1`.
+
 **Alternativas descartadas:**
 
+- **`logout` protegido que expire la cookie:** era el diseño anterior. Resolvía el borrado en el servidor y daba al arnés una ruta protegida real, pero el usuario decidió que el cierre pertenece al cliente.
 - **`GET /api/auth/me`:** no lo pide `HU 14` y el login ya devuelve rol y permisos; sería un endpoint sin consumidor.
-- **`logout` público:** evita el `401` redundante, pero deja el cambio sin ninguna ruta protegida que probar.
 
 ### D8 — `ValidationPipe` y Swagger entran acá
 

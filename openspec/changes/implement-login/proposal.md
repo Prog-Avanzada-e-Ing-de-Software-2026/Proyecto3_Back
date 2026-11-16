@@ -9,7 +9,6 @@ El backend ya persiste la identidad (`Usuario`, `Rol`, `Permiso`, `Alumno`, `Pro
 ## What Changes
 
 - Se expone **inicio de sesión** con email y contraseña, con un único mensaje de rechazo que no revela cuál de los dos datos falló (`HU 14`).
-- Se expone **cierre de sesión**, que invalida la sesión del cliente y deja de conceder acceso.
 - La sesión viaja en una **cookie `httpOnly`** con un token firmado; ninguna respuesta devuelve la credencial ni el token en el cuerpo.
 - El inicio de sesión devuelve **el rol y los permisos efectivos** del usuario, para que el cliente muestre solo las funciones que le corresponden (`HU 14`, `RN-11`, `RN-12`).
 - Se **rechaza el acceso** a cualquier usuario dado de baja, tanto al iniciar sesión como en cada petición posterior (`RN-34`).

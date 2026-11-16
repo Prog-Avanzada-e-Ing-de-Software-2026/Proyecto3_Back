@@ -25,10 +25,6 @@ export class SesionService {
     });
   }
 
-  eliminar(respuesta: Response): void {
-    respuesta.clearCookie(COOKIE_SESION, this.opciones());
-  }
-
   private opciones(): CookieOptions {
     return {
       httpOnly: true,
