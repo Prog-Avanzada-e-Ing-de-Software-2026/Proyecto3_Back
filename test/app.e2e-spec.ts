@@ -13,14 +13,21 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('[autenticacion-sesion] el guard global cierra toda ruta no declarada pública', () => {
     return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+      .get('/api')
+      .expect(401)
+      .expect(({ body }) => {
+        expect(body.code).toBe('SESION_INVALIDA');
+      });
+  });
+
+  it('no atiende rutas fuera del prefijo global', () => {
+    return request(app.getHttpServer()).get('/').expect(404);
   });
 
   afterEach(async () => {
