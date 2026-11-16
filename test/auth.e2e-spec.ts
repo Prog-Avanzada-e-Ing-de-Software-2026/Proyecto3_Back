@@ -20,6 +20,7 @@ import { Usuario } from '../src/modules/auth/domain/entities/usuario.entity.js';
 import type { IPasswordHasher } from '../src/modules/auth/domain/interfaces/password-hasher.interface.js';
 import type { IUsuarioRepository } from '../src/modules/auth/domain/interfaces/usuario.repository.interface.js';
 import { Argon2PasswordHasher } from '../src/modules/auth/infrastructure/services/argon2-password-hasher.js';
+import { OPCIONES_FIRMA_SESION } from '../src/modules/auth/infrastructure/config/jwt-config.js';
 import { AuthController } from '../src/modules/auth/presentation/auth.controller.js';
 import { AuthGuard } from '../src/modules/auth/presentation/auth.guard.js';
 import { SesionService } from '../src/modules/auth/presentation/sesion.service.js';
@@ -42,7 +43,7 @@ class UsuarioRepositoryFalso implements IUsuarioRepository {
 
 function crearModulo(usuarios: Usuario[]): new () => object {
   @Module({
-    imports: [JwtModule.register({ secret: SECRETO, signOptions: { algorithm: 'HS256' } })],
+    imports: [JwtModule.register({ secret: SECRETO, signOptions: OPCIONES_FIRMA_SESION })],
     controllers: [AuthController],
     providers: [
       LoginUseCase,
@@ -138,6 +139,24 @@ describe('Autenticación (e2e)', () => {
     expect(sesion).toContain('Path=/');
     expect(sesion).toMatch(/SameSite=Lax/i);
     expect(sesion).toContain('Max-Age=28800');
+  });
+
+  it('[autenticacion-sesion] el token emitido vence junto con la cookie', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'alumno@gym.com', password: CLAVE })
+      .expect(200);
+
+    const token = galletasDe(respuesta)
+      .find((galleta) => galleta.startsWith('sesion='))
+      ?.split(';')[0]
+      ?.slice('sesion='.length);
+    const contenido = JSON.parse(
+      Buffer.from((token ?? '').split('.')[1] ?? '', 'base64url').toString('utf8'),
+    ) as { sub: number; exp?: number; iat?: number };
+
+    expect(typeof contenido.exp).toBe('number');
+    expect((contenido.exp ?? 0) - (contenido.iat ?? 0)).toBe(8 * 60 * 60);
   });
 
   it('[autenticacion-sesion] no expone el hash ni el token en el cuerpo', async () => {

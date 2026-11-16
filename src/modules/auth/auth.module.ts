@@ -15,7 +15,7 @@ import {
 import { Permiso } from './domain/entities/permiso.entity.js';
 import { Rol } from './domain/entities/rol.entity.js';
 import { Usuario } from './domain/entities/usuario.entity.js';
-import { leerSecretoJwt } from './infrastructure/config/jwt-config.js';
+import { leerSecretoJwt, OPCIONES_FIRMA_SESION } from './infrastructure/config/jwt-config.js';
 import { MikroOrmPermisoRepository } from './infrastructure/repositories/mikro-orm-permiso.repository.js';
 import { MikroOrmRolRepository } from './infrastructure/repositories/mikro-orm-rol.repository.js';
 import { MikroOrmUsuarioRepository } from './infrastructure/repositories/mikro-orm-usuario.repository.js';
@@ -36,7 +36,7 @@ import { SesionService } from './presentation/sesion.service.js';
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: leerSecretoJwt(),
-        signOptions: { algorithm: 'HS256' },
+        signOptions: OPCIONES_FIRMA_SESION,
       }),
     }),
   ],

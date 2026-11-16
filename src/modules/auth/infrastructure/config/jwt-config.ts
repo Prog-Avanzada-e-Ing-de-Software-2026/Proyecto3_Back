@@ -4,6 +4,18 @@ const LONGITUD_MINIMA_SECRETO = 32;
 export const DURACION_SESION_SEGUNDOS = 8 * 60 * 60;
 
 /**
+ * Opciones de firma del token de sesión.
+ *
+ * El vencimiento se declara acá y no en el módulo para que la cookie y el token
+ * compartan la misma fuente: dos valores distintos dejarían un token válido
+ * después de que el navegador dejó de enviarlo.
+ */
+export const OPCIONES_FIRMA_SESION = {
+  algorithm: 'HS256',
+  expiresIn: DURACION_SESION_SEGUNDOS,
+} as const;
+
+/**
  * Lee el secreto de firma de la sesión.
  *
  * Falla el arranque en vez de firmar con un valor por defecto: un secreto
