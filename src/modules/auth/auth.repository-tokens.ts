@@ -2,3 +2,7 @@
 export const PERMISO_REPOSITORY = Symbol('IPermisoRepository');
 
 export const ROL_REPOSITORY = Symbol('IRolRepository');
+
+export const USUARIO_REPOSITORY = Symbol('IUsuarioRepository');
+
+export const PASSWORD_HASHER = Symbol('IPasswordHasher');

@@ -8,6 +8,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.spec.ts'],
+    setupFiles: ['./test/support/env.ts'],
     // MikroORM resolves `entitiesTs` with a native dynamic import, outside
     // Vite's transform graph. Without a TypeScript loader in the worker,
     // Node's type stripping rejects the legacy decorators of `*.entity.ts`.
