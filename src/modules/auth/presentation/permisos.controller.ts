@@ -25,12 +25,14 @@ export class PermisosController {
   ) {}
 
   @Get()
+  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_PERMISOS)
   @ApiOperation({ summary: 'Lista los permisos vigentes del catálogo' })
   async listarPermisos(): Promise<PermisoResumen[]> {
     return this.listar.execute();
   }
 
   @Get(':id')
+  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_PERMISOS)
   @ApiOperation({ summary: 'Devuelve un permiso vigente' })
   async buscarPermiso(@Param('id', ParseIntPipe) id: number): Promise<PermisoResumen> {
     return this.buscar.execute(id);

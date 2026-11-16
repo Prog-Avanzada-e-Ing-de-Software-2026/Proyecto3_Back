@@ -88,7 +88,7 @@ El caso de uso que asigna permisos compara el conjunto pedido contra los permiso
 
 **Por qué:** el seed es donde se declara el catálogo mínimo, y `Administrador` es el único rol que puede administrarlo.
 
-**Límite conocido:** `CreateRolUseCase` es idempotente y no modifica los permisos de un rol que ya existe, así que el seed solo garantiza el catálogo completo sobre una base recién sembrada. Se acepta porque los entornos de este proyecto se crean desde cero; si alguna vez hay un catálogo sembrado que deba converger, eso pide un seed que actualice la asignación, no un cambio en el caso de uso.
+**Límite conocido:** el alta rechaza duplicados en vez de ser idempotente, y no modifica los permisos de un rol que ya existe. El seed resuelve lo primero listando antes de crear, así que sigue pudiéndose ejecutar dos veces; lo segundo no lo resuelve: el catálogo queda completo solo sobre una base recién sembrada. Se acepta porque los entornos de este proyecto se crean desde cero; converger un catálogo existente pediría un seed que actualice la asignación.
 
 ## Risks / Trade-offs
 

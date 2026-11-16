@@ -34,12 +34,14 @@ export class RolesController {
   ) {}
 
   @Get()
+  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_ROLES)
   @ApiOperation({ summary: 'Lista los roles vigentes con sus permisos' })
   async listarRoles(): Promise<RolResumen[]> {
     return this.listar.execute();
   }
 
   @Get(':id')
+  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_ROLES)
   @ApiOperation({ summary: 'Devuelve un rol vigente con sus permisos' })
   async buscarRol(@Param('id', ParseIntPipe) id: number): Promise<RolResumen> {
     return this.buscar.execute(id);

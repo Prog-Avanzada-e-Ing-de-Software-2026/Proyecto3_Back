@@ -20,7 +20,7 @@
 
 ## 4. Borde HTTP
 
-- [x] 4.1 Implementar `RolesController` y `PermisosController` con los nueve endpoints, sus DTOs y `@ActorActual()`, cada uno con `@RequierePermiso` usando las constantes del catálogo. Verificación: test e2e que compruebe `401` sin sesión y `403` con sesión sin el permiso en las cuatro operaciones de escritura. Trazabilidad: `identidad-usuario` — Administración del catálogo de roles y permisos; `design.md` D1.
+- [x] 4.1 Implementar `RolesController` y `PermisosController` con los nueve endpoints, sus DTOs y `@ActorActual()`, cada uno con `@RequierePermiso` usando las constantes del catálogo. Verificación: test e2e que compruebe `401` sin sesión y `403` con sesión sin el permiso, en las nueve operaciones. Trazabilidad: `identidad-usuario` — Administración del catálogo de roles y permisos; `design.md` D1.
 - [x] 4.2 Cubrir el contrato de los nueve endpoints en e2e: alta, listado, detalle, edición y reemplazo de permisos, con los códigos del contrato de error para nombre duplicado, recurso no encontrado y escalada. Verificación: `yarn test:e2e` en verde con esos casos.
 - [x] 4.3 Documentar los nueve endpoints en Swagger con su operación, cuerpo y respuestas. Verificación: e2e que compruebe que `/api/docs-json` incluye las nueve rutas.
 

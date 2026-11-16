@@ -193,16 +193,17 @@ describe('Catálogo de roles y permisos (e2e)', () => {
     expect(respuesta.body.code).toBe('SIN_PERMISO');
   });
 
-  it('[identidad-usuario] lista roles y permisos con sesión', async () => {
-    const access = await accessPara(1);
+  it('[identidad-usuario] lista roles y permisos con el permiso de cada catálogo', async () => {
+    const deRoles = await accessPara(1);
+    const dePermisos = await accessPara(3);
 
     const listaRoles = await request(app.getHttpServer())
       .get('/api/roles')
-      .set('Cookie', `access=${access}`)
+      .set('Cookie', `access=${deRoles}`)
       .expect(200);
     const listaPermisos = await request(app.getHttpServer())
       .get('/api/permisos')
-      .set('Cookie', `access=${access}`)
+      .set('Cookie', `access=${dePermisos}`)
       .expect(200);
 
     expect(listaRoles.body).toHaveLength(3);
@@ -210,6 +211,35 @@ describe('Catálogo de roles y permisos (e2e)', () => {
     expect(listaPermisos.body.map((permiso: { nombre: string }) => permiso.nombre)).toContain(
       NOMBRES_PERMISO.CREAR_PLAN,
     );
+  });
+
+  it('[identidad-usuario] una lectura sin el permiso del catálogo responde 403', async () => {
+    const access = await accessPara(2);
+
+    const roles = await request(app.getHttpServer())
+      .get('/api/roles')
+      .set('Cookie', `access=${access}`)
+      .expect(403);
+    const permisos = await request(app.getHttpServer())
+      .get('/api/permisos')
+      .set('Cookie', `access=${access}`)
+      .expect(403);
+
+    expect(roles.body.code).toBe('SIN_PERMISO');
+    expect(permisos.body.code).toBe('SIN_PERMISO');
+  });
+
+  it('[identidad-usuario] el detalle exige el permiso del catálogo', async () => {
+    const access = await accessPara(2);
+
+    await request(app.getHttpServer())
+      .get('/api/roles/1')
+      .set('Cookie', `access=${access}`)
+      .expect(403);
+    await request(app.getHttpServer())
+      .get('/api/permisos/1')
+      .set('Cookie', `access=${access}`)
+      .expect(403);
   });
 
   it('[identidad-usuario] da de alta un rol con permisos y lo devuelve en el detalle', async () => {
