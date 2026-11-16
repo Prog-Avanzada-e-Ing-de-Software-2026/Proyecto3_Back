@@ -7,7 +7,7 @@ export class ReplaceRolPermisosDto {
     example: ['Crear plan', 'Gestionar alumnos'],
     description: 'Conjunto completo de permisos que queda en el rol',
   })
-  @IsArray()
-  @IsString({ each: true })
+  @IsArray({ message: 'Los permisos deben ser una lista.' })
+  @IsString({ each: true, message: 'Cada permiso debe ser un texto.' })
   permisos!: string[];
 }

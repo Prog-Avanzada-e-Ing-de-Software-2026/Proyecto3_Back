@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CategoriaError } from '../domain/errors/error-semantico.js';
 import { ErrorSemantico } from '../domain/errors/error-semantico.js';
 import { PATRON_IDENTIFICADOR_SOLICITUD } from './request-id.js';
+import { EntradaInvalidaException } from './validation/entrada-invalida.exception.js';
 import { GlobalExceptionFilter } from './global-exception.filter.js';
 
 interface RespuestaFalsa {
@@ -150,6 +151,60 @@ describe('GlobalExceptionFilter', () => {
     const cuerpo = cuerpoEnviado(respuesta);
     expect(cuerpo.requestId).toMatch(PATRON_IDENTIFICADOR_SOLICITUD);
     expect(respuesta.setHeader).toHaveBeenCalledWith('X-Request-Id', cuerpo.requestId);
+  });
+
+  it('[http-error-contract] agrega el detalle de validacion y conserva los cuatro campos', () => {
+    const { host, respuesta } = crearHost({ id: 'solicitud-6' } as Partial<Request>);
+    const filtro = new GlobalExceptionFilter();
+    const errores = [{ campo: 'email', mensaje: 'El email no tiene un formato válido.' }];
+
+    filtro.catch(new EntradaInvalidaException(errores), host);
+
+    expect(respuesta.status).toHaveBeenCalledWith(400);
+    expect(cuerpoEnviado(respuesta)).toEqual({
+      statusCode: 400,
+      code: 'SOLICITUD_INVALIDA',
+      message: 'La solicitud no es válida.',
+      requestId: 'solicitud-6',
+      errores,
+    });
+  });
+
+  it('[http-error-contract] no agrega el campo errores cuando el fallo no es de validacion', () => {
+    const { host, respuesta } = crearHost({ id: 'solicitud-7' } as Partial<Request>);
+    const filtro = new GlobalExceptionFilter();
+
+    filtro.catch(
+      new ErrorSemantico('entrada_invalida', 'DATOS_INVALIDOS', 'Los datos no son válidos.'),
+      host,
+    );
+
+    expect(Object.keys(cuerpoEnviado(respuesta)).sort()).toEqual([
+      'code',
+      'message',
+      'requestId',
+      'statusCode',
+    ]);
+  });
+
+  it('[http-error-contract] usa un mensaje de solicitud rechazada en un 4xx sin redaccion propia', () => {
+    const { host, respuesta } = crearHost({ id: 'solicitud-8' } as Partial<Request>);
+    const filtro = new GlobalExceptionFilter();
+
+    filtro.catch(new HttpException('teapot', 418), host);
+
+    const cuerpo = cuerpoEnviado(respuesta);
+    expect(respuesta.status).toHaveBeenCalledWith(418);
+    expect(cuerpo.message).toBe('La solicitud no pudo procesarse.');
+  });
+
+  it('[http-error-contract] conserva el mensaje de fallo interno en un 5xx sin redaccion propia', () => {
+    const { host, respuesta } = crearHost({ id: 'solicitud-9' } as Partial<Request>);
+    const filtro = new GlobalExceptionFilter();
+
+    filtro.catch(new HttpException('unavailable', 503), host);
+
+    expect(cuerpoEnviado(respuesta).message).toBe('Ocurrió un error inesperado.');
   });
 
   it('[http-logging] registra la traza y la causa solo para fallos inesperados', () => {

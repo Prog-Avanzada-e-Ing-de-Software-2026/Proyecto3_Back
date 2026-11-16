@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ActorActual } from '../../../common/presentation/auth/actor-actual.decorator.js';
+import { ApiSolicitudInvalida } from '../../../common/presentation/swagger/solicitud-invalida.decorator.js';
 import { RequierePermiso } from '../../../common/presentation/auth/requiere-permiso.decorator.js';
 import { CreatePermisoUseCase } from '../application/use-cases/create-permiso.use-case.js';
 import { FindPermisoByIdUseCase } from '../application/use-cases/find-permiso-by-id.use-case.js';
@@ -41,6 +42,7 @@ export class PermisosController {
   @Post()
   @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_PERMISOS)
   @ApiOperation({ summary: 'Da de alta un permiso del catálogo' })
+  @ApiSolicitudInvalida()
   async crearPermiso(
     @Body() dto: CreatePermisoDto,
     @ActorActual() actorId: number,
@@ -57,6 +59,7 @@ export class PermisosController {
   @Patch(':id')
   @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_PERMISOS)
   @ApiOperation({ summary: 'Edita nombre y descripción de un permiso' })
+  @ApiSolicitudInvalida()
   async editarPermiso(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdatePermisoDto,

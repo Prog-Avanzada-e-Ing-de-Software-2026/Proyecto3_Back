@@ -3,13 +3,13 @@ import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateRolDto {
   @ApiProperty({ example: 'Entrenador', description: 'Nombre único del rol' })
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'El nombre del rol debe ser un texto.' })
+  @IsNotEmpty({ message: 'El nombre del rol es obligatorio.' })
   nombre!: string;
 
   @ApiPropertyOptional({ nullable: true, description: 'Descripción del rol' })
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'La descripción del rol debe ser un texto.' })
   descripcion?: string | null;
 
   @ApiPropertyOptional({
@@ -18,7 +18,7 @@ export class CreateRolDto {
     description: 'Nombres de permisos a asignar',
   })
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
+  @IsArray({ message: 'Los permisos deben ser una lista.' })
+  @IsString({ each: true, message: 'Cada permiso debe ser un texto.' })
   permisos?: string[];
 }

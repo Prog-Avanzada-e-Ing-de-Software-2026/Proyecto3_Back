@@ -1,5 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
-import { Module, ValidationPipe } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { GlobalExceptionFilter } from '../src/common/presentation/global-exception.filter.js';
+import { crearValidationPipe } from '../src/common/presentation/validation/validation-pipe.js';
 import { CreatePermisoUseCase } from '../src/modules/auth/application/use-cases/create-permiso.use-case.js';
 import { CreateRolUseCase } from '../src/modules/auth/application/use-cases/create-rol.use-case.js';
 import { FindPermisoByIdUseCase } from '../src/modules/auth/application/use-cases/find-permiso-by-id.use-case.js';
@@ -162,7 +163,7 @@ describe('Catálogo de roles y permisos (e2e)', () => {
 
     app = modulo.createNestApplication();
     app.use(cookieParser());
-    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+    app.useGlobalPipes(crearValidationPipe());
     app.setGlobalPrefix('api');
     SwaggerModule.setup(
       'api/docs',
@@ -284,6 +285,12 @@ describe('Catálogo de roles y permisos (e2e)', () => {
       .expect(400);
 
     expect(respuesta.body.code).toBe('SIN_CAMBIOS');
+    expect(Object.keys(respuesta.body).sort()).toEqual([
+      'code',
+      'message',
+      'requestId',
+      'statusCode',
+    ]);
   });
 
   it('[identidad-usuario] rechaza renombrar un rol requerido', async () => {
@@ -371,5 +378,12 @@ describe('Catálogo de roles y permisos (e2e)', () => {
       '/api/roles/{id}',
       '/api/roles/{id}/permisos',
     ]);
+
+    const respuestas = documentacion.body.paths['/api/roles'].post.responses as Record<
+      string,
+      { content?: { 'application/json'?: { schema?: { properties?: Record<string, unknown> } } } }
+    >;
+    expect(respuestas['400']?.content?.['application/json']?.schema?.properties?.['errores'])
+      .toBeDefined();
   });
 });

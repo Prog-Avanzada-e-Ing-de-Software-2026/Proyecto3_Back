@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ActorActual } from '../../../common/presentation/auth/actor-actual.decorator.js';
+import { ApiSolicitudInvalida } from '../../../common/presentation/swagger/solicitud-invalida.decorator.js';
 import { RequierePermiso } from '../../../common/presentation/auth/requiere-permiso.decorator.js';
 import { CreateRolUseCase } from '../application/use-cases/create-rol.use-case.js';
 import { FindRolByIdUseCase } from '../application/use-cases/find-rol-by-id.use-case.js';
@@ -50,6 +51,7 @@ export class RolesController {
   @Post()
   @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_ROLES)
   @ApiOperation({ summary: 'Da de alta un rol del catálogo' })
+  @ApiSolicitudInvalida()
   async crearRol(
     @Body() dto: CreateRolDto,
     @ActorActual() actorId: number,
@@ -67,6 +69,7 @@ export class RolesController {
   @Patch(':id')
   @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_ROLES)
   @ApiOperation({ summary: 'Edita nombre y descripción de un rol' })
+  @ApiSolicitudInvalida()
   async editarRol(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateRolDto,
@@ -80,6 +83,7 @@ export class RolesController {
   @Put(':id/permisos')
   @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_ROLES)
   @ApiOperation({ summary: 'Reemplaza el conjunto de permisos de un rol' })
+  @ApiSolicitudInvalida()
   async reemplazarLosPermisos(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ReplaceRolPermisosDto,

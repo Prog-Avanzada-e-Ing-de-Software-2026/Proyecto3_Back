@@ -213,8 +213,9 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 ### 5.6 Validación de entrada y frontera DTO → Input → entidad
 
 - Los DTO son **clases** con decoradores de `class-validator`. Los tipos derivados (`PartialType`, `OmitType`, `PickType`, `IntersectionType`) salen de `@nestjs/mapped-types`.
-- Un único `ValidationPipe` global en `src/main.ts` con `{ transform: true, whitelist: true }`. `whitelist` descarta toda propiedad no declarada en el DTO: es el mecanismo que hace cumplir §6.2, regla 3. El pipe se registra en `src/main.ts` en el cambio de OpenSpec que exponga el primer endpoint, cubierto por un test.
-- `forbidNonWhitelisted` queda **desactivado** mientras §6.2, regla 3 establezca que esos campos «se ignoran». Si el equipo prefiere rechazar con 400, se activa la opción y se actualiza esa regla en el mismo cambio.
+- Un único `ValidationPipe` global, construido por `crearValidationPipe()` en `src/common/presentation/validation/` y registrado en `src/main.ts`. La misma función la usan los arneses e2e: si cada suite arma sus opciones, una prueba verde puede estar midiendo una configuración que ya no es la real.
+- `whitelist` con `forbidNonWhitelisted` **rechaza con `400`** toda propiedad no declarada en el DTO, incluidas las de auditoría (§6.2, regla 3). El criterio es el de `class-validator`: una propiedad declarada sin ningún decorador no deja metadatos y se rechaza igual; si debe admitirse tal cual, se marca con `@Allow()`. La respuesta de ese `400` agrega `errores`, con un elemento por campo y el mensaje de la restricción.
+- Cada decorador de validación de un DTO declara su `message` en español, porque ese texto es el que el cliente recibe en `errores`. Un test recorre todos los DTO y falla si un decorador no lo declara.
 - El DTO valida formato y tipos; **no** valida reglas del gimnasio. Las invariantes son de dominio (§4) y no se duplican en el DTO ni en el controller.
 - El DTO no se convierte en entidad de dominio ni se entrega a MikroORM.
 - El **Input de aplicación** puede representarse como **tipo, interfaz o clase** según lo que la intención necesite. No se exige un archivo `<verbo>-<sustantivo>.input.ts` por operación: se crea solo cuando aporta claridad o reutilización.
@@ -305,7 +306,7 @@ Toda entidad hereda estas seis columnas. Las propiedades se escriben en camelCas
 
 1. **Cada entidad los declara; el caso de uso los completa.** Las seis columnas se declaran en la entidad y las completa el flujo de aplicación que la crea o la modifica, nunca el controlador ni un método de la entidad. La repetición entre entidades es deliberada: no se centraliza en una base abstracta ni en un suscriptor.
 2. **El actor sale del contexto de autenticación.** Jamás del body, del query string ni de un DTO. Si no hay actor identificado, la operación se rechaza; no se inventa un usuario "sistema" salvo en procesos internos explícitamente declarados.
-3. **El cliente no puede escribirlos.** Los DTOs de entrada no exponen estos campos y, si llegan en el payload, se ignoran.
+3. **El cliente no puede escribirlos.** Los DTOs de entrada no exponen estos campos y, si llegan en el payload, se rechazan con `400` y una entrada de `errores` que nombra la propiedad (`ValidationPipe` global con `whitelist` y `forbidNonWhitelisted`; §5.6).
 4. **Nada de escrituras que salten el flujo.** `updateMany`, `nativeUpdate` o SQL crudo no pasan por el caso de uso y dejan la auditoría desactualizada. Si un caso de uso los necesita, actualiza `updatedAt` y `updatedById` explícitamente dentro de la misma transacción.
 5. **UTC.** Las fechas se persisten en UTC (`timestamptz`) y se serializan en ISO-8601 con zona.
 6. **La auditoría no se edita.** Ningún endpoint ni caso de uso modifica estos campos después de escritos; `createdAt` y `createdById` son inmutables por definición.

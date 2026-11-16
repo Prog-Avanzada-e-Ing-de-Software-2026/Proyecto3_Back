@@ -1,5 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
-import { Module, ValidationPipe } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { GlobalExceptionFilter } from '../src/common/presentation/global-exception.filter.js';
+import { crearValidationPipe } from '../src/common/presentation/validation/validation-pipe.js';
 import { LoginUseCase } from '../src/modules/auth/application/use-cases/login.use-case.js';
 import { ReadSesionUseCase } from '../src/modules/auth/application/use-cases/read-sesion.use-case.js';
 import {
@@ -79,15 +80,16 @@ function crearModulo(usuarios: Usuario[]): new () => object {
 /**
  * Reproduce la configuración de `src/main.ts`: prefijo, `ValidationPipe`,
  * `cookie-parser` y Swagger. `main.ts` ejecuta `bootstrap()` al importarse, así
- * que el arnés no puede reutilizarlo; mantener las dos copias en sintonía es
- * manual y por eso el prefijo y la ruta de la documentación se verifican acá.
+ * que el arnés no puede reutilizarlo; el `ValidationPipe` sí se comparte con
+ * `crearValidationPipe()`, y el prefijo y la ruta de la documentación se
+ * verifican acá.
  */
 async function crearAplicacion(usuarios: Usuario[]): Promise<INestApplication> {
   const modulo = await Test.createTestingModule({ imports: [crearModulo(usuarios)] }).compile();
   const app = modulo.createNestApplication();
 
   app.use(cookieParser());
-  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+  app.useGlobalPipes(crearValidationPipe());
   app.setGlobalPrefix('api');
   SwaggerModule.setup(
     'api/docs',
@@ -328,13 +330,47 @@ describe('Autenticación (e2e)', () => {
     expect(texto).not.toContain(valorDe(galletasDe(respuesta).refresh));
   });
 
-  it('[autenticacion-sesion] descarta campos no declarados en el cuerpo', async () => {
+  it('[http-error-contract] rechaza una columna de auditoria enviada en el cuerpo', async () => {
     const respuesta = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'alumno@gym.com', password: CLAVE, createdById: 999 })
-      .expect(200);
+      .expect(400);
 
-    expect(respuesta.body).not.toHaveProperty('createdById');
+    expect(respuesta.body.code).toBe('SOLICITUD_INVALIDA');
+    expect(respuesta.body.errores).toEqual([
+      {
+        campo: 'createdById',
+        mensaje: 'La propiedad "createdById" no está admitida en la solicitud.',
+      },
+    ]);
+  });
+
+  it('[http-error-contract] informa el formato invalido del email', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'alumno-arroba-gym', password: CLAVE })
+      .expect(400);
+
+    expect(respuesta.body).toMatchObject({
+      statusCode: 400,
+      code: 'SOLICITUD_INVALIDA',
+      message: 'La solicitud no es válida.',
+    });
+    expect(respuesta.body.errores).toEqual([
+      { campo: 'email', mensaje: 'El email no tiene un formato válido.' },
+    ]);
+  });
+
+  it('[http-error-contract] nombra el atributo mal escrito en lugar de descartarlo', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ correo: 'alumno@gym.com', password: CLAVE })
+      .expect(400);
+
+    expect(respuesta.body.errores).toEqual([
+      { campo: 'correo', mensaje: 'La propiedad "correo" no está admitida en la solicitud.' },
+      { campo: 'email', mensaje: 'El email no tiene un formato válido.' },
+    ]);
   });
 
   it('[autenticacion-sesion] devuelve la identidad del usuario autenticado', async () => {
@@ -384,6 +420,14 @@ describe('Autenticación (e2e)', () => {
     expect(Object.keys(documentacion.body.paths)).toContain('/api/auth/login');
     expect(Object.keys(documentacion.body.paths)).toContain('/api/auth/refresh');
     expect(Object.keys(documentacion.body.paths)).toContain('/api/auth/me');
+
+    const respuestas = documentacion.body.paths['/api/auth/login'].post.responses as Record<
+      string,
+      { content?: { 'application/json'?: { schema?: { properties?: Record<string, unknown> } } } }
+    >;
+    expect(respuestas['400']?.content?.['application/json']?.schema?.properties?.['errores'])
+      .toBeDefined();
+
     await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: 'alumno@gym.com', password: CLAVE })

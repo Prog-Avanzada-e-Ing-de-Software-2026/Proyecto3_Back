@@ -8,6 +8,7 @@ import {
 import type { Request, Response } from 'express';
 import { ActorActual } from '../../../common/presentation/auth/actor-actual.decorator.js';
 import { Public } from '../../../common/presentation/auth/public.decorator.js';
+import { ApiSolicitudInvalida } from '../../../common/presentation/swagger/solicitud-invalida.decorator.js';
 import { LoginUseCase } from '../application/use-cases/login.use-case.js';
 import { ReadSesionUseCase } from '../application/use-cases/read-sesion.use-case.js';
 import type { SesionOtorgada } from '../application/use-cases/sesion-otorgada.result.js';
@@ -27,6 +28,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Inicia sesión y emite las cookies de access y refresh' })
+  @ApiSolicitudInvalida()
   @ApiOkResponse({ description: 'Devuelve el rol y los permisos efectivos.' })
   @ApiUnauthorizedResponse({
     description: 'Credenciales inválidas o usuario dado de baja, sin distinguir la causa.',
