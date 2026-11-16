@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { CookieOptions, Response } from 'express';
 import { SesionInvalidaError } from '../domain/errors/sesion-invalida.error.js';
 import {
   ALGORITMO_FIRMA,
-  DURACION_POR_TIPO,
+  CONFIGURACION_SESION,
 } from '../infrastructure/config/jwt-config.js';
-import type { TipoToken } from '../infrastructure/config/jwt-config.js';
+import type { ConfiguracionSesion, TipoToken } from '../infrastructure/config/jwt-config.js';
 
 export const COOKIE_ACCESS = 'access';
 export const COOKIE_REFRESH = 'refresh';
@@ -19,15 +19,20 @@ interface ContenidoSesion {
 /**
  * Emite y verifica las dos cookies de sesión.
  *
- * El `access` dura un cuarto de hora y viaja en todas las rutas; el `refresh`
- * dura una semana y solo se envía a `/api/auth`. Las dos son legibles por
- * JavaScript por decisión del usuario: el front las borra al cerrar sesión y
- * usa el refresh contra `/refresh`. El costo aceptado es que un XSS puede
- * leerlas.
+ * El `access` viaja en todas las rutas; el `refresh` solo se envía a
+ * `/api/auth`. Las dos son legibles por JavaScript por decisión del usuario: el
+ * front las borra al cerrar sesión y usa el refresh contra `/refresh`. El costo
+ * aceptado es que un XSS puede leerlas.
+ *
+ * Cada tipo se firma y se verifica con su propio secreto, así que un token
+ * emitido para uno no vale para el otro aunque se manipule su contenido.
  */
 @Injectable()
 export class SesionService {
-  constructor(private readonly jwt: JwtService) {}
+  constructor(
+    private readonly jwt: JwtService,
+    @Inject(CONFIGURACION_SESION) private readonly configuracion: ConfiguracionSesion,
+  ) {}
 
   async establecer(respuesta: Response, usuarioId: number): Promise<void> {
     respuesta.cookie(COOKIE_ACCESS, await this.firmar(usuarioId, 'access'), this.opciones('access'));
@@ -45,9 +50,8 @@ export class SesionService {
   /**
    * Verifica firma, vencimiento y tipo, y devuelve el identificador del usuario.
    *
-   * El tipo se compara porque los dos tokens comparten secreto y algoritmo: sin
-   * esa comprobación un access serviría como refresh y la sesión de un cuarto de
-   * hora se volvería eterna.
+   * La verificación usa el secreto del tipo esperado: una cookie de `access`
+   * presentada como `refresh` falla en la firma antes de mirar el contenido.
    */
   async verificar(token: unknown, esperado: TipoToken): Promise<number> {
     if (typeof token !== 'string' || token.length === 0) {
@@ -58,6 +62,7 @@ export class SesionService {
 
     try {
       contenido = await this.jwt.verifyAsync<ContenidoSesion>(token, {
+        secret: this.secreto(esperado),
         algorithms: [ALGORITMO_FIRMA],
       });
     } catch {
@@ -74,8 +79,16 @@ export class SesionService {
   private async firmar(usuarioId: number, tipo: TipoToken): Promise<string> {
     return this.jwt.signAsync(
       { sub: usuarioId, tipo },
-      { expiresIn: DURACION_POR_TIPO[tipo] },
+      { secret: this.secreto(tipo), expiresIn: this.ttl(tipo) },
     );
+  }
+
+  private secreto(tipo: TipoToken): string {
+    return tipo === 'access' ? this.configuracion.secretoAccess : this.configuracion.secretoRefresh;
+  }
+
+  private ttl(tipo: TipoToken): number {
+    return tipo === 'access' ? this.configuracion.ttlAccess : this.configuracion.ttlRefresh;
   }
 
   private opciones(tipo: TipoToken): CookieOptions {
@@ -84,7 +97,7 @@ export class SesionService {
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
       path: tipo === 'refresh' ? '/api/auth' : '/',
-      maxAge: DURACION_POR_TIPO[tipo] * 1000,
+      maxAge: this.ttl(tipo) * 1000,
     };
   }
 }

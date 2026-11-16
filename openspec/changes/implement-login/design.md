@@ -30,12 +30,12 @@ Ver `proposal.md` — Why. El estado actual que condiciona el enfoque:
 
 La sesión son dos JWT firmados con HS256 en cookies `SameSite=Lax`, `Secure` en producción y **sin `httpOnly`**:
 
-| Cookie | Contenido | Vida | `Path` |
-| --- | --- | --- | --- |
-| `access` | `sub`, `tipo: 'access'` | 15 min | `/` |
-| `refresh` | `sub`, `tipo: 'refresh'` | 7 días | `/api/auth` |
+| Cookie | Contenido | Vida | `Path` | Secreto |
+| --- | --- | --- | --- | --- |
+| `access` | `sub`, `tipo: 'access'` | `AUTH_ACCESS_TTL_SEGUNDOS` (900) | `/` | `AUTH_JWT_SECRET_ACCESS` |
+| `refresh` | `sub`, `tipo: 'refresh'` | `AUTH_REFRESH_TTL_SEGUNDOS` (604800) | `/api/auth` | `AUTH_JWT_SECRET_REFRESH` |
 
-El `tipo` va dentro del token y se compara al verificar: los dos comparten secreto y algoritmo, así que sin esa marca un access serviría como refresh y la sesión de un cuarto de hora se volvería eterna.
+Los dos vencimientos y los dos secretos se leen del entorno. Los secretos son **obligatorios y distintos**: con uno compartido, un access filtrado permitiría firmar un refresh. El `tipo` va además dentro del token y se compara al verificar, así que la separación es doble: firma distinta y contenido distinto.
 
 **Por qué:** decisión del usuario. El cierre de sesión se resuelve en el front, y para que el front pueda **borrar** las cookies no pueden ser `httpOnly`.
 
@@ -140,7 +140,7 @@ Los dos son `@Public()`: el guard no puede exigir un access válido para renovar
 - `src/common/presentation/`: guard, decorador `@Public()`, decorador `@ActorActual()` y el tipo de petición autenticada.
 - **Entidades:** ninguna nueva ni modificada. `Usuario` ya tiene todo lo necesario.
 - **Migraciones:** ninguna. Sin tabla de sesiones y sin columnas nuevas.
-- **Configuración:** `AUTH_JWT_SECRET` obligatoria; el arranque falla si falta o es demasiado corta, en vez de firmar con un valor por defecto.
+- **Configuración:** `AUTH_JWT_SECRET_ACCESS` y `AUTH_JWT_SECRET_REFRESH` obligatorios, distintos y de al menos 32 caracteres; `AUTH_ACCESS_TTL_SEGUNDOS` y `AUTH_REFRESH_TTL_SEGUNDOS` con valor por defecto. El arranque falla ante cualquier valor inválido en vez de caer a un default en silencio.
 
 ## Risks / Trade-offs
 
@@ -150,7 +150,7 @@ Los dos son `@Public()`: el guard no puede exigir un access válido para renovar
 - **[CSRF]** Las cookies viajan automáticamente: `SameSite=Lax` bloquea el envío en peticiones cross-site no navegacionales, que es lo que cubren los dos `POST`. → Riesgo residual aceptado y declarado; si aparecen operaciones de negocio con efectos amplios, se evalúa token CSRF.
 - **[Costo por request]** Una lectura de `Usuario` con su rol y permisos en cada petición. → `populate` explícito en el adaptador y medición en su prueba; si el volumen lo exige, se cachea por rol, no por usuario.
 - **[Memoria del hash]** `argon2id` reserva 19 MiB por verificación concurrente. → Con `p=1` y `t=2` cada login cuesta ~10 ms y el consumo es acotado; los parámetros quedan explícitos para poder ajustarlos.
-- **[Secreto ausente]** Firmar con un valor por defecto convertiría un error de despliegue en una sesión falsificable. → El arranque falla con un mensaje explícito; el `.env` no se versiona.
+- **[Secretos ausentes o iguales]** Firmar con un valor por defecto, o compartir el secreto entre los dos tipos, convertiría un error de despliegue en una sesión falsificable o anularía la separación. → El arranque falla con un mensaje explícito; el `.env` no se versiona.
 - **[Arnés duplicado]** `test/auth.e2e-spec.ts` repite el prefijo, el `ValidationPipe`, `cookie-parser` y Swagger de `main.ts`. → `main.ts` arranca al importarse y no se puede reutilizar; la duplicación está documentada y cubierta por pruebas de contrato.
 
 ## Migration Plan

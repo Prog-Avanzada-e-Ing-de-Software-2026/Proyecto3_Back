@@ -13,7 +13,15 @@ import type { IUsuarioRepository } from '../domain/interfaces/usuario.repository
 import { AuthGuard } from './auth.guard.js';
 import { COOKIE_ACCESS, SesionService } from './sesion.service.js';
 
-const SECRETO = 'un-secreto-de-pruebas-con-longitud-suficiente';
+const SECRETO_ACCESS = 'un-secreto-de-pruebas-access-con-longitud-suficiente';
+const SECRETO_REFRESH = 'un-secreto-de-pruebas-refresh-con-longitud-suficiente';
+
+const CONFIGURACION = {
+  secretoAccess: SECRETO_ACCESS,
+  secretoRefresh: SECRETO_REFRESH,
+  ttlAccess: 900,
+  ttlRefresh: 604_800,
+};
 
 class UsuarioRepositoryFalso implements IUsuarioRepository {
   constructor(private readonly usuarios: Usuario[] = []) {}
@@ -52,8 +60,12 @@ function contexto(solicitud: Partial<SolicitudAutenticada>, publica = false): Ex
   } as unknown as ExecutionContext;
 }
 
-function guard(usuarios: Usuario[] = [], jwt = new JwtService({ secret: SECRETO })): AuthGuard {
-  return new AuthGuard(new Reflector(), new SesionService(jwt), new UsuarioRepositoryFalso(usuarios));
+function guard(usuarios: Usuario[] = []): AuthGuard {
+  return new AuthGuard(
+    new Reflector(),
+    new SesionService(new JwtService({}), CONFIGURACION),
+    new UsuarioRepositoryFalso(usuarios),
+  );
 }
 
 function conCookie(
@@ -68,11 +80,12 @@ function firmar(
   contenido: Record<string, unknown>,
   opciones: { secreto?: string; expiresIn?: number } = {},
 ): Promise<string> {
-  const servicio = new JwtService({ secret: opciones.secreto ?? SECRETO });
+  const servicio = new JwtService({});
+  const secreto = opciones.secreto ?? SECRETO_ACCESS;
 
   return opciones.expiresIn === undefined
-    ? servicio.signAsync(contenido)
-    : servicio.signAsync(contenido, { expiresIn: opciones.expiresIn });
+    ? servicio.signAsync(contenido, { secret: secreto })
+    : servicio.signAsync(contenido, { secret: secreto, expiresIn: opciones.expiresIn });
 }
 
 describe('AuthGuard', () => {
@@ -99,7 +112,7 @@ describe('AuthGuard', () => {
   it('[autenticacion-sesion] rechaza un token firmado con otra clave', async () => {
     const ajeno = await firmar(
       { sub: 1, tipo: 'access' },
-      { secreto: 'otro-secreto-con-longitud-suficiente-distinto' },
+      { secreto: 'un-secreto-ajeno-con-longitud-suficiente-y-distinto' },
     );
 
     await expect(
@@ -108,7 +121,7 @@ describe('AuthGuard', () => {
   });
 
   it('[autenticacion-sesion] rechaza un refresh presentado como access', async () => {
-    const refresh = await firmar({ sub: 1, tipo: 'refresh' });
+    const refresh = await firmar({ sub: 1, tipo: 'refresh' }, { secreto: SECRETO_REFRESH });
 
     await expect(
       guard([crearUsuario(1)]).canActivate(contexto(conCookie({}, refresh))),

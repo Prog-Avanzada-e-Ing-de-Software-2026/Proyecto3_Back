@@ -16,7 +16,11 @@ import {
 import { Permiso } from './domain/entities/permiso.entity.js';
 import { Rol } from './domain/entities/rol.entity.js';
 import { Usuario } from './domain/entities/usuario.entity.js';
-import { ALGORITMO_FIRMA, leerSecretoJwt } from './infrastructure/config/jwt-config.js';
+import {
+  ALGORITMO_FIRMA,
+  CONFIGURACION_SESION,
+  leerConfiguracionSesion,
+} from './infrastructure/config/jwt-config.js';
 import { MikroOrmPermisoRepository } from './infrastructure/repositories/mikro-orm-permiso.repository.js';
 import { MikroOrmRolRepository } from './infrastructure/repositories/mikro-orm-rol.repository.js';
 import { MikroOrmUsuarioRepository } from './infrastructure/repositories/mikro-orm-usuario.repository.js';
@@ -34,12 +38,9 @@ import { SesionService } from './presentation/sesion.service.js';
 @Module({
   imports: [
     MikroOrmModule.forFeature([Usuario, Rol, Permiso]),
-    JwtModule.registerAsync({
-      useFactory: () => ({
-        secret: leerSecretoJwt(),
-        signOptions: { algorithm: ALGORITMO_FIRMA },
-      }),
-    }),
+    // Sin secreto global: `SesionService` pasa el secreto del tipo en cada
+    // firma y en cada verificación.
+    JwtModule.register({ signOptions: { algorithm: ALGORITMO_FIRMA } }),
   ],
   controllers: [AuthController],
   providers: [
@@ -48,6 +49,7 @@ import { SesionService } from './presentation/sesion.service.js';
     FindPermisoByNombreUseCase,
     LoginUseCase,
     RefreshSesionUseCase,
+    { provide: CONFIGURACION_SESION, useFactory: () => leerConfiguracionSesion() },
     SesionService,
     { provide: PERMISO_REPOSITORY, useClass: MikroOrmPermisoRepository },
     { provide: ROL_REPOSITORY, useClass: MikroOrmRolRepository },

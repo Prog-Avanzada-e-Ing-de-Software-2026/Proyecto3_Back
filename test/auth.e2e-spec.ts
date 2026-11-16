@@ -20,8 +20,9 @@ import { Usuario } from '../src/modules/auth/domain/entities/usuario.entity.js';
 import type { IPasswordHasher } from '../src/modules/auth/domain/interfaces/password-hasher.interface.js';
 import type { IUsuarioRepository } from '../src/modules/auth/domain/interfaces/usuario.repository.interface.js';
 import {
-  DURACION_ACCESS_SEGUNDOS,
-  DURACION_REFRESH_SEGUNDOS,
+  CONFIGURACION_SESION,
+  TTL_ACCESS_POR_DEFECTO,
+  TTL_REFRESH_POR_DEFECTO,
 } from '../src/modules/auth/infrastructure/config/jwt-config.js';
 import { Argon2PasswordHasher } from '../src/modules/auth/infrastructure/services/argon2-password-hasher.js';
 import { AuthController } from '../src/modules/auth/presentation/auth.controller.js';
@@ -29,8 +30,31 @@ import { AuthGuard } from '../src/modules/auth/presentation/auth.guard.js';
 import { SesionService } from '../src/modules/auth/presentation/sesion.service.js';
 import { initOrmMetadata } from './support/orm-metadata.js';
 
-const SECRETO = 'un-secreto-de-pruebas-con-longitud-suficiente';
+const SECRETO_ACCESS = 'un-secreto-de-pruebas-access-con-longitud-suficiente';
+const SECRETO_REFRESH = 'un-secreto-de-pruebas-refresh-con-longitud-suficiente';
 const CLAVE = '30123456';
+
+const CONFIGURACION = {
+  secretoAccess: SECRETO_ACCESS,
+  secretoRefresh: SECRETO_REFRESH,
+  ttlAccess: 900,
+  ttlRefresh: 604_800,
+};
+
+/** Firma un token de prueba con el secreto real del tipo que se quiere emitir. */
+function firmarToken(
+  contenido: Record<string, unknown>,
+  opciones: { secreto?: string; expiresIn?: number } = {},
+): Promise<string> {
+  const servicio = new JwtService({});
+
+  return opciones.expiresIn === undefined
+    ? servicio.signAsync(contenido, { secret: opciones.secreto ?? SECRETO_REFRESH })
+    : servicio.signAsync(contenido, {
+        secret: opciones.secreto ?? SECRETO_REFRESH,
+        expiresIn: opciones.expiresIn,
+      });
+}
 
 class UsuarioRepositoryFalso implements IUsuarioRepository {
   constructor(private readonly usuarios: Usuario[]) {}
@@ -46,13 +70,14 @@ class UsuarioRepositoryFalso implements IUsuarioRepository {
 
 function crearModulo(usuarios: Usuario[]): new () => object {
   @Module({
-    imports: [JwtModule.register({ secret: SECRETO, signOptions: { algorithm: 'HS256' } })],
+    imports: [JwtModule.register({ signOptions: { algorithm: 'HS256' } })],
     controllers: [AuthController],
     providers: [
       LoginUseCase,
       RefreshSesionUseCase,
       SesionService,
       { provide: USUARIO_REPOSITORY, useValue: new UsuarioRepositoryFalso(usuarios) },
+      { provide: CONFIGURACION_SESION, useValue: CONFIGURACION },
       { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
       { provide: APP_GUARD, useClass: AuthGuard },
       { provide: APP_FILTER, useClass: GlobalExceptionFilter },
@@ -120,7 +145,6 @@ function decodificar(token: string): ContenidoToken {
 
 describe('Autenticación (e2e)', () => {
   let app: INestApplication;
-  let jwt: JwtService;
   let usuario: Usuario;
   let dadoDeBaja: Usuario;
 
@@ -140,7 +164,6 @@ describe('Autenticación (e2e)', () => {
     dadoDeBaja.id = 8;
     dadoDeBaja.deletedAt = new Date('2026-03-01T10:00:00.000Z');
 
-    jwt = new JwtService({ secret: SECRETO });
   });
 
   beforeEach(async () => {
@@ -195,9 +218,9 @@ describe('Autenticación (e2e)', () => {
     const refresh = decodificar(valorDe(galletas.refresh));
 
     expect(access.tipo).toBe('access');
-    expect((access.exp ?? 0) - (access.iat ?? 0)).toBe(DURACION_ACCESS_SEGUNDOS);
+    expect((access.exp ?? 0) - (access.iat ?? 0)).toBe(TTL_ACCESS_POR_DEFECTO);
     expect(refresh.tipo).toBe('refresh');
-    expect((refresh.exp ?? 0) - (refresh.iat ?? 0)).toBe(DURACION_REFRESH_SEGUNDOS);
+    expect((refresh.exp ?? 0) - (refresh.iat ?? 0)).toBe(TTL_REFRESH_POR_DEFECTO);
   });
 
   it('[autenticacion-sesion] el refresh renueva el access sin volver a emitir el refresh', async () => {
@@ -230,10 +253,7 @@ describe('Autenticación (e2e)', () => {
   });
 
   it('[autenticacion-sesion] rechaza un refresh vencido', async () => {
-    const vencido = await jwt.signAsync(
-      { sub: 7, tipo: 'refresh' },
-      { expiresIn: DURACION_ACCESS_SEGUNDOS * -1 },
-    );
+    const vencido = await firmarToken({ sub: 7, tipo: 'refresh' }, { expiresIn: -1 });
 
     await request(app.getHttpServer())
       .post('/api/auth/refresh')
@@ -241,11 +261,20 @@ describe('Autenticación (e2e)', () => {
       .expect(401);
   });
 
-  it('[RN-34] el refresh de un usuario dado de baja no emite un access nuevo', async () => {
-    const deBaja = await jwt.signAsync(
-      { sub: 8, tipo: 'refresh' },
-      { expiresIn: DURACION_REFRESH_SEGUNDOS },
+  it('[autenticacion-sesion] un refresh firmado con el secreto de access se rechaza', async () => {
+    const ajeno = await firmarToken(
+      { sub: 7, tipo: 'refresh' },
+      { secreto: SECRETO_ACCESS },
     );
+
+    await request(app.getHttpServer())
+      .post('/api/auth/refresh')
+      .set('Cookie', `refresh=${ajeno}`)
+      .expect(401);
+  });
+
+  it('[RN-34] el refresh de un usuario dado de baja no emite un access nuevo', async () => {
+    const deBaja = await firmarToken({ sub: 8, tipo: 'refresh' });
 
     const respuesta = await request(app.getHttpServer())
       .post('/api/auth/refresh')
