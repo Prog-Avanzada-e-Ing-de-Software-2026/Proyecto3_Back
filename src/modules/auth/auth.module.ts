@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { CreatePermisoUseCase } from './application/use-cases/create-permiso.use-case.js';
 import { CreateRolUseCase } from './application/use-cases/create-rol.use-case.js';
+import { CreateUsuarioUseCase } from './application/use-cases/create-usuario.use-case.js';
 import { FindPermisoByIdUseCase } from './application/use-cases/find-permiso-by-id.use-case.js';
 import { FindPermisoByNombreUseCase } from './application/use-cases/find-permiso-by-nombre.use-case.js';
 import { FindRolByIdUseCase } from './application/use-cases/find-rol-by-id.use-case.js';
@@ -55,6 +56,7 @@ import { SesionService } from './presentation/sesion.service.js';
   providers: [
     CreatePermisoUseCase,
     CreateRolUseCase,
+    CreateUsuarioUseCase,
     FindPermisoByIdUseCase,
     FindPermisoByNombreUseCase,
     FindRolByIdUseCase,

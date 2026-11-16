@@ -8,7 +8,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AuthModule } from '../../src/modules/auth/auth.module.js';
 import { CreatePermisoUseCase } from '../../src/modules/auth/application/use-cases/create-permiso.use-case.js';
 import { NOMBRES_ROL, NOMBRES_PERMISO } from '../../src/modules/auth/domain/catalogos.js';
+import { Argon2PasswordHasher } from '../../src/modules/auth/infrastructure/services/argon2-password-hasher.js';
 import { runCatalogoIdentidad } from '../../src/seeder/catalogo-identidad.seed.js';
+import { runUsuarioInicial } from '../../src/seeder/usuario-inicial.seed.js';
 import {
   configuracionOrm,
   POSTGRES_IMAGE,
@@ -63,6 +65,31 @@ beforeEach(async () => {
 function correrSeed(): Promise<void> {
   return RequestContext.create(orm.em, () => runCatalogoIdentidad(modulo));
 }
+
+function correrSeedAdmin(): Promise<void> {
+  return RequestContext.create(orm.em, () => runUsuarioInicial(modulo));
+}
+
+async function conVariables<T>(variables: Record<string, string>, correr: () => Promise<T>) {
+  const previos = Object.fromEntries(
+    Object.keys(variables).map((nombre) => [nombre, process.env[nombre]]),
+  );
+  Object.assign(process.env, variables);
+
+  try {
+    return await correr();
+  } finally {
+    for (const [nombre, valor] of Object.entries(previos)) {
+      if (valor === undefined) {
+        delete process.env[nombre];
+      } else {
+        process.env[nombre] = valor;
+      }
+    }
+  }
+}
+
+const ADMIN = { email: 'admin@gym.com', password: 'unaClaveSegura' };
 
 afterAll(async () => {
   await modulo.close();
@@ -122,5 +149,74 @@ describe('seed catalogo-identidad', () => {
     expect(await contar('permiso')).toBe(5);
     expect(await contar('rol')).toBe(3);
     expect(await contar('rol_permiso')).toBe(5);
+  });
+});
+
+describe('seed usuario-inicial', () => {
+  beforeEach(async () => {
+    await correrSeed();
+  });
+
+  it('[identidad-usuario] crea el administrador con su credencial hasheada', async () => {
+    await conVariables(
+      { ADMIN_INICIAL_EMAIL: ADMIN.email, ADMIN_INICIAL_PASSWORD: ADMIN.password },
+      correrSeedAdmin,
+    );
+
+    const [fila] = await orm.em.getConnection().execute<
+      { email: string; password_hash: string; rol: string }[]
+    >(
+      `select u."email", u."password_hash", r."nombre" as rol
+         from "usuario" u join "rol" r on r."id" = u."rol_id"
+        where u."email" = ?;`,
+      [ADMIN.email],
+    );
+
+    expect(fila?.rol).toBe(NOMBRES_ROL.ADMINISTRADOR);
+    expect(fila?.password_hash).not.toContain(ADMIN.password);
+    await expect(
+      new Argon2PasswordHasher().verify(fila?.password_hash ?? '', ADMIN.password),
+    ).resolves.toBe(true);
+  });
+
+  it('[identidad-usuario] una segunda ejecución no duplica ni cambia la credencial', async () => {
+    await conVariables(
+      { ADMIN_INICIAL_EMAIL: ADMIN.email, ADMIN_INICIAL_PASSWORD: ADMIN.password },
+      correrSeedAdmin,
+    );
+    const [antes] = await orm.em
+      .getConnection()
+      .execute<{ password_hash: string }[]>(
+        'select "password_hash" from "usuario" where "email" = ?;',
+        [ADMIN.email],
+      );
+
+    await conVariables(
+      { ADMIN_INICIAL_EMAIL: ADMIN.email, ADMIN_INICIAL_PASSWORD: 'otraClaveDistinta' },
+      correrSeedAdmin,
+    );
+
+    const [despues] = await orm.em
+      .getConnection()
+      .execute<{ password_hash: string }[]>(
+        'select "password_hash" from "usuario" where "email" = ?;',
+        [ADMIN.email],
+      );
+
+    expect(await contar('usuario')).toBe(1);
+    expect(despues?.password_hash).toBe(antes?.password_hash);
+  });
+
+  it('[identidad-usuario] falla sin el rol en el catálogo y no persiste', async () => {
+    await vaciarTablas(orm);
+
+    await expect(
+      conVariables(
+        { ADMIN_INICIAL_EMAIL: ADMIN.email, ADMIN_INICIAL_PASSWORD: ADMIN.password },
+        correrSeedAdmin,
+      ),
+    ).rejects.toMatchObject({ codigo: 'ROL_NO_ENCONTRADO' });
+
+    expect(await contar('usuario')).toBe(0);
   });
 });

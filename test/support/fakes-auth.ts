@@ -102,6 +102,14 @@ export class UsuarioRepositoryFalso implements IUsuarioRepository {
     this.usuarios.push(...usuarios);
   }
 
+  async save(usuario: Usuario): Promise<void> {
+    if (usuario.id === undefined) {
+      usuario.id = this.usuarios.length + 1;
+    }
+
+    this.usuarios.push(usuario);
+  }
+
   async findByEmail(email: string): Promise<Usuario | null> {
     return this.usuarios.find((usuario) => usuario.email === email) ?? null;
   }

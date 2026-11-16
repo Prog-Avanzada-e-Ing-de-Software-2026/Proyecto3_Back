@@ -9,6 +9,8 @@ import type { Usuario } from '../entities/usuario.entity.js';
  * dejaría esa decisión fuera del dominio.
  */
 export interface IUsuarioRepository {
+  save(usuario: Usuario): Promise<void>;
+
   findByEmail(email: string): Promise<Usuario | null>;
 
   findById(id: number): Promise<Usuario | null>;
