@@ -2,8 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { leerSecretoJwt } from './jwt-config.js';
 
 describe('leerSecretoJwt', () => {
-  it('[implement-login] rechaza el secreto ausente', () => {
-    expect(() => leerSecretoJwt(undefined)).toThrow(/AUTH_JWT_SECRET/);
+  it('[implement-login] rechaza el secreto ausente del entorno', () => {
+    const original = process.env.AUTH_JWT_SECRET;
+
+    delete process.env.AUTH_JWT_SECRET;
+
+    try {
+      expect(() => leerSecretoJwt()).toThrow(/AUTH_JWT_SECRET/);
+    } finally {
+      process.env.AUTH_JWT_SECRET = original;
+    }
   });
 
   it('[implement-login] rechaza un secreto vacío o demasiado corto', () => {
