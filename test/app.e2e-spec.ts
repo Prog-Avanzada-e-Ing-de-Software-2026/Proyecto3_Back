@@ -4,7 +4,12 @@ import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
 
-describe('AppController (e2e)', () => {
+/**
+ * Humo sobre el módulo real: la aplicación se compone con `AppModule` y el
+ * guard global aplica a las rutas que existen. Los contratos de cada endpoint
+ * se prueban en sus propias suites, con dobles de los puertos.
+ */
+describe('Aplicación (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
@@ -17,20 +22,24 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('[autenticacion-sesion] el guard global cierra toda ruta no declarada pública', () => {
-    return request(app.getHttpServer())
-      .get('/api')
-      .expect(401)
-      .expect(({ body }) => {
-        expect(body.code).toBe('SESION_INVALIDA');
-        expect(body.requestId).toBeDefined();
-      });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('[autenticacion-sesion] el guard global cierra las rutas no declaradas públicas', async () => {
+    const respuesta = await request(app.getHttpServer()).get('/api/roles').expect(401);
+
+    expect(respuesta.body).toMatchObject({
+      statusCode: 401,
+      code: 'SESION_INVALIDA',
+    });
+    expect(respuesta.body.requestId).toBeDefined();
   });
 
   it('[autenticacion-sesion] rechaza una cookie de sesión manipulada', () => {
     return request(app.getHttpServer())
-      .get('/api')
-      .set('Cookie', 'sesion=token.manipulado.invalido')
+      .get('/api/roles')
+      .set('Cookie', 'access=token.manipulado.invalido')
       .expect(401);
   });
 
@@ -46,10 +55,12 @@ describe('AppController (e2e)', () => {
   });
 
   it('no atiende rutas fuera del prefijo global', () => {
-    return request(app.getHttpServer()).get('/').expect(404);
+    return request(app.getHttpServer()).get('/roles').expect(404);
   });
 
-  afterEach(async () => {
-    await app.close();
+  it('responde el contrato de error en una ruta inexistente', async () => {
+    const respuesta = await request(app.getHttpServer()).get('/api/no-existe').expect(404);
+
+    expect(respuesta.body.code).toBe('NO_ENCONTRADO');
   });
 });

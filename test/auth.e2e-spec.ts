@@ -18,7 +18,6 @@ import { Permiso } from '../src/modules/auth/domain/entities/permiso.entity.js';
 import { Rol } from '../src/modules/auth/domain/entities/rol.entity.js';
 import { Usuario } from '../src/modules/auth/domain/entities/usuario.entity.js';
 import type { IPasswordHasher } from '../src/modules/auth/domain/interfaces/password-hasher.interface.js';
-import type { IUsuarioRepository } from '../src/modules/auth/domain/interfaces/usuario.repository.interface.js';
 import {
   CONFIGURACION_SESION,
   TTL_ACCESS_POR_DEFECTO,
@@ -29,6 +28,7 @@ import { AuthController } from '../src/modules/auth/presentation/auth.controller
 import { AuthGuard } from '../src/modules/auth/presentation/auth.guard.js';
 import { SesionService } from '../src/modules/auth/presentation/sesion.service.js';
 import { initOrmMetadata } from './support/orm-metadata.js';
+import { UsuarioRepositoryFalso } from './support/fakes-auth.js';
 
 const SECRETO_ACCESS = 'un-secreto-de-pruebas-access-con-longitud-suficiente';
 const SECRETO_REFRESH = 'un-secreto-de-pruebas-refresh-con-longitud-suficiente';
@@ -54,18 +54,6 @@ function firmarToken(
         secret: opciones.secreto ?? SECRETO_REFRESH,
         expiresIn: opciones.expiresIn,
       });
-}
-
-class UsuarioRepositoryFalso implements IUsuarioRepository {
-  constructor(private readonly usuarios: Usuario[]) {}
-
-  async findByEmail(email: string): Promise<Usuario | null> {
-    return this.usuarios.find((usuario) => usuario.email === email) ?? null;
-  }
-
-  async findById(id: number): Promise<Usuario | null> {
-    return this.usuarios.find((usuario) => usuario.id === id) ?? null;
-  }
 }
 
 function crearModulo(usuarios: Usuario[]): new () => object {

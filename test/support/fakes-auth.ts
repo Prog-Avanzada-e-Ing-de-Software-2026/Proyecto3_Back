@@ -92,7 +92,15 @@ export class RolRepositoryFalso implements IRolRepository {
 }
 
 export class UsuarioRepositoryFalso implements IUsuarioRepository {
-  constructor(private readonly usuarios: Usuario[] = []) {}
+  private readonly usuarios: Usuario[];
+
+  constructor(usuarios: Usuario[] = []) {
+    this.usuarios = [...usuarios];
+  }
+
+  precargar(...usuarios: Usuario[]): void {
+    this.usuarios.push(...usuarios);
+  }
 
   async findByEmail(email: string): Promise<Usuario | null> {
     return this.usuarios.find((usuario) => usuario.email === email) ?? null;

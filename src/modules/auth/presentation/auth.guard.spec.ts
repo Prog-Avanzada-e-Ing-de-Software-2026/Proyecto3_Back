@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { initOrmMetadata } from '../../../../test/support/orm-metadata.js';
+import { UsuarioRepositoryFalso } from '../../../../test/support/fakes-auth.js';
 import { ErrorSemantico } from '../../../common/domain/errors/error-semantico.js';
 import { CLAVE_RUTA_PUBLICA } from '../../../common/presentation/auth/public.decorator.js';
 import { CLAVE_PERMISO } from '../../../common/presentation/auth/requiere-permiso.decorator.js';
@@ -10,7 +11,6 @@ import type { SolicitudAutenticada } from '../../../common/presentation/auth/sol
 import { Permiso } from '../domain/entities/permiso.entity.js';
 import { Rol } from '../domain/entities/rol.entity.js';
 import { Usuario } from '../domain/entities/usuario.entity.js';
-import type { IUsuarioRepository } from '../domain/interfaces/usuario.repository.interface.js';
 import { AuthGuard } from './auth.guard.js';
 import { COOKIE_ACCESS, SesionService } from './sesion.service.js';
 
@@ -23,18 +23,6 @@ const CONFIGURACION = {
   ttlAccess: 900,
   ttlRefresh: 604_800,
 };
-
-class UsuarioRepositoryFalso implements IUsuarioRepository {
-  constructor(private readonly usuarios: Usuario[] = []) {}
-
-  async findByEmail(email: string): Promise<Usuario | null> {
-    return this.usuarios.find((usuario) => usuario.email === email) ?? null;
-  }
-
-  async findById(id: number): Promise<Usuario | null> {
-    return this.usuarios.find((usuario) => usuario.id === id) ?? null;
-  }
-}
 
 function crearUsuario(id: number): Usuario {
   const rol = Rol.crear({ nombre: 'Alumno', permisos: [Permiso.crear({ nombre: 'Crear plan' })] });

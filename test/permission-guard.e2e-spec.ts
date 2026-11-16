@@ -12,7 +12,6 @@ import { USUARIO_REPOSITORY } from '../src/modules/auth/auth.repository-tokens.j
 import { Permiso } from '../src/modules/auth/domain/entities/permiso.entity.js';
 import { Rol } from '../src/modules/auth/domain/entities/rol.entity.js';
 import { Usuario } from '../src/modules/auth/domain/entities/usuario.entity.js';
-import type { IUsuarioRepository } from '../src/modules/auth/domain/interfaces/usuario.repository.interface.js';
 import {
   CONFIGURACION_SESION,
   leerConfiguracionSesion,
@@ -21,6 +20,7 @@ import { AuthGuard } from '../src/modules/auth/presentation/auth.guard.js';
 import { SesionService } from '../src/modules/auth/presentation/sesion.service.js';
 import { NOMBRES_PERMISO } from '../src/modules/auth/domain/catalogos.js';
 import { initOrmMetadata } from './support/orm-metadata.js';
+import { UsuarioRepositoryFalso } from './support/fakes-auth.js';
 
 const CONFIGURACION = leerConfiguracionSesion();
 
@@ -35,18 +35,6 @@ class ControladorDeSonda {
   @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_ALUMNOS)
   gestionarAlumnos(): { ok: boolean } {
     return { ok: true };
-  }
-}
-
-class UsuarioRepositoryFalso implements IUsuarioRepository {
-  constructor(private readonly usuarios: Usuario[]) {}
-
-  async findByEmail(email: string): Promise<Usuario | null> {
-    return this.usuarios.find((usuario) => usuario.email === email) ?? null;
-  }
-
-  async findById(id: number): Promise<Usuario | null> {
-    return this.usuarios.find((usuario) => usuario.id === id) ?? null;
   }
 }
 

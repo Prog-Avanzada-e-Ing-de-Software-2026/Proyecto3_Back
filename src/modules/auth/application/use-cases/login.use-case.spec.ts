@@ -1,28 +1,12 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { initOrmMetadata } from '../../../../../test/support/orm-metadata.js';
+import { UsuarioRepositoryFalso } from '../../../../../test/support/fakes-auth.js';
 import { CredencialesInvalidasError } from '../../domain/errors/credenciales-invalidas.error.js';
 import { Permiso } from '../../domain/entities/permiso.entity.js';
 import { Rol } from '../../domain/entities/rol.entity.js';
 import { Usuario } from '../../domain/entities/usuario.entity.js';
 import type { IPasswordHasher } from '../../domain/interfaces/password-hasher.interface.js';
-import type { IUsuarioRepository } from '../../domain/interfaces/usuario.repository.interface.js';
 import { LoginUseCase } from './login.use-case.js';
-
-class UsuarioRepositoryFalso implements IUsuarioRepository {
-  private readonly usuarios: Usuario[] = [];
-
-  precargar(usuario: Usuario): void {
-    this.usuarios.push(usuario);
-  }
-
-  async findByEmail(email: string): Promise<Usuario | null> {
-    return this.usuarios.find((usuario) => usuario.email === email) ?? null;
-  }
-
-  async findById(id: number): Promise<Usuario | null> {
-    return this.usuarios.find((usuario) => usuario.id === id) ?? null;
-  }
-}
 
 /** Doble del hasher: la contraseña correcta es la que produjo el hash. */
 class HasherFalso implements IPasswordHasher {
