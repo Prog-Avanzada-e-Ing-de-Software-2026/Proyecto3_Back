@@ -1,4 +1,4 @@
-import { IsEmail, IsString } from 'class-validator';
+import { Allow, IsEmail, IsString } from 'class-validator';
 import { describe, expect, it } from 'vitest';
 import { EntradaInvalidaException } from './entrada-invalida.exception.js';
 import { crearValidationPipe } from './validation-pipe.js';
@@ -13,6 +13,9 @@ class CuerpoDePrueba {
 
   @IsString({ message: 'La clave debe ser un texto.' })
   clave!: string;
+
+  @Allow()
+  etiqueta!: string;
 }
 
 const METADATOS = { type: 'body' as const, metatype: CuerpoDePrueba };
@@ -28,6 +31,21 @@ describe('crearValidationPipe', () => {
 
     expect(resultado).toBeInstanceOf(CuerpoDePrueba);
     expect(resultado).toEqual({ email: 'alumno@gym.com', clave: '30123456' });
+  });
+
+  it('[http-error-contract] admite una propiedad declarada sin validadores cuando usa Allow', async () => {
+    const pipe = crearValidationPipe();
+
+    const resultado = await pipe.transform(
+      { email: 'alumno@gym.com', clave: '30123456', etiqueta: 'libre' },
+      METADATOS,
+    );
+
+    expect(resultado).toEqual({
+      email: 'alumno@gym.com',
+      clave: '30123456',
+      etiqueta: 'libre',
+    });
   });
 
   it('[http-error-contract] rechaza una propiedad no declarada con el detalle por campo', async () => {

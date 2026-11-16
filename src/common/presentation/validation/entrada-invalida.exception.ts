@@ -8,8 +8,8 @@ import type { DetalleValidacion } from './detalle-validacion.js';
  * regla del gimnasio. Extiende una excepción HTTP para que el estado sea `400`
  * también fuera de este filtro, y el filtro la reconoce por su tipo para
  * agregar `errores` al cuerpo sin interpretar la forma interna del framework.
- * El mensaje repite el texto del `400` que responde el filtro; un test unitario
- * fija ambos para que no se desincronicen.
+ * El mensaje repite el texto del `400` que responde el filtro; los tests de la
+ * excepción y del filtro fijan el mismo texto para que no se desincronicen.
  */
 export class EntradaInvalidaException extends BadRequestException {
   readonly errores: DetalleValidacion[];

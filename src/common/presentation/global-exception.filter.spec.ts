@@ -1,4 +1,4 @@
-import { HttpException, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -178,6 +178,20 @@ describe('GlobalExceptionFilter', () => {
       new ErrorSemantico('entrada_invalida', 'DATOS_INVALIDOS', 'Los datos no son válidos.'),
       host,
     );
+
+    expect(Object.keys(cuerpoEnviado(respuesta)).sort()).toEqual([
+      'code',
+      'message',
+      'requestId',
+      'statusCode',
+    ]);
+  });
+
+  it('[http-error-contract] no agrega el campo errores a una excepcion HTTP generica', () => {
+    const { host, respuesta } = crearHost({ id: 'solicitud-10' } as Partial<Request>);
+    const filtro = new GlobalExceptionFilter();
+
+    filtro.catch(new BadRequestException('causa'), host);
 
     expect(Object.keys(cuerpoEnviado(respuesta)).sort()).toEqual([
       'code',

@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * exista; que su redacción sea la correcta en español es revisión humana.
  */
 const modulosDto = import.meta.glob(
-  '/src/modules/**/presentation/dto/*.dto.ts',
+  '/src/**/dto/*.dto.ts',
   { eager: true },
 );
 
@@ -54,15 +54,15 @@ describe('Mensajes de validación de los DTO', () => {
 
         for (const restriccion of restricciones) {
           const mensaje = restriccion.message;
+          const origen = `${ruta}: ${clase.name}.${restriccion.propertyName} (${restriccion.name ?? restriccion.type})`;
 
-          if (typeof mensaje === 'function') {
+          if (typeof mensaje !== 'string' || mensaje.trim() === '') {
+            incumplimientos.push(`${origen} no declara un message de texto`);
             continue;
           }
 
-          if (typeof mensaje !== 'string' || mensaje.trim() === '') {
-            incumplimientos.push(
-              `${ruta}: ${clase.name}.${restriccion.propertyName} (${restriccion.name ?? restriccion.type}) no declara message`,
-            );
+          if (/\$(value|property)/.test(mensaje)) {
+            incumplimientos.push(`${origen} interpola un placeholder de class-validator`);
           }
         }
       }
