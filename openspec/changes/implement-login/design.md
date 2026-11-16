@@ -40,17 +40,19 @@ La sesión es un JWT firmado con HS256 que viaja en una cookie `httpOnly`, `Same
 - **JWT `Bearer` en cabecera:** el cliente decide dónde guardarlo; con `localStorage` queda expuesto a XSS. Descartada.
 - **Token con los permisos adentro:** evita navegar el rol, pero deja permisos obsoletos hasta que expire el token y contradice que la autorización se decida contra el catálogo persistido.
 
-### D2 — `bcryptjs` para el hash
+### D2 — `argon2id` para el hash
 
-Hash con `bcryptjs`, costo 12, salt por fila. La verificación se hace contra `passwordHash`; el hash nunca sale del agregado.
+Hash con `argon2id` usando la dependencia `argon2`, parámetros `m=19 MiB, t=2, p=1` —el mínimo recomendado por OWASP—, salt por fila y salida en formato PHC. La verificación se hace contra `passwordHash`; el hash nunca sale del agregado.
 
-**Por qué:** `bcryptjs` es JavaScript puro. `argon2` y `bcrypt` (bindings nativos) son superiores en resistencia y velocidad, pero agregan una cadena de compilación nativa al `yarn install` y al CI, y en este repositorio el login no es un camino caliente. El costo 12 mantiene la verificación por debajo de los ~500 ms con margen.
+**Por qué:** `argon2id` es la primera recomendación de OWASP y de la RFC 9106, y es **memory-hard**: encarece el ataque offline con GPU, que es el que importa acá. Además corre en el threadpool de libuv, así que no bloquea el event loop. En este proyecto el argumento es más fuerte que en una aplicación promedio: por `RN-33` la credencial inicial de alumnos y profesores es su número de documento, un espacio de 10⁸ claves, y el único freno real es el costo por intento.
+
+**Medición:** en `linux-x64` con Node 24, `argon2@0.45.2` instala en 2 s sin ejecutar su script de instalación —usa binarios precompilados sobre N-API vía `node-gyp-build`— y hashea en 27 ms con los parámetros por defecto. El repositorio usa `nodeLinker: node-modules`, así que un módulo nativo no requiere configuración extra.
 
 **Alternativas descartadas:**
 
-- **`argon2` (argon2id):** el algoritmo recomendado hoy. Se descarta por la dependencia nativa, no por seguridad.
-- **`bcrypt` nativo:** mismo problema de compilación, sin ventaja funcional sobre `bcryptjs` para este caso.
-- **`node:crypto` `scrypt`:** sin dependencia externa, pero obliga a definir formato de almacenamiento, parámetros y comparación en tiempo constante a mano. Más superficie de error que la que ahorra.
+- **`bcryptjs`:** JavaScript puro, sin riesgo de compilación, pero solo CPU-hard y **bloquea el event loop** durante el hash. Era la elección anterior de este diseño; se descartó al comprobar que el costo de instalación de `argon2` que la justificaba no existe en esta plataforma.
+- **`bcrypt` nativo:** mismo límite de 72 bytes y sin parámetro de memoria; no aporta nada sobre `argon2id` a cambio de la misma dependencia nativa.
+- **`node:crypto` `scrypt`:** memory-hard y sin dependencia externa, pero obliga a definir formato de almacenamiento, parámetros y comparación en tiempo constante a mano. Más superficie de error que la que ahorra.
 
 ### D3 — `@nestjs/jwt` y `cookie-parser`
 
@@ -131,8 +133,8 @@ El rechazo por credenciales inválidas responde `401` con un mensaje único, sin
 
 - **[Revocación]** Un token robado sigue siendo válido hasta que expira; el logout solo borra la cookie del cliente. → TTL corto y configurable (8 h por defecto), `Secure` en producción, y verificación de baja en cada petición, que es el caso de negocio realmente exigido.
 - **[CSRF]** La cookie viaja automáticamente: `SameSite=Lax` bloquea el envío en peticiones cross-site no navegacionales, que es lo que cubre estos endpoints `POST`. → Riesgo residual aceptado y declarado; si aparecen operaciones de negocio con efectos amplios, se evalúa token CSRF.
-- **[Costo por petición]** Una lectura de `Usuario` con su rol y permisos en cada request. → Se resuelve con un `populate` explícito del rol y sus permisos en el adaptador, y se mide en la prueba del adaptador; si el volumen lo exige, se cachea por rol, no por usuario.
-- **[`bcryptjs` y bloqueo del event loop]** El hash es síncrono en JavaScript puro; un login concurrente puede competir con el resto. → Costo 12 acotado y medición en la prueba; la verificación se ejecuta en el caso de uso y no bloquea operaciones de lectura.
+- **[Costo por request]** Una lectura de `Usuario` con su rol y permisos en cada petición. → Se resuelve con un `populate` explícito del rol y sus permisos en el adaptador, y se mide en la prueba del adaptador; si el volumen lo exige, se cachea por rol, no por usuario.
+- **[Memoria del hash]** `argon2id` reserva 19 MiB por verificación concurrente. → Con `p=1` y `t=2` cada login cuesta ~10 ms y el consumo es acotado; se mide en el test del adaptador y los parámetros quedan explícitos para poder ajustarlos.
 - **[Secreto ausente]** Firmar con un valor por defecto convertiría un error de despliegue en una sesión falsificable. → El arranque falla con un mensaje explícito; el `.env` no se versiona.
 - **[Dependencia nueva en el arnés]** `cookie-parser` y `@nestjs/jwt` entran a la matriz de e2e. → Se prueban sobre la app real creada desde `AppModule` y `main.ts`, no sobre módulos de sonda.
 
