@@ -100,16 +100,16 @@ El guard deja el `Usuario` autenticado en la petición y un decorador `@ActorAct
 - **`AsyncLocalStorage`:** útil cuando el actor se lee en capas profundas; acá el caso de uso ya recibe su Input.
 - **Leer el `request` dentro del caso de uso:** mete HTTP en aplicación y contradice §5.4.
 
-### D6 — `IUsuarioRepository` devuelve el agregado aunque esté dado de baja
+### D6 — `IUsuarioRepository` excluye la baja y la excepción es explícita
 
-El puerto expone `findByEmail(email)` y `findById(id)` **sin** filtrar la baja lógica; el caso de uso de login y el guard deciden si el usuario puede acceder.
+Las lecturas habituales del puerto (`findByEmail`, `findById`) excluyen a los usuarios dados de baja, como el resto del modelo (`AGENTS.md` §5.8 y §6.3). La unicidad del email usa la variante explícita `findByEmailIncluyendoBaja`, porque el email no se libera con la baja.
 
-**Por qué:** para iniciar sesión y para revalidar una sesión hay que poder distinguir "el email no existe" de "el email existe pero el usuario está dado de baja": el primero es un rechazo genérico, el segundo también, pero además es una decisión de negocio con trazabilidad. Si el puerto filtrara, el caso de uso no podría decidir. Es la excepción explícita a la exclusión habitual de `AGENTS.md` §5.8, y el nombre del método no la oculta.
+**Por qué:** el filtro de baja pertenece a la implementación del puerto y no a cada consulta; el método que sí mira la baja lo declara en la firma. Login, guard y `/refresh` ya no repiten `estaActivo()` sobre el usuario: si la lectura no lo devuelve, el rechazo es el genérico y el cliente sigue sin poder distinguir la causa (`HU 14`), porque el mensaje es el mismo. El rol sí se chequea explícitamente: un rol dado de baja deja sin acceso a sus usuarios.
 
 **Alternativas descartadas:**
 
-- **Reutilizar un lector que excluya la baja:** obliga a devolver "no encontrado" para un usuario dado de baja y deja la decisión de negocio fuera del dominio.
-- **Dos métodos, uno con y otro sin baja:** dos puertos para el mismo dato; el llamador elige según lo que necesita, lo cual es exactamente el error que se quiere evitar.
+- **Que el puerto devuelva siempre el agregado y cada caso de uso chequee `estaActivo()`:** reparte el filtro por la aplicación, contradice §5.8 y obliga a acordarse en cada lector nuevo.
+- **Un puerto de lectura aparte solo para la baja:** un contrato por lectura, que es el antipatrón de §5.9.
 
 ### D7 — Contrato de los dos endpoints de sesión
 

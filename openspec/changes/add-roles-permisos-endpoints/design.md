@@ -90,6 +90,18 @@ El caso de uso que asigna permisos compara el conjunto pedido contra los permiso
 
 **Límite conocido:** el alta rechaza duplicados en vez de ser idempotente, y no modifica los permisos de un rol que ya existe. El seed resuelve lo primero listando antes de crear, así que sigue pudiéndose ejecutar dos veces; lo segundo no lo resuelve: el catálogo queda completo solo sobre una base recién sembrada. Se acepta porque los entornos de este proyecto se crean desde cero; converger un catálogo existente pediría un seed que actualice la asignación.
 
+### D7 — La unicidad del nombre la garantiza un índice sobre `lower(nombre)`
+
+Las tablas `rol` y `permiso` cambian la restricción única plana por un índice único sobre `lower(nombre)`, y los adaptadores comparan con `ilike` escapando comodines.
+
+**Por qué:** `RN-36` pide unicidad sin distinguir mayúsculas y, con `text`, `UNIQUE ("nombre")` deja convivir `Administrador` y `administrador`. La lectura previa del caso de uso no alcanza: dos altas concurrentes pasan las dos y solo la base las separa (`AGENTS.md` §5.7). El índice no es parcial porque el nombre tampoco se libera con la baja.
+
+**Alternativas descartadas:**
+
+- **Normalizar el nombre a minúsculas al persistir:** rompe los nombres que la spec exige (`Gestionar alumnos`, `Crear plan`).
+- **`citext`:** exige extensión y cambia el tipo de la columna de todo el catálogo por un problema de unicidad.
+- **Confiar solo en la lectura previa:** no protege contra concurrencia y dejaría la invariante fuera de la base.
+
 ## Risks / Trade-offs
 
 - **[Escalada de privilegios]** Si la comparación del actor se implementa mal, o se saltea en el alta, un usuario con `Gestionar roles` puede darse todos los permisos. → Regla cubierta por su propio requisito y por escenarios de rechazo en las dos operaciones que asignan.
@@ -98,8 +110,9 @@ El caso de uso que asigna permisos compara el conjunto pedido contra los permiso
 
 ## Migration Plan
 
-1. Sembrar el catálogo (`yarn db:seed catalogo-identidad`) en los entornos que se creen desde cero después del despliegue. Sin los dos permisos, los nueve endpoints quedan cerrados para todos.
-2. **Rollback:** revertir el commit; los dos permisos nuevos quedan en la base sin uso, lo cual es inocuo.
+1. La migración del cambio reemplaza `permiso_nombre_unique` y `rol_nombre_unique` por los índices `lower(nombre)`; si un entorno ya tuviera nombres duplicados sin distinguir mayúsculas, el `up` falla en vez de fusionar filas, y el `down` restaura las restricciones originales.
+2. Sembrar el catálogo (`yarn db:seed catalogo-identidad`) en los entornos que se creen desde cero después del despliegue. Sin los dos permisos, los nueve endpoints quedan cerrados para todos.
+3. **Rollback:** revertir el commit; los dos permisos nuevos quedan en la base sin uso, lo cual es inocuo.
 
 ## Open Questions
 
