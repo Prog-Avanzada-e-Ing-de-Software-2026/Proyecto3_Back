@@ -20,8 +20,8 @@ function repositorio(): MikroOrmUsuarioRepository {
 
 async function sembrarUsuario(dadoDeBaja = false): Promise<Usuario> {
   const em = entorno.orm.em.fork();
-  const permisoVigente = asignarAlta(Permiso.crear({ nombre: 'Crear plan' }));
-  const permisoDadoDeBaja = asignarAlta(Permiso.crear({ nombre: 'Gestionar alumnos' }));
+  const permisoVigente = asignarAlta(Permiso.crear({ nombre: 'plan:crear' }));
+  const permisoDadoDeBaja = asignarAlta(Permiso.crear({ nombre: 'alumno:consultar' }));
   const rol = asignarAlta(
     Rol.crear({
       nombre: 'Profesor',
@@ -75,7 +75,7 @@ describe('MikroOrmUsuarioRepository', () => {
     expect(usuario).not.toBeNull();
     expect(usuario?.email).toBe('profesor@gym.com');
     expect(usuario?.rol.nombre).toBe('Profesor');
-    expect(usuario?.permisosEfectivos().map((permiso) => permiso.nombre)).toEqual(['Crear plan']);
+    expect(usuario?.permisosEfectivos().map((permiso) => permiso.nombre)).toEqual(['plan:crear']);
   });
 
   it('[RN-34] la lectura habitual oculta al usuario dado de baja', async () => {

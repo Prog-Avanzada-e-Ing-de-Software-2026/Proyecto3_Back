@@ -51,7 +51,7 @@ Ver `proposal.md` — Why. El estado actual que condiciona el enfoque:
 
 El caso de uso que asigna permisos compara el conjunto pedido contra los permisos efectivos del actor y rechaza si falta alguno.
 
-**Por qué:** sin esa regla, un rol con `Gestionar roles` se autoescala creando un rol con todos los permisos y asignándoselo. El modelo de permisos pasa a ser decorativo en cuanto hay más de un administrador.
+**Por qué:** sin esa regla, un rol con `rol:permisos` se autoescala creando un rol con todos los permisos y asignándoselo. El modelo de permisos pasa a ser decorativo en cuanto hay más de un administrador.
 
 **Cómo se obtiene el actor:** el controller recibe `@ActorActual()` y el caso de uso lo resuelve con `IUsuarioRepository.findById`. Es una lectura extra por escritura, no por request, y evita construir un segundo camino para los permisos del actor.
 
@@ -64,7 +64,7 @@ El caso de uso que asigna permisos compara el conjunto pedido contra los permiso
 
 `PATCH` acepta cambiar descripción y nombre, salvo cuando el nombre actual es uno de los requeridos por la spec. En ese caso solo se acepta la descripción.
 
-**Por qué:** el catálogo MUST contener `Administrador`, `Profesor`, `Alumno` y los cinco permisos. Renombrar cualquiera de ellos lo saca del catálogo y rompe un requisito sin que nada lo note.
+**Por qué:** el catálogo MUST contener `Administrador`, `Profesor`, `Alumno` y los permisos del catálogo de autorización. Renombrar cualquiera de ellos lo saca del catálogo y rompe un requisito sin que nada lo note.
 
 **Alternativas descartadas:**
 
@@ -84,13 +84,24 @@ El caso de uso que asigna permisos compara el conjunto pedido contra los permiso
 
 ### D6 — Los dos permisos nuevos van en la carga inicial
 
-`Gestionar roles` y `Gestionar permisos` se agregan a `PERMISOS_INICIALES` y a la asignación de `Administrador` en el seed.
+Los siete permisos del catálogo de autorización se agregan a `PERMISOS_INICIALES` y a la asignación de `Administrador` en el seed.
 
 **Por qué:** el seed es donde se declara el catálogo mínimo, y `Administrador` es el único rol que puede administrarlo.
 
 **Límite conocido:** el alta rechaza duplicados en vez de ser idempotente, y no modifica los permisos de un rol que ya existe. El seed resuelve lo primero listando antes de crear, así que sigue pudiéndose ejecutar dos veces; lo segundo no lo resuelve: el catálogo queda completo solo sobre una base recién sembrada. Se acepta porque los entornos de este proyecto se crean desde cero; converger un catálogo existente pediría un seed que actualice la asignación.
 
-### D7 — La unicidad del nombre la garantiza un índice sobre `lower(nombre)`
+### D7 — Un permiso por operación, con la forma `recurso:acción`
+
+El catálogo protege una operación por permiso: `rol:consultar`, `rol:crear`, `rol:editar`, `rol:permisos`, `permiso:consultar`, `permiso:crear` y `permiso:editar`. La convención queda fijada en `AGENTS.md` §5.10 y en el requisito del catálogo.
+
+**Por qué:** un permiso que agrupa varias operaciones (`Gestionar roles`) obliga a dar de alta y consultar juntos, y no permite separar lo que puede escalar privilegios (`rol:permisos`) del resto. Cada módulo nuevo declara sus permisos con la misma forma, en el cambio que expone la operación.
+
+**Alternativas descartadas:**
+
+- **Un permiso por módulo (`roles:gestionar`):** no distingue lectura de escritura ni de asignación, y la escalada queda atada a la administración entera.
+- **Dar el permiso por rol en lugar de por operación:** el rol ya agrupa permisos; un permiso con nombre de rol duplica el modelo.
+
+### D8 — La unicidad del nombre la garantiza un índice sobre `lower(nombre)`
 
 Las tablas `rol` y `permiso` cambian la restricción única plana por un índice único sobre `lower(nombre)`, y los adaptadores comparan con `ilike` escapando comodines.
 
@@ -98,21 +109,21 @@ Las tablas `rol` y `permiso` cambian la restricción única plana por un índice
 
 **Alternativas descartadas:**
 
-- **Normalizar el nombre a minúsculas al persistir:** rompe los nombres que la spec exige (`Gestionar alumnos`, `Crear plan`).
+- **Normalizar el nombre a minúsculas al persistir:** cambia el valor del nombre sin necesidad; la unicidad es una regla de comparación, y los roles conservan nombres visibles.
 - **`citext`:** exige extensión y cambia el tipo de la columna de todo el catálogo por un problema de unicidad.
 - **Confiar solo en la lectura previa:** no protege contra concurrencia y dejaría la invariante fuera de la base.
 
 ## Risks / Trade-offs
 
-- **[Escalada de privilegios]** Si la comparación del actor se implementa mal, o se saltea en el alta, un usuario con `Gestionar roles` puede darse todos los permisos. → Regla cubierta por su propio requisito y por escenarios de rechazo en las dos operaciones que asignan.
+- **[Escalada de privilegios]** Si la comparación del actor se implementa mal, o se saltea en el alta, un usuario con `rol:permisos` puede darse todos los permisos. → Regla cubierta por su propio requisito y por escenarios de rechazo en las dos operaciones que asignan.
 - **[Nombre requerido renombrado]** Un `PATCH` podría sacar `Administrador` del catálogo. → Rechazo explícito y prueba por rol y por permiso.
 - **[Permisos huérfanos]** Un permiso puede quedar en el catálogo sin ningún rol que lo use. → Es válido: un permiso se prepara antes de asignarlo.
 
 ## Migration Plan
 
 1. La migración del cambio reemplaza `permiso_nombre_unique` y `rol_nombre_unique` por los índices `lower(nombre)`; si un entorno ya tuviera nombres duplicados sin distinguir mayúsculas, el `up` falla en vez de fusionar filas, y el `down` restaura las restricciones originales.
-2. Sembrar el catálogo (`yarn db:seed catalogo-identidad`) en los entornos que se creen desde cero después del despliegue. Sin los dos permisos, los nueve endpoints quedan cerrados para todos.
-3. **Rollback:** revertir el commit; los dos permisos nuevos quedan en la base sin uso, lo cual es inocuo.
+2. Sembrar el catálogo (`yarn db:seed catalogo-identidad`) en los entornos que se creen desde cero después del despliegue. Sin los siete permisos, los nueve endpoints quedan cerrados para todos. Un entorno ya sembrado conserva los permisos anteriores en sus roles y hay que renombrarlos o resembrar: el seed no actualiza roles existentes.
+3. **Rollback:** revertir el commit; los permisos nuevos quedan en la base sin uso, lo cual es inocuo.
 
 ## Open Questions
 

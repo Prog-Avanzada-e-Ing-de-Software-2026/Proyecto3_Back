@@ -19,44 +19,44 @@ function permisoGuardado(nombre: string, id = 1): Permiso {
 describe('UpdatePermisoUseCase', () => {
   it('[identidad-usuario] edita nombre y descripción y registra la edición', async () => {
     const permisos = new PermisoRepositoryFalso();
-    permisos.precargar(permisoGuardado('Gestionar materiales'));
+    permisos.precargar(permisoGuardado('material:crear'));
 
     const permiso = await new UpdatePermisoUseCase(permisos).execute({
       id: 1,
-      nombre: 'Gestionar material',
+      nombre: 'material:editar',
       descripcion: 'Alta y baja de material',
       actorId: 3,
     });
 
-    expect(permiso.nombre).toBe('Gestionar material');
+    expect(permiso.nombre).toBe('material:editar');
     expect(permiso.descripcion).toBe('Alta y baja de material');
     expect(permiso.updatedById).toBe(3);
   });
 
   it('[identidad-usuario] rechaza renombrar un permiso requerido', async () => {
     const permisos = new PermisoRepositoryFalso();
-    permisos.precargar(permisoGuardado('Crear plan'));
+    permisos.precargar(permisoGuardado('rol:consultar'));
 
     await expect(
-      new UpdatePermisoUseCase(permisos).execute({ id: 1, nombre: 'Armar plan' }),
+      new UpdatePermisoUseCase(permisos).execute({ id: 1, nombre: 'rol:leer' }),
     ).rejects.toMatchObject({ codigo: 'NOMBRE_REQUERIDO' });
   });
 
   it('[identidad-usuario] rechaza un nombre que ya usa otro permiso', async () => {
     const permisos = new PermisoRepositoryFalso();
     permisos.precargar(
-      permisoGuardado('Gestionar materiales', 1),
-      permisoGuardado('Gestionar unidades', 2),
+      permisoGuardado('material:crear', 1),
+      permisoGuardado('unidad:editar', 2),
     );
 
     await expect(
-      new UpdatePermisoUseCase(permisos).execute({ id: 1, nombre: 'Gestionar unidades' }),
+      new UpdatePermisoUseCase(permisos).execute({ id: 1, nombre: 'unidad:editar' }),
     ).rejects.toMatchObject({ codigo: 'PERMISO_DUPLICADO' });
   });
 
   it('[identidad-usuario] rechaza una edición sin campos y no escribe', async () => {
     const permisos = new PermisoRepositoryFalso();
-    permisos.precargar(permisoGuardado('Gestionar materiales'));
+    permisos.precargar(permisoGuardado('material:crear'));
 
     await expect(new UpdatePermisoUseCase(permisos).execute({ id: 1 })).rejects.toMatchObject({
       codigo: 'SIN_CAMBIOS',

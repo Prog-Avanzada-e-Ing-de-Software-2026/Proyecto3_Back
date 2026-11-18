@@ -46,10 +46,10 @@ function actorCon(nombresPermisos: string[]): Usuario {
 
 describe('CreateRolUseCase', () => {
   it('[identidad-usuario] crea el rol con sus permisos y registra al actor', async () => {
-    const crearPlan = Permiso.crear({ nombre: 'Crear plan' });
-    const { rolesRepo, caso } = armar([crearPlan], [actorCon(['Crear plan'])]);
+    const crearPlan = Permiso.crear({ nombre: 'plan:crear' });
+    const { rolesRepo, caso } = armar([crearPlan], [actorCon(['plan:crear'])]);
 
-    const rol = await caso.execute({ nombre: ' Profesor ', permisos: ['Crear plan'], actorId: 1 });
+    const rol = await caso.execute({ nombre: ' Profesor ', permisos: ['plan:crear'], actorId: 1 });
 
     expect(rol.nombre).toBe('Profesor');
     expect(rol.permisos.getItems()).toEqual([crearPlan]);
@@ -89,15 +89,15 @@ describe('CreateRolUseCase', () => {
   });
 
   it('[identidad-usuario] rechaza otorgar un permiso que el actor no tiene', async () => {
-    const crearPlan = Permiso.crear({ nombre: 'Crear plan' });
-    const gestionarRoles = Permiso.crear({ nombre: 'Gestionar roles' });
+    const crearPlan = Permiso.crear({ nombre: 'plan:crear' });
+    const gestionarRoles = Permiso.crear({ nombre: 'rol:editar' });
     const { rolesRepo, caso } = armar(
       [crearPlan, gestionarRoles],
-      [actorCon(['Gestionar roles'])],
+      [actorCon(['rol:editar'])],
     );
 
     await expect(
-      caso.execute({ nombre: 'Profesor', permisos: ['Crear plan'], actorId: 1 }),
+      caso.execute({ nombre: 'Profesor', permisos: ['plan:crear'], actorId: 1 }),
     ).rejects.toMatchObject({ codigo: 'PERMISO_NO_OTORGABLE' });
     expect(rolesRepo.guardados).toHaveLength(0);
   });

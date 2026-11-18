@@ -52,7 +52,7 @@ describe('LoginUseCase', () => {
   }
 
   it('[identidad-usuario] concede la sesión y devuelve rol y permisos efectivos', async () => {
-    const rol = crearRol('Profesor', ['Crear plan']);
+    const rol = crearRol('Profesor', ['plan:crear']);
     const caso = armar(crearUsuario(7, rol));
 
     const resultado = await caso.execute({ email: 'alumno@gym.com', password: '30123456' });
@@ -61,7 +61,7 @@ describe('LoginUseCase', () => {
       id: 7,
       email: 'alumno@gym.com',
       rol: 'Profesor',
-      permisos: ['Crear plan'],
+      permisos: ['plan:crear'],
     });
   });
 
@@ -108,8 +108,8 @@ describe('LoginUseCase', () => {
   });
 
   it('[identidad-usuario] no devuelve permisos dados de baja', async () => {
-    const vigente = crearPermiso('Crear plan');
-    const dadoDeBaja = crearPermiso('Gestionar alumnos');
+    const vigente = crearPermiso('plan:crear');
+    const dadoDeBaja = crearPermiso('alumno:consultar');
     dadoDeBaja.deletedAt = new Date('2026-03-01T10:00:00.000Z');
     const rol = Rol.crear({ nombre: 'Profesor', permisos: [vigente, dadoDeBaja] });
 
@@ -118,6 +118,6 @@ describe('LoginUseCase', () => {
       password: '30123456',
     });
 
-    expect(resultado.permisos).toEqual(['Crear plan']);
+    expect(resultado.permisos).toEqual(['plan:crear']);
   });
 });

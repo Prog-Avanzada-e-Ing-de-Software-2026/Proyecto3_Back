@@ -110,29 +110,55 @@ describe('Catálogo de roles y permisos (e2e)', () => {
   });
 
   beforeEach(async () => {
-    const crearPlan = Permiso.crear({ nombre: NOMBRES_PERMISO.CREAR_PLAN });
-    crearPlan.id = 1;
-    crearPlan.createdAt = new Date('2026-01-01T10:00:00.000Z');
-    const gestionarRoles = Permiso.crear({ nombre: NOMBRES_PERMISO.GESTIONAR_ROLES });
-    gestionarRoles.id = 2;
-    gestionarRoles.createdAt = new Date('2026-01-01T10:00:00.000Z');
-    const gestionarPermisos = Permiso.crear({ nombre: NOMBRES_PERMISO.GESTIONAR_PERMISOS });
-    gestionarPermisos.id = 3;
-    gestionarPermisos.createdAt = new Date('2026-01-01T10:00:00.000Z');
+    const rolConsultar = Permiso.crear({ nombre: NOMBRES_PERMISO.ROL_CONSULTAR });
+    rolConsultar.id = 1;
+    rolConsultar.createdAt = new Date('2026-01-01T10:00:00.000Z');
+    const rolCrear = Permiso.crear({ nombre: NOMBRES_PERMISO.ROL_CREAR });
+    rolCrear.id = 2;
+    rolCrear.createdAt = new Date('2026-01-01T10:00:00.000Z');
+    const rolEditar = Permiso.crear({ nombre: NOMBRES_PERMISO.ROL_EDITAR });
+    rolEditar.id = 3;
+    rolEditar.createdAt = new Date('2026-01-01T10:00:00.000Z');
+    const rolPermisos = Permiso.crear({ nombre: NOMBRES_PERMISO.ROL_PERMISOS });
+    rolPermisos.id = 4;
+    rolPermisos.createdAt = new Date('2026-01-01T10:00:00.000Z');
+    const permisoConsultar = Permiso.crear({ nombre: NOMBRES_PERMISO.PERMISO_CONSULTAR });
+    permisoConsultar.id = 5;
+    permisoConsultar.createdAt = new Date('2026-01-01T10:00:00.000Z');
+    const permisoCrear = Permiso.crear({ nombre: NOMBRES_PERMISO.PERMISO_CREAR });
+    permisoCrear.id = 6;
+    permisoCrear.createdAt = new Date('2026-01-01T10:00:00.000Z');
+    const permisoEditar = Permiso.crear({ nombre: NOMBRES_PERMISO.PERMISO_EDITAR });
+    permisoEditar.id = 7;
+    permisoEditar.createdAt = new Date('2026-01-01T10:00:00.000Z');
+    // Permiso del catálogo de planes, todavía sin endpoint: es el que el
+    // administrador no tiene, así que sirve para observar la escalada.
+    const planCrear = Permiso.crear({ nombre: 'plan:crear' });
+    planCrear.id = 8;
+    planCrear.createdAt = new Date('2026-01-01T10:00:00.000Z');
 
     permisos = new PermisoRepositoryFalso();
-    permisos.precargar(crearPlan, gestionarRoles, gestionarPermisos);
+    permisos.precargar(
+      rolConsultar,
+      rolCrear,
+      rolEditar,
+      rolPermisos,
+      permisoConsultar,
+      permisoCrear,
+      permisoEditar,
+      planCrear,
+    );
 
-    // El administrador tiene lo que puede otorgar, menos `Gestionar permisos`:
+    // El administrador tiene todo el catálogo de roles y nada del de permisos:
     // así la escalada es observable.
     const rolAdmin = Rol.crear({
       nombre: 'Administrador',
-      permisos: [crearPlan, gestionarRoles],
+      permisos: [rolConsultar, rolCrear, rolEditar, rolPermisos],
     });
     rolAdmin.id = 1;
     rolAdmin.createdAt = new Date('2026-01-01T10:00:00.000Z');
 
-    const rolAlumno = Rol.crear({ nombre: 'Alumno', permisos: [crearPlan] });
+    const rolAlumno = Rol.crear({ nombre: 'Alumno', permisos: [] });
     rolAlumno.id = 2;
     rolAlumno.createdAt = new Date('2026-01-01T10:00:00.000Z');
 
@@ -149,7 +175,7 @@ describe('Catálogo de roles y permisos (e2e)', () => {
     alumno.id = 2;
     const rolAdminPermisos = Rol.crear({
       nombre: 'Administrador de permisos',
-      permisos: [gestionarPermisos],
+      permisos: [permisoConsultar, permisoCrear, permisoEditar],
     });
     rolAdminPermisos.id = 3;
     rolAdminPermisos.createdAt = new Date('2026-01-01T10:00:00.000Z');
@@ -214,9 +240,9 @@ describe('Catálogo de roles y permisos (e2e)', () => {
       .expect(200);
 
     expect(listaRoles.body).toHaveLength(3);
-    expect(listaRoles.body[0].permisos).toContain(NOMBRES_PERMISO.GESTIONAR_ROLES);
+    expect(listaRoles.body[0].permisos).toContain(NOMBRES_PERMISO.ROL_CONSULTAR);
     expect(listaPermisos.body.map((permiso: { nombre: string }) => permiso.nombre)).toContain(
-      NOMBRES_PERMISO.CREAR_PLAN,
+      NOMBRES_PERMISO.PERMISO_CONSULTAR,
     );
   });
 
@@ -255,13 +281,13 @@ describe('Catálogo de roles y permisos (e2e)', () => {
     const creado = await request(app.getHttpServer())
       .post('/api/roles')
       .set('Cookie', `access=${access}`)
-      .send({ nombre: 'Entrenador', descripcion: 'Acompaña', permisos: [NOMBRES_PERMISO.CREAR_PLAN] })
+      .send({ nombre: 'Entrenador', descripcion: 'Acompaña', permisos: [NOMBRES_PERMISO.ROL_EDITAR] })
       .expect(201);
 
     expect(creado.body).toMatchObject({
       nombre: 'Entrenador',
       descripcion: 'Acompaña',
-      permisos: [NOMBRES_PERMISO.CREAR_PLAN],
+      permisos: [NOMBRES_PERMISO.ROL_EDITAR],
     });
 
     await request(app.getHttpServer())
@@ -316,10 +342,10 @@ describe('Catálogo de roles y permisos (e2e)', () => {
     const respuesta = await request(app.getHttpServer())
       .put('/api/roles/2/permisos')
       .set('Cookie', `access=${access}`)
-      .send({ permisos: [NOMBRES_PERMISO.GESTIONAR_ROLES] })
+      .send({ permisos: [NOMBRES_PERMISO.ROL_EDITAR] })
       .expect(200);
 
-    expect(respuesta.body.permisos).toEqual([NOMBRES_PERMISO.GESTIONAR_ROLES]);
+    expect(respuesta.body.permisos).toEqual([NOMBRES_PERMISO.ROL_EDITAR]);
   });
 
   it('[identidad-usuario] rechaza otorgar un permiso que el actor no tiene', async () => {
@@ -327,7 +353,7 @@ describe('Catálogo de roles y permisos (e2e)', () => {
     const respuesta = await request(app.getHttpServer())
       .put('/api/roles/2/permisos')
       .set('Cookie', `access=${access}`)
-      .send({ permisos: [NOMBRES_PERMISO.GESTIONAR_PERMISOS] })
+      .send({ permisos: ['plan:crear'] })
       .expect(403);
 
     expect(respuesta.body.code).toBe('PERMISO_NO_OTORGABLE');
@@ -360,7 +386,7 @@ describe('Catálogo de roles y permisos (e2e)', () => {
     const creado = await request(app.getHttpServer())
       .post('/api/permisos')
       .set('Cookie', `access=${access}`)
-      .send({ nombre: 'Gestionar materiales', descripcion: 'Materiales del gimnasio' })
+      .send({ nombre: 'material:crear', descripcion: 'Materiales del gimnasio' })
       .expect(201);
 
     await request(app.getHttpServer())

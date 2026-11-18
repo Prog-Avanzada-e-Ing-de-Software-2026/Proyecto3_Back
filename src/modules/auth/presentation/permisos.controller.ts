@@ -24,21 +24,21 @@ export class PermisosController {
   ) {}
 
   @Get()
-  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_PERMISOS)
+  @RequierePermiso(NOMBRES_PERMISO.PERMISO_CONSULTAR)
   @ApiOperation({ summary: 'Lista los permisos vigentes del catálogo' })
   async listarPermisos(): Promise<PermisoResumen[]> {
     return this.listar.execute();
   }
 
   @Get(':id')
-  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_PERMISOS)
+  @RequierePermiso(NOMBRES_PERMISO.PERMISO_CONSULTAR)
   @ApiOperation({ summary: 'Devuelve un permiso vigente' })
   async buscarPermiso(@Param('id', ParseIntPipe) id: number): Promise<PermisoResumen> {
     return this.buscar.execute(id);
   }
 
   @Post()
-  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_PERMISOS)
+  @RequierePermiso(NOMBRES_PERMISO.PERMISO_CREAR)
   @ApiOperation({ summary: 'Da de alta un permiso del catálogo' })
   @ApiSolicitudInvalida()
   async crearPermiso(
@@ -55,7 +55,7 @@ export class PermisosController {
   }
 
   @Patch(':id')
-  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_PERMISOS)
+  @RequierePermiso(NOMBRES_PERMISO.PERMISO_EDITAR)
   @ApiOperation({ summary: 'Edita nombre y descripción de un permiso' })
   @ApiSolicitudInvalida()
   async editarPermiso(

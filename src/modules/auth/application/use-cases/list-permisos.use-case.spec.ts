@@ -18,23 +18,23 @@ describe('lecturas de permisos', () => {
   it('[identidad-usuario] el listado devuelve los permisos vigentes', async () => {
     const permisos = new PermisoRepositoryFalso();
     permisos.precargar(
-      permisoGuardado('Crear plan', 1),
-      permisoGuardado('Gestionar roles', 2),
+      permisoGuardado('plan:crear', 1),
+      permisoGuardado('rol:editar', 2),
     );
 
     await expect(new ListPermisosUseCase(permisos).execute()).resolves.toEqual([
-      { id: 1, nombre: 'Crear plan', descripcion: null },
-      { id: 2, nombre: 'Gestionar roles', descripcion: null },
+      { id: 1, nombre: 'plan:crear', descripcion: null },
+      { id: 2, nombre: 'rol:editar', descripcion: null },
     ]);
   });
 
   it('[identidad-usuario] el detalle devuelve el permiso pedido', async () => {
     const permisos = new PermisoRepositoryFalso();
-    permisos.precargar(permisoGuardado('Crear plan', 5));
+    permisos.precargar(permisoGuardado('plan:crear', 5));
 
     await expect(new FindPermisoByIdUseCase(permisos).execute(5)).resolves.toEqual({
       id: 5,
-      nombre: 'Crear plan',
+      nombre: 'plan:crear',
       descripcion: null,
     });
   });

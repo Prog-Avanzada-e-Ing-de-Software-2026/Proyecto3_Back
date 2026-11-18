@@ -28,7 +28,7 @@ function indiceDe(comando: 'begin' | 'commit' | 'rollback'): number {
   );
 }
 
-function crearPermiso(nombre = 'Crear plan'): Permiso {
+function crearPermiso(nombre = 'plan:crear'): Permiso {
   const permiso = Permiso.crear({ nombre });
   permiso.createdAt = alta;
 

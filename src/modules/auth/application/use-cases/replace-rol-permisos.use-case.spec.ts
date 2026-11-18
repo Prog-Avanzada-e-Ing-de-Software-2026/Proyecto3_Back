@@ -16,9 +16,9 @@ beforeAll(() => {
   initOrmMetadata();
 });
 
-const CREAR_PLAN = 'Crear plan';
-const GESTIONAR_ALUMNOS = 'Gestionar alumnos';
-const GESTIONAR_ROLES = 'Gestionar roles';
+const CREAR_PLAN = 'plan:crear';
+const GESTIONAR_ALUMNOS = 'alumno:consultar';
+const GESTIONAR_ROLES = 'rol:editar';
 
 function armar(opciones: { permisosDelRol?: string[]; permisosDelActor?: string[] } = {}) {
   const crearPlan = Permiso.crear({ nombre: CREAR_PLAN });
@@ -82,10 +82,12 @@ describe('ReplaceRolPermisosUseCase', () => {
       actorId: 9,
     });
 
-    expect(rol.permisos.getItems().map((permiso) => permiso.nombre).sort()).toEqual([
-      CREAR_PLAN,
-      GESTIONAR_ALUMNOS,
-    ]);
+    expect(
+      rol.permisos
+        .getItems()
+        .map((permiso) => permiso.nombre)
+        .sort(),
+    ).toEqual([CREAR_PLAN, GESTIONAR_ALUMNOS].sort());
   });
 
   it('[identidad-usuario] registra la edición con su actor', async () => {

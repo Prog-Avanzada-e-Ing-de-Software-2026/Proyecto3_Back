@@ -15,6 +15,6 @@ describe('patronSinComodines', () => {
   });
 
   it('[identidad-usuario] deja intacto un nombre sin caracteres especiales', () => {
-    expect(patronSinComodines('Crear plan')).toBe('Crear plan');
+    expect(patronSinComodines('plan:crear')).toBe('plan:crear');
   });
 });

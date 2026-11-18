@@ -27,21 +27,21 @@ describe('lecturas de roles', () => {
   it('[identidad-usuario] el listado devuelve los roles con sus permisos', async () => {
     const roles = new RolRepositoryFalso();
     roles.precargar(
-      rolGuardado('Administrador', 1, ['Gestionar roles']),
+      rolGuardado('Administrador', 1, ['rol:editar']),
       rolGuardado('Alumno', 2),
     );
 
     const resumenes = await new ListRolesUseCase(roles).execute();
 
     expect(resumenes).toEqual([
-      { id: 1, nombre: 'Administrador', descripcion: null, permisos: ['Gestionar roles'] },
+      { id: 1, nombre: 'Administrador', descripcion: null, permisos: ['rol:editar'] },
       { id: 2, nombre: 'Alumno', descripcion: null, permisos: [] },
     ]);
   });
 
   it('[identidad-usuario] el detalle devuelve el rol pedido', async () => {
     const roles = new RolRepositoryFalso();
-    roles.precargar(rolGuardado('Profesor', 3, ['Crear plan']));
+    roles.precargar(rolGuardado('Profesor', 3, ['plan:crear']));
 
     const resumen = await new FindRolByIdUseCase(roles).execute(3);
 
@@ -49,7 +49,7 @@ describe('lecturas de roles', () => {
       id: 3,
       nombre: 'Profesor',
       descripcion: null,
-      permisos: ['Crear plan'],
+      permisos: ['plan:crear'],
     });
   });
 

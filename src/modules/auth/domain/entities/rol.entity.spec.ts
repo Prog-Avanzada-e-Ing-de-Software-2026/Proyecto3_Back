@@ -36,7 +36,7 @@ describe('Rol', () => {
 
   it('[rol] rechaza el mismo permiso dos veces', () => {
     const rol = crearRol();
-    const permiso = crearPermiso('Crear plan');
+    const permiso = crearPermiso('plan:crear');
 
     rol.asignarPermiso(permiso);
 
@@ -45,7 +45,7 @@ describe('Rol', () => {
   });
 
   it('[rol] el mismo permiso puede asignarse a dos roles', () => {
-    const permiso = crearPermiso('Crear plan');
+    const permiso = crearPermiso('plan:crear');
     const primero = crearRol('PROFESOR');
     const segundo = crearRol('Administrador');
 
@@ -58,7 +58,7 @@ describe('Rol', () => {
 
   it('[rol] asignar y quitar permisos no escriben auditoría', () => {
     const rol = crearRol();
-    const permiso = crearPermiso('Crear plan');
+    const permiso = crearPermiso('plan:crear');
 
     rol.asignarPermiso(permiso);
     rol.quitarPermiso(permiso);
@@ -70,7 +70,7 @@ describe('Rol', () => {
 
   it('[rol] rechaza quitar un permiso que no tiene', () => {
     const rol = crearRol();
-    const permiso = crearPermiso('Crear plan');
+    const permiso = crearPermiso('plan:crear');
 
     expect(() => rol.quitarPermiso(permiso)).toThrow(ErrorSemantico);
   });

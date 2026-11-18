@@ -4,7 +4,9 @@
 
 ### Requirement: Catálogo de permisos
 
-El sistema SHALL persistir los permisos como entidades con nombre único sin distinguir mayúsculas y descripción, y MUST contener los permisos `Gestionar alumnos`, `Gestionar profesores`, `Crear plan`, `Gestionar roles` y `Gestionar permisos`, que habilitan las operaciones que `HU 16` a `HU 24`, `RN-11` y la administración del catálogo reservan a un rol determinado. El nombre de un permiso MUST NOT reutilizarse.
+El sistema SHALL persistir los permisos como entidades con nombre único sin distinguir mayúsculas y descripción, y MUST contener los permisos `rol:consultar`, `rol:crear`, `rol:editar`, `rol:permisos`, `permiso:consultar`, `permiso:crear` y `permiso:editar`, que habilitan las nueve operaciones del catálogo de autorización.
+
+Cada permiso MUST nombrarse `recurso:acción`, en minúsculas y sin tildes, y MUST corresponder a una sola operación. Todo módulo nuevo MUST declarar sus permisos con esa forma y agregarlos en el cambio que expone la operación. El nombre de un permiso MUST NOT reutilizarse.
 
 #### Scenario: Nombre de permiso repetido
 
@@ -14,7 +16,7 @@ El sistema SHALL persistir los permisos como entidades con nombre único sin dis
 #### Scenario: Permisos requeridos disponibles
 
 - **WHEN** se ejecuta la carga inicial del catálogo sobre un esquema recién aplicado
-- **THEN** el catálogo contiene `Gestionar alumnos`, `Gestionar profesores`, `Crear plan`, `Gestionar roles` y `Gestionar permisos`
+- **THEN** el catálogo contiene `rol:consultar`, `rol:crear`, `rol:editar`, `rol:permisos`, `permiso:consultar`, `permiso:crear` y `permiso:editar`
 
 ## ADDED Requirements
 
@@ -24,7 +26,7 @@ El sistema SHALL permitir consultar, dar de alta y editar roles y permisos, y MU
 
 #### Scenario: Alta de un permiso nuevo
 
-- **WHEN** un usuario con `Gestionar permisos` registra un permiso con un nombre inexistente
+- **WHEN** un usuario con `permiso:crear` registra un permiso con un nombre inexistente
 - **THEN** el permiso queda disponible en el catálogo con su nombre y descripción
 
 #### Scenario: Nombre que difiere solo en mayúsculas
@@ -58,7 +60,7 @@ Una operación que asigne permisos a un rol MUST rechazarse si el actor no tiene
 
 #### Scenario: Alta de un rol con un permiso que el actor no tiene
 
-- **WHEN** un usuario con `Gestionar roles` pero sin `Gestionar permisos` crea un rol que incluye `Gestionar permisos`
+- **WHEN** un usuario con `rol:crear` pero sin `permiso:crear` crea un rol que incluye `permiso:crear`
 - **THEN** la operación se rechaza y no se persiste el rol
 
 #### Scenario: Reemplazo con un permiso que el actor no tiene

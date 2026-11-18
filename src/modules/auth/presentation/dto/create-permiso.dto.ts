@@ -3,7 +3,7 @@ import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreatePermisoDto {
   @ApiProperty({
-    example: 'Gestionar materiales',
+    example: 'material:crear',
     description: 'Nombre único del permiso',
   })
   @IsString({ message: 'El nombre del permiso debe ser un texto.' })

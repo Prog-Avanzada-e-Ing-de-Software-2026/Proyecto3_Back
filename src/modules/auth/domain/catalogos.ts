@@ -1,8 +1,9 @@
 /**
  * Nombres del catálogo de autorización.
  *
- * La fila persistida es la fuente de verdad; estas constantes existen para que
- * el código y el seed nombren lo mismo, y para saber qué nombres exige la
+ * Un permiso por operación, con la forma `recurso:acción` (`AGENTS.md` §5.10). La
+ * fila persistida es la fuente de verdad; estas constantes existen para que el
+ * código y el seed nombren lo mismo, y para saber qué nombres exige la
  * especificación y por lo tanto no se pueden cambiar.
  */
 export const NOMBRES_ROL = {
@@ -12,11 +13,13 @@ export const NOMBRES_ROL = {
 } as const;
 
 export const NOMBRES_PERMISO = {
-  GESTIONAR_ALUMNOS: 'Gestionar alumnos',
-  GESTIONAR_PROFESORES: 'Gestionar profesores',
-  CREAR_PLAN: 'Crear plan',
-  GESTIONAR_ROLES: 'Gestionar roles',
-  GESTIONAR_PERMISOS: 'Gestionar permisos',
+  ROL_CONSULTAR: 'rol:consultar',
+  ROL_CREAR: 'rol:crear',
+  ROL_EDITAR: 'rol:editar',
+  ROL_PERMISOS: 'rol:permisos',
+  PERMISO_CONSULTAR: 'permiso:consultar',
+  PERMISO_CREAR: 'permiso:crear',
+  PERMISO_EDITAR: 'permiso:editar',
 } as const;
 
 export type NombreRol = (typeof NOMBRES_ROL)[keyof typeof NOMBRES_ROL];

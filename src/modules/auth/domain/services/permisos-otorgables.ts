@@ -6,7 +6,7 @@ import type { Usuario } from '../entities/usuario.entity.js';
  * Rechaza otorgar permisos que el actor no tiene (`RN-43`).
  *
  * Cruza dos agregados —los permisos del actor y los que se quieren asignar—, así
- * que vive acá y no en una entidad. Sin esta regla, un rol con `Gestionar roles`
+ * que vive acá y no en una entidad. Sin esta regla, un rol con `rol:permisos`
  * se autoescala creando un rol con todos los permisos y asignándoselo.
  */
 export function exigirPermisosOtorgables(actor: Usuario, solicitados: Permiso[]): void {

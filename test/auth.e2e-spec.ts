@@ -146,7 +146,7 @@ describe('Autenticación (e2e)', () => {
     const hasher: IPasswordHasher = new Argon2PasswordHasher();
     const rol = Rol.crear({
       nombre: 'Alumno',
-      permisos: [Permiso.crear({ nombre: 'Crear plan' })],
+      permisos: [Permiso.crear({ nombre: 'plan:crear' })],
     });
     const hash = await hasher.hash(CLAVE);
 
@@ -185,7 +185,7 @@ describe('Autenticación (e2e)', () => {
       id: 7,
       email: 'alumno@gym.com',
       rol: 'Alumno',
-      permisos: ['Crear plan'],
+      permisos: ['plan:crear'],
     });
   });
 
@@ -230,7 +230,7 @@ describe('Autenticación (e2e)', () => {
       id: 7,
       email: 'alumno@gym.com',
       rol: 'Alumno',
-      permisos: ['Crear plan'],
+      permisos: ['plan:crear'],
     });
   });
 
@@ -399,7 +399,7 @@ describe('Autenticación (e2e)', () => {
       id: 7,
       email: 'alumno@gym.com',
       rol: 'Alumno',
-      permisos: ['Crear plan'],
+      permisos: ['plan:crear'],
     });
   });
 

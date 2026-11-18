@@ -6,11 +6,11 @@ import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js
 describe('FindPermisoByNombreUseCase', () => {
   it('[identidad-usuario] recorta el nombre antes de buscar', async () => {
     const repositorio = new PermisoRepositoryFalso();
-    const permiso = Permiso.crear({ nombre: 'Crear plan' });
+    const permiso = Permiso.crear({ nombre: 'plan:crear' });
     repositorio.precargar(permiso);
 
     await expect(
-      new FindPermisoByNombreUseCase(repositorio).execute('  Crear plan  '),
+      new FindPermisoByNombreUseCase(repositorio).execute('  plan:crear  '),
     ).resolves.toBe(permiso);
   });
 

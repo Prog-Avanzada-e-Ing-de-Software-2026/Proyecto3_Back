@@ -25,8 +25,8 @@ function permisos(): MikroOrmPermisoRepository {
 
 async function sembrar(): Promise<{ rol: Rol; vigente: Permiso; dadoDeBaja: Permiso }> {
   const em = entorno.orm.em.fork();
-  const vigente = asignarAlta(Permiso.crear({ nombre: 'Crear plan' }));
-  const dadoDeBaja = asignarAlta(Permiso.crear({ nombre: 'Gestionar alumnos' }));
+  const vigente = asignarAlta(Permiso.crear({ nombre: 'plan:crear' }));
+  const dadoDeBaja = asignarAlta(Permiso.crear({ nombre: 'alumno:consultar' }));
   const rol = asignarAlta(
     Rol.crear({ nombre: 'Profesor', permisos: [vigente, dadoDeBaja] }),
   );
@@ -66,7 +66,7 @@ describe('lecturas del catálogo de autorización', () => {
     expect(lista).toHaveLength(1);
     expect(lista[0]?.nombre).toBe('Profesor');
     // El filtro de baja lógica también alcanza a la colección populada.
-    expect(lista[0]?.permisos.getItems().map((permiso) => permiso.nombre)).toEqual(['Crear plan']);
+    expect(lista[0]?.permisos.getItems().map((permiso) => permiso.nombre)).toEqual(['plan:crear']);
   });
 
   it('[identidad-usuario] encuentra un rol por identificador', async () => {
@@ -82,13 +82,13 @@ describe('lecturas del catálogo de autorización', () => {
 
     const lista = await permisos().findAll();
 
-    expect(lista.map((permiso) => permiso.nombre)).toEqual(['Crear plan']);
+    expect(lista.map((permiso) => permiso.nombre)).toEqual(['plan:crear']);
   });
 
   it('[identidad-usuario] la unicidad de nombre ve los registros dados de baja', async () => {
     await sembrar();
 
-    await expect(permisos().existeNombre('Gestionar alumnos')).resolves.toBe(true);
+    await expect(permisos().existeNombre('alumno:consultar')).resolves.toBe(true);
     await expect(permisos().existeNombre('Inexistente')).resolves.toBe(false);
   });
 

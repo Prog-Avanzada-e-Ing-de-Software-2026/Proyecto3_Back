@@ -18,24 +18,32 @@ interface RolInicial {
 
 const PERMISOS_INICIALES: readonly PermisoInicial[] = [
   {
-    nombre: NOMBRES_PERMISO.GESTIONAR_ALUMNOS,
-    descripcion: 'Dar de alta, modificar, dar de baja y reactivar alumnos.',
+    nombre: NOMBRES_PERMISO.ROL_CONSULTAR,
+    descripcion: 'Consultar el catálogo de roles.',
   },
   {
-    nombre: NOMBRES_PERMISO.GESTIONAR_PROFESORES,
-    descripcion: 'Dar de alta, modificar, dar de baja y reactivar profesores.',
+    nombre: NOMBRES_PERMISO.ROL_CREAR,
+    descripcion: 'Dar de alta roles del catálogo.',
   },
   {
-    nombre: NOMBRES_PERMISO.CREAR_PLAN,
-    descripcion: 'Armar y modificar planes de entrenamiento.',
+    nombre: NOMBRES_PERMISO.ROL_EDITAR,
+    descripcion: 'Editar el nombre y la descripción de un rol.',
   },
   {
-    nombre: NOMBRES_PERMISO.GESTIONAR_ROLES,
-    descripcion: 'Dar de alta y editar roles del catálogo de autorización.',
+    nombre: NOMBRES_PERMISO.ROL_PERMISOS,
+    descripcion: 'Reemplazar el conjunto de permisos de un rol.',
   },
   {
-    nombre: NOMBRES_PERMISO.GESTIONAR_PERMISOS,
-    descripcion: 'Dar de alta y editar permisos del catálogo de autorización.',
+    nombre: NOMBRES_PERMISO.PERMISO_CONSULTAR,
+    descripcion: 'Consultar el catálogo de permisos.',
+  },
+  {
+    nombre: NOMBRES_PERMISO.PERMISO_CREAR,
+    descripcion: 'Dar de alta permisos del catálogo.',
+  },
+  {
+    nombre: NOMBRES_PERMISO.PERMISO_EDITAR,
+    descripcion: 'Editar el nombre y la descripción de un permiso.',
   },
 ];
 
@@ -43,15 +51,20 @@ const ROLES_INICIALES: readonly RolInicial[] = [
   {
     nombre: NOMBRES_ROL.ADMINISTRADOR,
     permisos: [
-      NOMBRES_PERMISO.GESTIONAR_ALUMNOS,
-      NOMBRES_PERMISO.GESTIONAR_PROFESORES,
-      NOMBRES_PERMISO.GESTIONAR_ROLES,
-      NOMBRES_PERMISO.GESTIONAR_PERMISOS,
+      NOMBRES_PERMISO.ROL_CONSULTAR,
+      NOMBRES_PERMISO.ROL_CREAR,
+      NOMBRES_PERMISO.ROL_EDITAR,
+      NOMBRES_PERMISO.ROL_PERMISOS,
+      NOMBRES_PERMISO.PERMISO_CONSULTAR,
+      NOMBRES_PERMISO.PERMISO_CREAR,
+      NOMBRES_PERMISO.PERMISO_EDITAR,
     ],
   },
+  // `Profesor` recibe los permisos de plan cuando exista la operación que los
+  // exige (`plan:crear`, HU 1); un permiso sin endpoint no se puede ejercer.
   {
     nombre: NOMBRES_ROL.PROFESOR,
-    permisos: [NOMBRES_PERMISO.CREAR_PLAN],
+    permisos: [],
   },
   {
     nombre: NOMBRES_ROL.ALUMNO,

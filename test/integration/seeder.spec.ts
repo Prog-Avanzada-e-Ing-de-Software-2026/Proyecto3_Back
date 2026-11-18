@@ -97,22 +97,23 @@ afterAll(async () => {
 });
 
 describe('seed catalogo-identidad', () => {
-  it('[seeder] deja los tres roles, los cinco permisos y sus asignaciones', async () => {
+  it('[seeder] deja los tres roles, los siete permisos y sus asignaciones', async () => {
     await correrSeed();
 
     expect(await contar('rol')).toBe(3);
-    expect(await contar('permiso')).toBe(5);
-    expect(await contar('rol_permiso')).toBe(5);
+    expect(await contar('permiso')).toBe(7);
+    expect(await contar('rol_permiso')).toBe(7);
 
     expect(await permisosDeRol(NOMBRES_ROL.ADMINISTRADOR)).toEqual([
-      NOMBRES_PERMISO.GESTIONAR_ALUMNOS,
-      NOMBRES_PERMISO.GESTIONAR_PERMISOS,
-      NOMBRES_PERMISO.GESTIONAR_PROFESORES,
-      NOMBRES_PERMISO.GESTIONAR_ROLES,
+      NOMBRES_PERMISO.PERMISO_CONSULTAR,
+      NOMBRES_PERMISO.PERMISO_CREAR,
+      NOMBRES_PERMISO.PERMISO_EDITAR,
+      NOMBRES_PERMISO.ROL_CONSULTAR,
+      NOMBRES_PERMISO.ROL_CREAR,
+      NOMBRES_PERMISO.ROL_EDITAR,
+      NOMBRES_PERMISO.ROL_PERMISOS,
     ]);
-    expect(await permisosDeRol(NOMBRES_ROL.PROFESOR)).toEqual([
-      NOMBRES_PERMISO.CREAR_PLAN,
-    ]);
+    expect(await permisosDeRol(NOMBRES_ROL.PROFESOR)).toEqual([]);
     expect(await permisosDeRol(NOMBRES_ROL.ALUMNO)).toEqual([]);
   });
 
@@ -133,22 +134,22 @@ describe('seed catalogo-identidad', () => {
 
     expect(despues).toEqual(antes);
     expect(await contar('rol')).toBe(3);
-    expect(await contar('permiso')).toBe(5);
+    expect(await contar('permiso')).toBe(7);
   });
 
   it('[seeder] converge después de una ejecución interrumpida entre permisos y roles', async () => {
     const crearPermiso = modulo.get(CreatePermisoUseCase);
     await RequestContext.create(orm.em, () =>
       crearPermiso.execute({
-        nombre: NOMBRES_PERMISO.CREAR_PLAN,
+        nombre: NOMBRES_PERMISO.ROL_CONSULTAR,
       }),
     );
 
     await correrSeed();
 
-    expect(await contar('permiso')).toBe(5);
+    expect(await contar('permiso')).toBe(7);
     expect(await contar('rol')).toBe(3);
-    expect(await contar('rol_permiso')).toBe(5);
+    expect(await contar('rol_permiso')).toBe(7);
   });
 });
 

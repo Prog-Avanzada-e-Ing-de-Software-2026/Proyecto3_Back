@@ -14,7 +14,7 @@ export class CreateRolDto {
 
   @ApiPropertyOptional({
     type: [String],
-    example: ['Crear plan'],
+    example: ['plan:crear'],
     description: 'Nombres de permisos a asignar',
   })
   @IsOptional()

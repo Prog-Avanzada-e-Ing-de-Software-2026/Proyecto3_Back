@@ -4,7 +4,7 @@ import { IsArray, IsString } from 'class-validator';
 export class ReplaceRolPermisosDto {
   @ApiProperty({
     type: [String],
-    example: ['Crear plan', 'Gestionar alumnos'],
+    example: ['plan:crear', 'alumno:consultar'],
     description: 'Conjunto completo de permisos que queda en el rol',
   })
   @IsArray({ message: 'Los permisos deben ser una lista.' })

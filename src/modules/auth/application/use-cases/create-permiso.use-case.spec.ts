@@ -13,12 +13,12 @@ describe('CreatePermisoUseCase', () => {
     const repositorio = new PermisoRepositoryFalso();
 
     const permiso = await new CreatePermisoUseCase(repositorio).execute({
-      nombre: '  Crear plan  ',
+      nombre: '  plan:crear  ',
       actorId: 7,
     });
 
     expect(repositorio.guardados).toHaveLength(1);
-    expect(permiso.nombre).toBe('Crear plan');
+    expect(permiso.nombre).toBe('plan:crear');
     expect(permiso.descripcion).toBeNull();
     expect(permiso.createdById).toBe(7);
     expect(permiso.createdAt).toBeInstanceOf(Date);
@@ -27,20 +27,20 @@ describe('CreatePermisoUseCase', () => {
 
   it('[identidad-usuario] rechaza un nombre que ya existe', async () => {
     const repositorio = new PermisoRepositoryFalso();
-    repositorio.precargar(Permiso.crear({ nombre: 'Crear plan' }));
+    repositorio.precargar(Permiso.crear({ nombre: 'plan:crear' }));
 
     await expect(
-      new CreatePermisoUseCase(repositorio).execute({ nombre: ' Crear plan ' }),
+      new CreatePermisoUseCase(repositorio).execute({ nombre: ' plan:crear ' }),
     ).rejects.toMatchObject({ codigo: 'PERMISO_DUPLICADO' });
     expect(repositorio.guardados).toHaveLength(1);
   });
 
   it('[identidad-usuario] rechaza un nombre que difiere solo en mayúsculas', async () => {
     const repositorio = new PermisoRepositoryFalso();
-    repositorio.precargar(Permiso.crear({ nombre: 'Crear plan' }));
+    repositorio.precargar(Permiso.crear({ nombre: 'plan:crear' }));
 
     await expect(
-      new CreatePermisoUseCase(repositorio).execute({ nombre: 'CREAR PLAN' }),
+      new CreatePermisoUseCase(repositorio).execute({ nombre: 'PLAN:CREAR' }),
     ).rejects.toMatchObject({ codigo: 'PERMISO_DUPLICADO' });
     expect(repositorio.guardados).toHaveLength(1);
   });

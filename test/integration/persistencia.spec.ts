@@ -129,10 +129,10 @@ describe('persistencia del modelo de identidad', () => {
     await expect(persistir(crearRol('  Profesor  '))).rejects.toThrow();
     entorno.orm.em.clear();
 
-    const permiso = crearPermiso('Crear plan');
+    const permiso = crearPermiso('plan:crear');
     await persistir(permiso);
 
-    await expect(persistir(crearPermiso('  Crear plan  '))).rejects.toThrow();
+    await expect(persistir(crearPermiso('  plan:crear  '))).rejects.toThrow();
   });
 
   it('[persistencia][RN-36] rechaza nombres de rol y de permiso que difieren solo en mayúsculas', async () => {
@@ -141,9 +141,9 @@ describe('persistencia del modelo de identidad', () => {
     await expect(persistir(crearRol('PROFESOR'))).rejects.toThrow();
     entorno.orm.em.clear();
 
-    await persistir(crearPermiso('Crear plan'));
+    await persistir(crearPermiso('plan:crear'));
 
-    await expect(persistir(crearPermiso('crear PLAN'))).rejects.toThrow();
+    await expect(persistir(crearPermiso('PLAN:CREAR'))).rejects.toThrow();
   });
 
   it('[persistencia][RN-36] la base declara la unicidad del nombre sobre lower(nombre)', async () => {
@@ -251,7 +251,7 @@ describe('persistencia del modelo de identidad', () => {
 
   it('[persistencia] rechaza el mismo permiso dos veces en un rol', async () => {
     const rol = crearRol('Profesor');
-    const permiso = crearPermiso('Crear plan');
+    const permiso = crearPermiso('plan:crear');
     await persistir([rol, permiso]);
 
     const conexion = entorno.orm.em.getConnection();

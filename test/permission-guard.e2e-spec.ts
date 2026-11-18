@@ -33,7 +33,7 @@ class ControladorDeSonda {
   }
 
   @Get('alumnos')
-  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_ALUMNOS)
+  @RequierePermiso(NOMBRES_PERMISO.ROL_CONSULTAR)
   gestionarAlumnos(): { ok: boolean } {
     return { ok: true };
   }
@@ -83,8 +83,8 @@ describe('Autorización por permiso (e2e)', () => {
   beforeAll(() => {
     initOrmMetadata();
 
-    conPermiso = crearUsuario(1, 'admin@gym.com', [NOMBRES_PERMISO.GESTIONAR_ALUMNOS]);
-    sinPermiso = crearUsuario(2, 'alumno@gym.com', [NOMBRES_PERMISO.CREAR_PLAN]);
+    conPermiso = crearUsuario(1, 'admin@gym.com', [NOMBRES_PERMISO.ROL_CONSULTAR]);
+    sinPermiso = crearUsuario(2, 'alumno@gym.com', ['plan:crear']);
   });
 
   beforeEach(async () => {

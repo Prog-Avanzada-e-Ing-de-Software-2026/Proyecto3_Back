@@ -25,8 +25,8 @@ describe('exigirNombreEditable', () => {
   it('[identidad-usuario][RN-44] rechaza renombrar un permiso requerido', () => {
     expect(() =>
       exigirNombreEditable(
-        'Gestionar alumnos',
-        'Administrar alumnos',
+        'rol:consultar',
+        'Administrar roles',
         NOMBRES_PERMISO_REQUERIDOS,
       ),
     ).toThrow(ErrorSemantico);

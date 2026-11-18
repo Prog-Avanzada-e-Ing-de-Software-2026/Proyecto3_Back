@@ -26,7 +26,7 @@ const CONFIGURACION = {
 };
 
 function crearUsuario(id: number): Usuario {
-  const rol = Rol.crear({ nombre: 'Alumno', permisos: [Permiso.crear({ nombre: 'Crear plan' })] });
+  const rol = Rol.crear({ nombre: 'Alumno', permisos: [Permiso.crear({ nombre: 'plan:crear' })] });
   const usuario = Usuario.crear({ email: `usuario${id}@gym.com`, passwordHash: 'hash', rol });
   usuario.id = id;
 
@@ -163,7 +163,7 @@ describe('AuthGuard', () => {
 
     await expect(
       guard([crearUsuario(1)]).canActivate(
-        contexto(conCookie({}, token), { permiso: 'Crear plan' }),
+        contexto(conCookie({}, token), { permiso: 'plan:crear' }),
       ),
     ).resolves.toBe(true);
   });
@@ -173,20 +173,20 @@ describe('AuthGuard', () => {
 
     await expect(
       guard([crearUsuario(1)]).canActivate(
-        contexto(conCookie({}, token), { permiso: 'Gestionar alumnos' }),
+        contexto(conCookie({}, token), { permiso: 'alumno:consultar' }),
       ),
     ).rejects.toMatchObject({ categoria: 'prohibido', codigo: 'SIN_PERMISO' });
   });
 
   it('[identidad-usuario] responde 401 antes de evaluar permisos si no hay sesión', async () => {
     await expect(
-      guard().canActivate(contexto({}, { permiso: 'Gestionar alumnos' })),
+      guard().canActivate(contexto({}, { permiso: 'alumno:consultar' })),
     ).rejects.toMatchObject({ categoria: 'no_autenticado', codigo: 'SESION_INVALIDA' });
   });
 
   it('[identidad-usuario] una ruta pública no evalúa permisos aunque los declare', async () => {
     await expect(
-      guard().canActivate(contexto({}, { publica: true, permiso: 'Gestionar alumnos' })),
+      guard().canActivate(contexto({}, { publica: true, permiso: 'alumno:consultar' })),
     ).resolves.toBe(true);
   });
 });

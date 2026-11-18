@@ -36,21 +36,21 @@ export class RolesController {
   ) {}
 
   @Get()
-  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_ROLES)
+  @RequierePermiso(NOMBRES_PERMISO.ROL_CONSULTAR)
   @ApiOperation({ summary: 'Lista los roles vigentes con sus permisos' })
   async listarRoles(): Promise<RolResumen[]> {
     return this.listar.execute();
   }
 
   @Get(':id')
-  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_ROLES)
+  @RequierePermiso(NOMBRES_PERMISO.ROL_CONSULTAR)
   @ApiOperation({ summary: 'Devuelve un rol vigente con sus permisos' })
   async buscarRol(@Param('id', ParseIntPipe) id: number): Promise<RolResumen> {
     return this.buscar.execute(id);
   }
 
   @Post()
-  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_ROLES)
+  @RequierePermiso(NOMBRES_PERMISO.ROL_CREAR)
   @ApiOperation({ summary: 'Da de alta un rol del catálogo' })
   @ApiSolicitudInvalida()
   async crearRol(
@@ -68,7 +68,7 @@ export class RolesController {
   }
 
   @Patch(':id')
-  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_ROLES)
+  @RequierePermiso(NOMBRES_PERMISO.ROL_EDITAR)
   @ApiOperation({ summary: 'Edita nombre y descripción de un rol' })
   @ApiSolicitudInvalida()
   async editarRol(
@@ -83,7 +83,7 @@ export class RolesController {
   }
 
   @Put(':id/permisos')
-  @RequierePermiso(NOMBRES_PERMISO.GESTIONAR_ROLES)
+  @RequierePermiso(NOMBRES_PERMISO.ROL_PERMISOS)
   @ApiOperation({ summary: 'Reemplaza el conjunto de permisos de un rol' })
   @ApiSolicitudInvalida()
   async reemplazarLosPermisos(
