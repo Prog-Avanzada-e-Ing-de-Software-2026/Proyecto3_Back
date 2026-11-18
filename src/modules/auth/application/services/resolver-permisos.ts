@@ -1,6 +1,6 @@
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 import type { Permiso } from '../../domain/entities/permiso.entity.js';
-import type { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
+import type { FindPermisoByNombreUseCase } from '../use-cases/find-permiso-by-nombre.use-case.js';
 
 /**
  * Resuelve una lista de nombres a permisos vigentes.

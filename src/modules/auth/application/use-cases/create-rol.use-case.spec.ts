@@ -11,6 +11,7 @@ import { Rol } from '../../domain/entities/rol.entity.js';
 import { Usuario } from '../../domain/entities/usuario.entity.js';
 import { CreateRolUseCase } from './create-rol.use-case.js';
 import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
+import { FindUsuarioByIdUseCase } from './find-usuario-by-id.use-case.js';
 
 beforeAll(() => {
   initOrmMetadata();
@@ -26,7 +27,7 @@ function armar(permisos: Permiso[] = [], actores: Usuario[] = []) {
     rolesRepo,
     caso: new CreateRolUseCase(
       rolesRepo,
-      usuariosRepo,
+      new FindUsuarioByIdUseCase(usuariosRepo),
       new FindPermisoByNombreUseCase(permisosRepo),
     ),
   };
@@ -63,6 +64,16 @@ describe('CreateRolUseCase', () => {
     rolesRepo.precargar(Rol.crear({ nombre: 'Profesor' }));
 
     await expect(caso.execute({ nombre: '  Profesor  ' })).rejects.toMatchObject({
+      codigo: 'ROL_DUPLICADO',
+    });
+    expect(rolesRepo.guardados).toHaveLength(1);
+  });
+
+  it('[identidad-usuario] rechaza un nombre que difiere solo en mayúsculas', async () => {
+    const { rolesRepo, caso } = armar();
+    rolesRepo.precargar(Rol.crear({ nombre: 'Profesor' }));
+
+    await expect(caso.execute({ nombre: 'PROFESOR' })).rejects.toMatchObject({
       codigo: 'ROL_DUPLICADO',
     });
     expect(rolesRepo.guardados).toHaveLength(1);

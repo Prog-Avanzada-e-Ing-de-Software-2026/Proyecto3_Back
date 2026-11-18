@@ -1,12 +1,10 @@
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 
 /**
- * Rechaza renombrar un registro cuyo nombre exige la especificación.
+ * Rechaza renombrar un registro cuyo nombre exige la especificación (`RN-44`).
  *
- * El catálogo MUST contener los tres roles y los cinco permisos: cambiarles el
- * nombre los saca del catálogo y rompe el requisito sin que nada lo note. Se
- * evalúa sobre el nombre **actual**; cambiar de otro nombre hacia uno requerido
- * ya lo rechaza la unicidad.
+ * Se evalúa sobre el nombre actual: cambiar de otro nombre hacia uno requerido ya
+ * lo rechaza la unicidad.
  */
 export function exigirNombreEditable(
   nombreActual: string,

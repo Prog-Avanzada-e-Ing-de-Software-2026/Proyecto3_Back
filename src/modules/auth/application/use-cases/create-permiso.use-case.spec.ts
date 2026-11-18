@@ -35,6 +35,16 @@ describe('CreatePermisoUseCase', () => {
     expect(repositorio.guardados).toHaveLength(1);
   });
 
+  it('[identidad-usuario] rechaza un nombre que difiere solo en mayúsculas', async () => {
+    const repositorio = new PermisoRepositoryFalso();
+    repositorio.precargar(Permiso.crear({ nombre: 'Crear plan' }));
+
+    await expect(
+      new CreatePermisoUseCase(repositorio).execute({ nombre: 'CREAR PLAN' }),
+    ).rejects.toMatchObject({ codigo: 'PERMISO_DUPLICADO' });
+    expect(repositorio.guardados).toHaveLength(1);
+  });
+
   it('[identidad-usuario] rechaza el nombre vacío sin escribir', async () => {
     const repositorio = new PermisoRepositoryFalso();
 

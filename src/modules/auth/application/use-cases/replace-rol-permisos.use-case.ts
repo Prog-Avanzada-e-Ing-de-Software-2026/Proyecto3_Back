@@ -1,13 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
-import { ROL_REPOSITORY, USUARIO_REPOSITORY } from '../../auth.repository-tokens.js';
+import { ROL_REPOSITORY } from '../../auth.repository-tokens.js';
 import type { Permiso } from '../../domain/entities/permiso.entity.js';
 import type { Rol } from '../../domain/entities/rol.entity.js';
 import type { IRolRepository } from '../../domain/interfaces/rol.repository.interface.js';
-import type { IUsuarioRepository } from '../../domain/interfaces/usuario.repository.interface.js';
-import { exigirPermisosOtorgables } from '../../domain/services/permisos-otorgables.js';
+import { exigirActorPuedeOtorgar } from '../services/exigir-actor-puede-otorgar.js';
+import { resolverPermisos } from '../services/resolver-permisos.js';
 import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
-import { resolverPermisos } from './resolver-permisos.js';
+import { FindUsuarioByIdUseCase } from './find-usuario-by-id.use-case.js';
 
 export interface ReplaceRolPermisosInput {
   id: number;
@@ -25,7 +25,7 @@ export interface ReplaceRolPermisosInput {
 export class ReplaceRolPermisosUseCase {
   constructor(
     @Inject(ROL_REPOSITORY) private readonly roles: IRolRepository,
-    @Inject(USUARIO_REPOSITORY) private readonly usuarios: IUsuarioRepository,
+    private readonly buscarActor: FindUsuarioByIdUseCase,
     private readonly buscarPermiso: FindPermisoByNombreUseCase,
   ) {}
 
@@ -37,20 +37,7 @@ export class ReplaceRolPermisosUseCase {
     }
 
     const solicitados = await resolverPermisos(input.permisos, this.buscarPermiso);
-
-    if (input.actorId !== null && input.actorId !== undefined) {
-      const actor = await this.usuarios.findById(input.actorId);
-
-      if (actor === null) {
-        throw new ErrorSemantico(
-          'no_autenticado',
-          'SESION_INVALIDA',
-          'La operación requiere una sesión válida.',
-        );
-      }
-
-      exigirPermisosOtorgables(actor, solicitados);
-    }
+    await exigirActorPuedeOtorgar(input.actorId, solicitados, this.buscarActor);
 
     this.aplicarConjunto(rol, solicitados);
     rol.updatedAt = new Date();
@@ -61,12 +48,6 @@ export class ReplaceRolPermisosUseCase {
     return rol;
   }
 
-  /**
-   * Deja al rol con exactamente el conjunto pedido.
-   *
-   * `Rol` rechaza el permiso repetido al asignarlo, así que los repetidos del
-   * pedido ya fallaron en `resolverPermisos` o acá.
-   */
   private aplicarConjunto(rol: Rol, solicitados: Permiso[]): void {
     const deseados = new Set(solicitados.map((permiso) => permiso.nombre));
 

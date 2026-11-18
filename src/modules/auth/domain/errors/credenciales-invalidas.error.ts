@@ -3,8 +3,7 @@ import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico
 /**
  * Rechazo del inicio de sesión.
  *
- * Es una sola excepción para las tres causas —email inexistente, contraseña
- * incorrecta y usuario dado de baja— porque `HU 14` prohíbe revelar cuál de los
+ * Una sola excepción para todas las causas porque no se puede revelar cuál de los
  * datos falló.
  */
 export class CredencialesInvalidasError extends ErrorSemantico {

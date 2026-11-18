@@ -51,7 +51,7 @@ describe('LoginUseCase', () => {
     return new LoginUseCase(usuarios, new HasherFalso());
   }
 
-  it('[HU 14] concede la sesión y devuelve rol y permisos efectivos', async () => {
+  it('[identidad-usuario] concede la sesión y devuelve rol y permisos efectivos', async () => {
     const rol = crearRol('Profesor', ['Crear plan']);
     const caso = armar(crearUsuario(7, rol));
 
@@ -65,7 +65,7 @@ describe('LoginUseCase', () => {
     });
   });
 
-  it('[HU 14] normaliza el email antes de buscar', async () => {
+  it('[identidad-usuario] normaliza el email antes de buscar', async () => {
     const caso = armar(crearUsuario(7, crearRol('Alumno')));
 
     const resultado = await caso.execute({ email: '  ALUMNO@GYM.COM  ', password: '30123456' });
@@ -73,7 +73,7 @@ describe('LoginUseCase', () => {
     expect(resultado.email).toBe('alumno@gym.com');
   });
 
-  it('[HU 14] rechaza una contraseña incorrecta', async () => {
+  it('[identidad-usuario] rechaza una contraseña incorrecta', async () => {
     const caso = armar(crearUsuario(7, crearRol('Alumno')));
 
     await expect(caso.execute({ email: 'alumno@gym.com', password: 'otra' })).rejects.toBeInstanceOf(
@@ -81,7 +81,7 @@ describe('LoginUseCase', () => {
     );
   });
 
-  it('[HU 14] rechaza un email inexistente con la misma excepción', async () => {
+  it('[identidad-usuario] rechaza un email inexistente con la misma excepción', async () => {
     const caso = armar(null);
 
     await expect(

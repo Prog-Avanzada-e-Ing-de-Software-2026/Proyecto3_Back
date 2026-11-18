@@ -8,6 +8,7 @@ import { ErrorSemantico } from '../../../common/domain/errors/error-semantico.js
 import { CLAVE_RUTA_PUBLICA } from '../../../common/presentation/auth/public.decorator.js';
 import { CLAVE_PERMISO } from '../../../common/presentation/auth/requiere-permiso.decorator.js';
 import type { SolicitudAutenticada } from '../../../common/presentation/auth/solicitud-autenticada.js';
+import { FindUsuarioByIdUseCase } from '../application/use-cases/find-usuario-by-id.use-case.js';
 import { Permiso } from '../domain/entities/permiso.entity.js';
 import { Rol } from '../domain/entities/rol.entity.js';
 import { Usuario } from '../domain/entities/usuario.entity.js';
@@ -60,7 +61,7 @@ function guard(usuarios: Usuario[] = []): AuthGuard {
   return new AuthGuard(
     new Reflector(),
     new SesionService(new JwtService({}), CONFIGURACION),
-    new UsuarioRepositoryFalso(usuarios),
+    new FindUsuarioByIdUseCase(new UsuarioRepositoryFalso(usuarios)),
   );
 }
 
@@ -147,7 +148,7 @@ describe('AuthGuard', () => {
     const solicitud = conCookie({}, token);
 
     await expect(guard([crearUsuario(1)]).canActivate(contexto(solicitud))).resolves.toBe(true);
-    expect(solicitud.actorId).toBe(1);
+    expect(solicitud.usuario?.id).toBe(1);
   });
   it('[identidad-usuario] deja pasar una operación que no declara permiso', async () => {
     const token = await firmar({ sub: 1, tipo: 'access' });

@@ -3,11 +3,11 @@ import type { Permiso } from '../entities/permiso.entity.js';
 import type { Usuario } from '../entities/usuario.entity.js';
 
 /**
- * Rechaza otorgar permisos que el actor no tiene.
+ * Rechaza otorgar permisos que el actor no tiene (`RN-43`).
  *
- * Sin esta regla, un rol con `Gestionar roles` se autoescala: crea un rol con
- * todos los permisos y se lo asigna. La regla cruza dos agregados —los permisos
- * del actor y los que se quieren asignar—, así que vive acá y no en una entidad.
+ * Cruza dos agregados —los permisos del actor y los que se quieren asignar—, así
+ * que vive acá y no en una entidad. Sin esta regla, un rol con `Gestionar roles`
+ * se autoescala creando un rol con todos los permisos y asignándoselo.
  */
 export function exigirPermisosOtorgables(actor: Usuario, solicitados: Permiso[]): void {
   const efectivos = new Set(actor.permisosEfectivos().map((permiso) => permiso.nombre));

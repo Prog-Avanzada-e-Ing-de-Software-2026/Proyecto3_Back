@@ -141,12 +141,14 @@ src/
         │   ├── <capacidad>.controller.ts
         │   └── dto/
         ├── application/
-        │   └── use-cases/          # Casos de uso: comandos y lecturas
-        │       ├── <verbo>-<sustantivo>.use-case.ts
-        │       ├── <verbo>-<sustantivo>.input.ts   # Opcional: tipo, interfaz o clase
-        │       ├── <nombre>.query.ts               # Opcional: Query Object para lecturas complejas
-        │       ├── <nombre>.query.interface.ts     # Puerto de lectura (I<Nombre>Reader), cuando se crea
-        │       └── <nombre>.result.ts              # Proyección, cuando corresponde
+        │   ├── use-cases/          # Casos de uso: comandos y lecturas
+        │   │   ├── <verbo>-<sustantivo>.use-case.ts
+        │   │   ├── <verbo>-<sustantivo>.input.ts   # Opcional: tipo, interfaz o clase
+        │   │   ├── <nombre>.query.ts               # Opcional: Query Object para lecturas complejas
+        │   │   ├── <nombre>.query.interface.ts     # Puerto de lectura (I<Nombre>Reader), cuando se crea
+        │   │   └── <nombre>.result.ts              # Proyección, cuando corresponde
+        │   ├── services/           # Colaboradores compartidos por dos o más casos de uso
+        │   └── mappers/            # Agregado → proyección de las lecturas
         ├── domain/
         │   ├── entities/
         │   ├── value-objects/
@@ -160,8 +162,12 @@ src/
 ```
 
 - `seeder/` contiene solo entrypoints: levantan el contexto de Nest, resuelven un caso de uso por nombre y lo ejecutan. La carga inicial de datos se implementa como caso de uso del módulo dueño del agregado, nunca dentro de `seeder/`.
+- `application/services/` reúne los colaboradores que comparten dos o más casos de uso del mismo módulo —por ejemplo, resolver un conjunto de nombres o verificar una regla antes de escribir—. No son servicios de dominio ni repositorios: reciben casos de uso y agregados ya resueltos.
+- `application/mappers/` proyecta un agregado a la proyección de lectura (`<nombre>.result.ts`). El mapper no vive dentro del caso de uso ni en el controller.
 - Crear cada subcarpeta **cuando se implemente** la funcionalidad que la necesita. Nunca carpetas vacías ni archivos ficticios para completar el árbol. **Excepción:** la implementación de persistencia y el contrato que la operación necesita se crean junto con su primer caso de uso, porque el ORM no se accede sin ese borde.
 - Los puertos de escritura viven en `domain/interfaces/<nombre>.repository.interface.ts` y devuelven agregados. Los puertos de lectura viven junto a la operación que los consume, en `application/use-cases/<nombre>.query.interface.ts`, y devuelven proyecciones de aplicación: el contrato pertenece al consumidor y la implementación, siempre a `infrastructure/`. No se exige una interfaz por operación: un contrato existente puede servir a varias lecturas.
+- **Un agregado, un puerto.** Cada módulo inyecta el repositorio de los agregados que posee. Cuando el caso de uso necesita un dato de otro agregado, lo pide a un caso de uso de ese agregado (`FindUsuarioByIdUseCase`), nunca a su repositorio: así el dueño del dato conserva sus reglas y su puerto.
+- **Límite de baja lógica en el puerto.** Las lecturas habituales excluyen los registros dados de baja; incluir el histórico es un método con nombre explícito (`findByEmailIncluyendoBaja`), no un `filters: false` repartido por la aplicación.
 - **`application/` no importa nada de `@mikro-orm/*`.** Si un archivo de `application/` menciona `EntityRepository`, `EntityManager` o `QueryBuilder`, el límite está mal trazado.
 - Las entidades de dominio llevan decoradores de MikroORM. Es una **concesión pragmática** decidida, no independencia del ORM: se declara así y no se promete pureza que no existe.
 - `*.module.ts` es la composition root: registra controladores y providers, vincula contratos con implementaciones e importa/exporta lo necesario. Un `forwardRef()` recurrente delata límites mal trazados.
@@ -177,7 +183,7 @@ El CRUD de catálogo no habilita una ruta distinta: cada comando y cada lectura 
 ### 5.4 Responsabilidades y dependencias por capa
 
 - **`presentation/`** — controllers, DTOs, validación de formato, guards y pipes de entrada. Traduce el DTO a un **Input de aplicación** y obtiene el actor autenticado. **No** decide reglas de negocio, no ejecuta consultas ORM y no define transacciones.
-- **`application/`** — casos de uso para comandos y lecturas, y Query Objects cuando la consulta lo justifica; no existe `<capacidad>.service.ts`. Orquesta, comprueba permisos de operación, recupera agregados, invoca al dominio y coordina la unidad de trabajo **a través de sus puertos**. **No** esconde invariantes que pertenecen al agregado, no duplica reglas y no importa nada de `@mikro-orm/*`.
+- **`application/`** — casos de uso para comandos y lecturas, y Query Objects cuando la consulta lo justifica; no existe `<capacidad>.service.ts`. Orquesta, comprueba permisos de operación, recupera agregados, invoca al dominio y coordina la unidad de trabajo **a través de sus puertos**. **No** esconde invariantes que pertenecen al agregado, no duplica reglas, no importa nada de `@mikro-orm/*` y **no inyecta el repositorio de otro agregado**: ese dato se obtiene con el caso de uso del agregado dueño.
 - **`domain/`** — entidades, raíces de agregado, value objects inmutables, invariantes, servicios y políticas de dominio, factories cuando aportan, puertos de escritura. **No** importa controllers, DTOs, `Request`, `Response`, `HttpException`, `EntityManager`, `EntityRepository` ni `QueryBuilder` en reglas puras.
 - **`infrastructure/`** — implementa los puertos con MikroORM, ejecuta `QueryBuilder`, joins y proyecciones, traduce excepciones técnicas y contiene los adaptadores externos aprobados. Recibe y devuelve agregados, nunca DTOs ni Inputs. **No** decide reglas de negocio ni esconde efectos de dominio en consultas o subscribers.
 
@@ -197,6 +203,7 @@ El CRUD de catálogo no habilita una ruta distinta: cada comando y cada lectura 
 | Lectura agregada (historial, récord, evolución, asistencias) | `UseCase` o `Query Object` con proyección; nunca hidratar agregados completos |
 | Baja lógica o reactivación de un agregado | caso de uso propio del comando; nunca un `update` genérico (§6.3) |
 | Integración externa | `UseCase → interfaz → adapter`, solo si está en el alcance aprobado |
+| Dato de otro agregado que el caso de uso necesita | el caso de uso del agregado dueño (por ejemplo `FindUsuarioByIdUseCase`); nunca su repositorio |
 
 La ruta no depende de la complejidad estimada: todo comando pasa por un caso de uso, incluido el CRUD de catálogo, y toda lectura tiene también una operación de aplicación con nombre; el Query Object se agrega solo cuando la consulta lo justifica. Un caso de uso puede ser fino; su valor es el nombre de la intención, el límite transaccional y el test que lo cubre.
 
@@ -218,7 +225,8 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 - Cada decorador de validación de un DTO declara su `message` en español, porque ese texto es el que el cliente recibe en `errores`. Un test recorre todos los DTO y falla si un decorador no lo declara.
 - El DTO valida formato y tipos; **no** valida reglas del gimnasio. Las invariantes son de dominio (§4) y no se duplican en el DTO ni en el controller.
 - El DTO no se convierte en entidad de dominio ni se entrega a MikroORM.
-- El **Input de aplicación** puede representarse como **tipo, interfaz o clase** según lo que la intención necesite. No se exige un archivo `<verbo>-<sustantivo>.input.ts` por operación: se crea solo cuando aporta claridad o reutilización.
+- El **Input de aplicación** puede representarse como **tipo, interfaz o clase** según lo que la intención necesite. No se exige un archivo `<verbo>-<sustantivo>.input.ts` por operación: se crea solo cuando aporta claridad o reutilización. Es un artefacto distinto de `domain/entities/<agregado>.input.ts`, que es el contrato de construcción de la entidad (`Rol.crear`) y no el de la operación de aplicación.
+- **Comentarios en el código:** solo lo que no se deduce leyendo el nombre y el tipo —la razón de una decisión, una excepción deliberada, una regla de negocio—. El resto se borra: no se documenta lo que el código ya dice.
 
 **Tres artefactos, tres dueños.** No se reemplazan entre sí y ninguno se salta:
 
@@ -265,6 +273,7 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 - God service o caso de uso con orquestación, HTTP, validación, consultas y SQL mezclados; `<capacidad>.service.ts` en `application/`.
 - Interfaz **fuera** del borde de persistencia que envuelve a otro colaborador sin agregar comportamiento, o que existe sin implementación alternativa ni consumidor que la necesite. El puerto de persistencia **no** entra en este antipatrón: es el borde obligatorio y su implementación MikroORM es la única capa de adaptación admitida. Sí es antipatrón apilar `IPlanRepository -> PlanRepository -> MikroOrmPlanRepository`.
 - Inyectar `EntityRepository`, `EntityManager` o `QueryBuilder` en `application/`, en un controller o en una regla de dominio.
+- Inyectar en un caso de uso el repositorio de un agregado ajeno: el dato se pide al caso de uso del agregado dueño.
 - Entregar un DTO HTTP o un Input de aplicación a un repositorio, a un puerto o a MikroORM.
 - Crear una Factory por entidad, o una Factory que esquiva las invariantes del constructor.
 - Filtrar la baja lógica a mano consulta por consulta en lugar de fijarla en la implementación del puerto de lectura.

@@ -4,7 +4,7 @@ import type { Request, Response } from 'express';
 import type { CategoriaError } from '../domain/errors/error-semantico.js';
 import { ErrorSemantico } from '../domain/errors/error-semantico.js';
 import { resolverIdentificadorSolicitud } from './request-id.js';
-import type { DetalleValidacion } from './validation/detalle-validacion.js';
+import type { DetalleValidacion } from './validation/detalle-validacion.interface.js';
 import { esErrorConDetalle } from './validation/entrada-invalida.exception.js';
 
 type SolicitudConIdentificador = Request & { id?: string };

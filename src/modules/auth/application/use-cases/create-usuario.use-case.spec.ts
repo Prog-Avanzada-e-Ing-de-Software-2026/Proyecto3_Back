@@ -7,6 +7,7 @@ import { initOrmMetadata } from '../../../../../test/support/orm-metadata.js';
 import { Rol } from '../../domain/entities/rol.entity.js';
 import type { IPasswordHasher } from '../../domain/interfaces/password-hasher.interface.js';
 import { CreateUsuarioUseCase } from './create-usuario.use-case.js';
+import { FindRolByNombreUseCase } from './find-rol-by-nombre.use-case.js';
 
 beforeAll(() => {
   initOrmMetadata();
@@ -35,7 +36,10 @@ function armar(opciones: { rolVigente?: boolean } = {}) {
   roles.precargar(rol);
   const usuarios = new UsuarioRepositoryFalso();
 
-  return { usuarios, caso: new CreateUsuarioUseCase(usuarios, roles, new HasherFalso()) };
+  return {
+    usuarios,
+    caso: new CreateUsuarioUseCase(usuarios, new FindRolByNombreUseCase(roles), new HasherFalso()),
+  };
 }
 
 describe('CreateUsuarioUseCase', () => {
@@ -68,6 +72,22 @@ describe('CreateUsuarioUseCase', () => {
     await expect(
       caso.execute({ email: 'ADMIN@gym.com', password: '30123456', rolNombre: 'Administrador' }),
     ).rejects.toMatchObject({ codigo: 'USUARIO_DUPLICADO' });
+  });
+
+  it('[identidad-usuario] el email de un usuario dado de baja no se libera', async () => {
+    const { usuarios, caso } = armar();
+    const dadoDeBaja = await caso.execute({
+      email: 'admin@gym.com',
+      password: '30123456',
+      rolNombre: 'Administrador',
+    });
+    dadoDeBaja.deletedAt = new Date('2026-03-01T10:00:00.000Z');
+    dadoDeBaja.deletedById = 1;
+
+    await expect(
+      caso.execute({ email: 'admin@gym.com', password: '30123456', rolNombre: 'Administrador' }),
+    ).rejects.toMatchObject({ codigo: 'USUARIO_DUPLICADO' });
+    expect(usuarios).toBeDefined();
   });
 
   it('[identidad-usuario] rechaza un rol inexistente', async () => {

@@ -8,16 +8,10 @@ import type { IPermisoRepository } from '../../domain/interfaces/permiso.reposit
 export interface CreatePermisoInput {
   nombre: string;
   descripcion?: string | null;
-  /** Ausente solo en procesos internos declarados, como la carga inicial. */
   actorId?: number | null;
 }
 
-/**
- * Alta de un permiso del catálogo.
- *
- * Rechaza el nombre duplicado, incluido el de un permiso dado de baja: el
- * nombre no se libera y la operación devuelve conflicto, no "no existe".
- */
+/** Alta de un permiso del catálogo; el nombre no se libera con la baja. */
 @Injectable()
 export class CreatePermisoUseCase {
   constructor(

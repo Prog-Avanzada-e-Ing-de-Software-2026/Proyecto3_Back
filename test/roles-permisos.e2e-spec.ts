@@ -14,6 +14,7 @@ import { CreateRolUseCase } from '../src/modules/auth/application/use-cases/crea
 import { FindPermisoByIdUseCase } from '../src/modules/auth/application/use-cases/find-permiso-by-id.use-case.js';
 import { FindPermisoByNombreUseCase } from '../src/modules/auth/application/use-cases/find-permiso-by-nombre.use-case.js';
 import { FindRolByIdUseCase } from '../src/modules/auth/application/use-cases/find-rol-by-id.use-case.js';
+import { FindUsuarioByIdUseCase } from '../src/modules/auth/application/use-cases/find-usuario-by-id.use-case.js';
 import { ListPermisosUseCase } from '../src/modules/auth/application/use-cases/list-permisos.use-case.js';
 import { ListRolesUseCase } from '../src/modules/auth/application/use-cases/list-roles.use-case.js';
 import { ReplaceRolPermisosUseCase } from '../src/modules/auth/application/use-cases/replace-rol-permisos.use-case.js';
@@ -51,6 +52,7 @@ function crearModulo(
   usuarios: UsuarioRepositoryFalso,
 ): new () => object {
   const buscarPermiso = new FindPermisoByNombreUseCase(permisos);
+  const buscarUsuario = new FindUsuarioByIdUseCase(usuarios);
 
   @Module({
     imports: [JwtModule.register({})],
@@ -65,15 +67,19 @@ function crearModulo(
       UpdatePermisoUseCase,
       {
         provide: CreateRolUseCase,
-        useFactory: () => new CreateRolUseCase(roles, usuarios, buscarPermiso),
+        useFactory: () => new CreateRolUseCase(roles, buscarUsuario, buscarPermiso),
       },
-      { provide: ReplaceRolPermisosUseCase, useFactory: () => new ReplaceRolPermisosUseCase(roles, usuarios, buscarPermiso) },
+      {
+        provide: ReplaceRolPermisosUseCase,
+        useFactory: () => new ReplaceRolPermisosUseCase(roles, buscarUsuario, buscarPermiso),
+      },
       { provide: CreatePermisoUseCase, useFactory: () => new CreatePermisoUseCase(permisos) },
       SesionService,
       { provide: CONFIGURACION_SESION, useValue: CONFIGURACION },
       { provide: ROL_REPOSITORY, useValue: roles },
       { provide: PERMISO_REPOSITORY, useValue: permisos },
       { provide: USUARIO_REPOSITORY, useValue: usuarios },
+      { provide: FindUsuarioByIdUseCase, useValue: buscarUsuario },
       { provide: APP_GUARD, useClass: AuthGuard },
       { provide: APP_FILTER, useClass: GlobalExceptionFilter },
     ],

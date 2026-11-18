@@ -8,11 +8,10 @@ import type { IUsuarioRepository } from '../../domain/interfaces/usuario.reposit
 /**
  * Adaptador MikroORM del puerto de `Usuario`.
  *
- * Las dos lecturas desactivan el filtro de baja lógica a propósito: el caso de
- * uso de inicio de sesión y el guard necesitan ver al usuario dado de baja para
- * decidir el rechazo. El rol y sus permisos se traen en la misma consulta para
- * que `permisosEfectivos()` no dependa de una carga diferida fuera de la unidad
- * de trabajo.
+ * Las lecturas habituales aplican el filtro de baja lógica del ORM. La variante
+ * explícita lo desactiva para la unicidad del email, y el rol con sus permisos
+ * se traen en la misma consulta para no depender de una carga diferida fuera de
+ * la unidad de trabajo.
  */
 @Injectable()
 export class MikroOrmUsuarioRepository implements IUsuarioRepository {
@@ -27,6 +26,10 @@ export class MikroOrmUsuarioRepository implements IUsuarioRepository {
   }
 
   async findByEmail(email: string): Promise<Usuario | null> {
+    return this.repositorio.findOne({ email }, { populate: ['rol', 'rol.permisos'] });
+  }
+
+  async findByEmailIncluyendoBaja(email: string): Promise<Usuario | null> {
     return this.repositorio.findOne(
       { email },
       { populate: ['rol', 'rol.permisos'], filters: false },
@@ -34,6 +37,6 @@ export class MikroOrmUsuarioRepository implements IUsuarioRepository {
   }
 
   async findById(id: number): Promise<Usuario | null> {
-    return this.repositorio.findOne({ id }, { populate: ['rol', 'rol.permisos'], filters: false });
+    return this.repositorio.findOne({ id }, { populate: ['rol', 'rol.permisos'] });
   }
 }

@@ -1,11 +1,6 @@
 import type { Permiso } from '../entities/permiso.entity.js';
 
-/**
- * Puerto de persistencia y lectura del catálogo de permisos.
- *
- * `existeNombre` ignora el filtro de baja lógica a propósito: el nombre de un
- * permiso dado de baja no se libera, así que la unicidad tiene que verlo.
- */
+/** Puerto de persistencia y lectura del catálogo de permisos. */
 export interface IPermisoRepository {
   save(permiso: Permiso): Promise<void>;
 
@@ -15,5 +10,9 @@ export interface IPermisoRepository {
 
   findAll(): Promise<Permiso[]>;
 
+  /**
+   * Ignora el filtro de baja lógica: el nombre de un permiso dado de baja no se
+   * libera, así que la unicidad tiene que verlo.
+   */
   existeNombre(nombre: string, exceptoId?: number): Promise<boolean>;
 }

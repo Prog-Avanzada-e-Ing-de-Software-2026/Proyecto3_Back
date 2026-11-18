@@ -16,6 +16,7 @@ import {
   CONFIGURACION_SESION,
   leerConfiguracionSesion,
 } from '../src/modules/auth/infrastructure/config/jwt-config.js';
+import { FindUsuarioByIdUseCase } from '../src/modules/auth/application/use-cases/find-usuario-by-id.use-case.js';
 import { AuthGuard } from '../src/modules/auth/presentation/auth.guard.js';
 import { SesionService } from '../src/modules/auth/presentation/sesion.service.js';
 import { NOMBRES_PERMISO } from '../src/modules/auth/domain/catalogos.js';
@@ -46,6 +47,7 @@ function crearModulo(usuarios: Usuario[]): new () => object {
       SesionService,
       { provide: CONFIGURACION_SESION, useValue: CONFIGURACION },
       { provide: USUARIO_REPOSITORY, useValue: new UsuarioRepositoryFalso(usuarios) },
+      FindUsuarioByIdUseCase,
       { provide: APP_GUARD, useClass: AuthGuard },
       { provide: APP_FILTER, useClass: GlobalExceptionFilter },
     ],

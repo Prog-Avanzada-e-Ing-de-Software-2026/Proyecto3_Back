@@ -26,6 +26,7 @@ import {
 } from '../src/modules/auth/infrastructure/config/jwt-config.js';
 import { Argon2PasswordHasher } from '../src/modules/auth/infrastructure/services/argon2-password-hasher.js';
 import { AuthController } from '../src/modules/auth/presentation/auth.controller.js';
+import { FindUsuarioByIdUseCase } from '../src/modules/auth/application/use-cases/find-usuario-by-id.use-case.js';
 import { AuthGuard } from '../src/modules/auth/presentation/auth.guard.js';
 import { SesionService } from '../src/modules/auth/presentation/sesion.service.js';
 import { initOrmMetadata } from './support/orm-metadata.js';
@@ -66,6 +67,7 @@ function crearModulo(usuarios: Usuario[]): new () => object {
       ReadSesionUseCase,
       SesionService,
       { provide: USUARIO_REPOSITORY, useValue: new UsuarioRepositoryFalso(usuarios) },
+      FindUsuarioByIdUseCase,
       { provide: CONFIGURACION_SESION, useValue: CONFIGURACION },
       { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
       { provide: APP_GUARD, useClass: AuthGuard },

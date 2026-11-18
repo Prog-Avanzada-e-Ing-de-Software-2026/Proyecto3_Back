@@ -6,15 +6,15 @@ import type { SolicitudAutenticada } from './solicitud-autenticada.js';
 /**
  * Entrega el identificador del actor autenticado.
  *
- * `AGENTS.md` §6.2 exige que el actor salga del contexto de autenticación y
- * nunca del cuerpo o del query. Si falta, la operación se rechaza en vez de
- * escribir auditoría con un actor inventado.
+ * Sale del contexto de autenticación y nunca del cuerpo o del query: si falta,
+ * la operación se rechaza en vez de escribir auditoría con un actor inventado.
  */
 export const ActorActual = createParamDecorator(
   (_datos: unknown, contexto: ExecutionContext): number => {
     const solicitud = contexto.switchToHttp().getRequest<SolicitudAutenticada>();
+    const usuario = solicitud.usuario;
 
-    if (solicitud.actorId === undefined) {
+    if (usuario === undefined) {
       throw new ErrorSemantico(
         'no_autenticado',
         'SESION_INVALIDA',
@@ -22,6 +22,6 @@ export const ActorActual = createParamDecorator(
       );
     }
 
-    return solicitud.actorId;
+    return usuario.id;
   },
 );

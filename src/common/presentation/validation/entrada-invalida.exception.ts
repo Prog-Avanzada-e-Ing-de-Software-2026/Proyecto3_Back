@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import type { DetalleValidacion } from './detalle-validacion.js';
+import type { DetalleValidacion } from './detalle-validacion.interface.js';
 
 /**
  * Fallo de validación de entrada con el detalle por campo.

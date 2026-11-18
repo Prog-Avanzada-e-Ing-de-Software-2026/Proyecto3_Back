@@ -5,11 +5,9 @@ import { ApiSolicitudInvalida } from '../../../common/presentation/swagger/solic
 import { RequierePermiso } from '../../../common/presentation/auth/requiere-permiso.decorator.js';
 import { CreatePermisoUseCase } from '../application/use-cases/create-permiso.use-case.js';
 import { FindPermisoByIdUseCase } from '../application/use-cases/find-permiso-by-id.use-case.js';
-import {
-  ListPermisosUseCase,
-  permisoResumenDe,
-} from '../application/use-cases/list-permisos.use-case.js';
-import type { PermisoResumen } from '../application/use-cases/list-permisos.use-case.js';
+import { toPermisoResumen } from '../application/mappers/permiso.mapper.js';
+import type { PermisoResumen } from '../application/use-cases/permiso-resumen.result.js';
+import { ListPermisosUseCase } from '../application/use-cases/list-permisos.use-case.js';
 import { UpdatePermisoUseCase } from '../application/use-cases/update-permiso.use-case.js';
 import { NOMBRES_PERMISO } from '../domain/catalogos.js';
 import { CreatePermisoDto } from './dto/create-permiso.dto.js';
@@ -53,7 +51,7 @@ export class PermisosController {
       actorId,
     });
 
-    return permisoResumenDe(permiso);
+    return toPermisoResumen(permiso);
   }
 
   @Patch(':id')
@@ -67,6 +65,6 @@ export class PermisosController {
   ): Promise<PermisoResumen> {
     const permiso = await this.actualizar.execute({ id, nombre: dto.nombre, descripcion: dto.descripcion, actorId });
 
-    return permisoResumenDe(permiso);
+    return toPermisoResumen(permiso);
   }
 }

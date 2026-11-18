@@ -1,26 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
-import {
-  normalizarEmail,
-  normalizarTextoObligatorio,
-} from '../../../../common/domain/validaciones.js';
+import { normalizarEmail } from '../../../../common/domain/validaciones.js';
 import {
   PASSWORD_HASHER,
-  ROL_REPOSITORY,
   USUARIO_REPOSITORY,
 } from '../../auth.repository-tokens.js';
+import { exigirCredencial } from '../../domain/credencial.js';
 import { Usuario } from '../../domain/entities/usuario.entity.js';
 import type { IPasswordHasher } from '../../domain/interfaces/password-hasher.interface.js';
-import type { IRolRepository } from '../../domain/interfaces/rol.repository.interface.js';
 import type { IUsuarioRepository } from '../../domain/interfaces/usuario.repository.interface.js';
-
-const LONGITUD_MINIMA_CREDENCIAL = 8;
+import { FindRolByNombreUseCase } from './find-rol-by-nombre.use-case.js';
 
 export interface CreateUsuarioInput {
   email: string;
   password: string;
   rolNombre: string;
-  /** Ausente solo en procesos internos declarados, como la carga inicial. */
   actorId?: number | null;
 }
 
@@ -28,29 +22,22 @@ export interface CreateUsuarioInput {
  * Alta de un `Usuario` con su rol.
  *
  * Es el camino que van a reusar las altas de alumno y profesor para crear la
- * identidad de la persona: valida la unicidad del email —incluido el de un
- * usuario dado de baja—, exige un rol vigente y hashea la credencial.
+ * identidad de la persona. El email no se libera con la baja, así que la
+ * unicidad también mira los usuarios dados de baja.
  */
 @Injectable()
 export class CreateUsuarioUseCase {
   constructor(
     @Inject(USUARIO_REPOSITORY) private readonly usuarios: IUsuarioRepository,
-    @Inject(ROL_REPOSITORY) private readonly roles: IRolRepository,
+    private readonly buscarRol: FindRolByNombreUseCase,
     @Inject(PASSWORD_HASHER) private readonly hasher: IPasswordHasher,
   ) {}
 
   async execute(input: CreateUsuarioInput): Promise<Usuario> {
     const email = normalizarEmail(input.email);
+    exigirCredencial(input.password);
 
-    if (input.password.length < LONGITUD_MINIMA_CREDENCIAL) {
-      throw new ErrorSemantico(
-        'entrada_invalida',
-        'CREDENCIAL_DEBIL',
-        `La contraseña debe tener al menos ${LONGITUD_MINIMA_CREDENCIAL} caracteres.`,
-      );
-    }
-
-    if ((await this.usuarios.findByEmail(email)) !== null) {
+    if ((await this.usuarios.findByEmailIncluyendoBaja(email)) !== null) {
       throw new ErrorSemantico(
         'conflicto',
         'USUARIO_DUPLICADO',
@@ -58,9 +45,7 @@ export class CreateUsuarioUseCase {
       );
     }
 
-    const rol = await this.roles.findByNombre(
-      normalizarTextoObligatorio(input.rolNombre, 'ROL'),
-    );
+    const rol = await this.buscarRol.execute(input.rolNombre);
 
     if (rol === null || !rol.estaActivo()) {
       throw new ErrorSemantico(

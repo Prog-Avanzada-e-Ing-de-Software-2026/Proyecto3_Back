@@ -4,7 +4,7 @@ import { PASSWORD_HASHER, USUARIO_REPOSITORY } from '../../auth.repository-token
 import { CredencialesInvalidasError } from '../../domain/errors/credenciales-invalidas.error.js';
 import type { IPasswordHasher } from '../../domain/interfaces/password-hasher.interface.js';
 import type { IUsuarioRepository } from '../../domain/interfaces/usuario.repository.interface.js';
-import { sesionOtorgadaDe } from './sesion-otorgada.result.js';
+import { toSesionOtorgada } from '../mappers/sesion-otorgada.mapper.js';
 import type { SesionOtorgada } from './sesion-otorgada.result.js';
 
 export interface LoginInput {
@@ -15,9 +15,9 @@ export interface LoginInput {
 /**
  * Inicio de sesión con email y contraseña.
  *
- * Traduce las tres causas de rechazo a la misma excepción y devuelve el rol y
- * los permisos efectivos, que es lo que el cliente necesita para mostrar solo
- * las funciones del usuario (`HU 14`, `RN-32`, `RN-34`).
+ * Devuelve el rol y los permisos efectivos, que es lo que el cliente necesita
+ * para mostrar solo las funciones del usuario. El port excluye a los usuarios
+ * dados de baja, así que la baja ya no llega hasta acá.
  */
 @Injectable()
 export class LoginUseCase {
@@ -29,7 +29,7 @@ export class LoginUseCase {
   async execute(input: LoginInput): Promise<SesionOtorgada> {
     const usuario = await this.usuarios.findByEmail(normalizarEmail(input.email));
 
-    if (usuario === null || !usuario.estaActivo() || !usuario.rol.estaActivo()) {
+    if (usuario === null || !usuario.rol.estaActivo()) {
       throw new CredencialesInvalidasError();
     }
 
@@ -39,6 +39,6 @@ export class LoginUseCase {
       throw new CredencialesInvalidasError();
     }
 
-    return sesionOtorgadaDe(usuario);
+    return toSesionOtorgada(usuario);
   }
 }

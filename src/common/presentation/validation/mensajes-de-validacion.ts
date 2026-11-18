@@ -1,6 +1,6 @@
 import { ValidationTypes } from 'class-validator';
 import type { ValidationError } from 'class-validator';
-import type { DetalleValidacion } from './detalle-validacion.js';
+import type { DetalleValidacion } from './detalle-validacion.interface.js';
 
 /**
  * Redacción de las restricciones que no vienen de un decorador del DTO.

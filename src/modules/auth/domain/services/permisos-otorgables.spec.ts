@@ -36,7 +36,7 @@ describe('exigirPermisosOtorgables', () => {
     expect(() => exigirPermisosOtorgables(usuarioCon([]), [])).not.toThrow();
   });
 
-  it('[identidad-usuario] rechaza un permiso que el actor no tiene', () => {
+  it('[identidad-usuario][RN-43] rechaza un permiso que el actor no tiene', () => {
     expect(() =>
       exigirPermisosOtorgables(usuarioCon(['Gestionar roles']), [
         permiso('Gestionar roles'),

@@ -8,6 +8,8 @@ import { CreateUsuarioUseCase } from './application/use-cases/create-usuario.use
 import { FindPermisoByIdUseCase } from './application/use-cases/find-permiso-by-id.use-case.js';
 import { FindPermisoByNombreUseCase } from './application/use-cases/find-permiso-by-nombre.use-case.js';
 import { FindRolByIdUseCase } from './application/use-cases/find-rol-by-id.use-case.js';
+import { FindRolByNombreUseCase } from './application/use-cases/find-rol-by-nombre.use-case.js';
+import { FindUsuarioByIdUseCase } from './application/use-cases/find-usuario-by-id.use-case.js';
 import { ListPermisosUseCase } from './application/use-cases/list-permisos.use-case.js';
 import { ListRolesUseCase } from './application/use-cases/list-roles.use-case.js';
 import { LoginUseCase } from './application/use-cases/login.use-case.js';
@@ -60,6 +62,8 @@ import { SesionService } from './presentation/sesion.service.js';
     FindPermisoByIdUseCase,
     FindPermisoByNombreUseCase,
     FindRolByIdUseCase,
+    FindRolByNombreUseCase,
+    FindUsuarioByIdUseCase,
     ListPermisosUseCase,
     ListRolesUseCase,
     LoginUseCase,

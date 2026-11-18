@@ -9,6 +9,7 @@ import { Permiso } from '../../domain/entities/permiso.entity.js';
 import { Rol } from '../../domain/entities/rol.entity.js';
 import { Usuario } from '../../domain/entities/usuario.entity.js';
 import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
+import { FindUsuarioByIdUseCase } from './find-usuario-by-id.use-case.js';
 import { ReplaceRolPermisosUseCase } from './replace-rol-permisos.use-case.js';
 
 beforeAll(() => {
@@ -53,7 +54,7 @@ function armar(opciones: { permisosDelRol?: string[]; permisosDelActor?: string[
     roles,
     caso: new ReplaceRolPermisosUseCase(
       roles,
-      new UsuarioRepositoryFalso([actor]),
+      new FindUsuarioByIdUseCase(new UsuarioRepositoryFalso([actor])),
       new FindPermisoByNombreUseCase(permisos),
     ),
   };

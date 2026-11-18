@@ -135,6 +135,17 @@ describe('persistencia del modelo de identidad', () => {
     await expect(persistir(crearPermiso('  Crear plan  '))).rejects.toThrow();
   });
 
+  it('[persistencia][RN-36] rechaza nombres de rol y de permiso que difieren solo en mayúsculas', async () => {
+    await persistir(crearRol('Profesor'));
+
+    await expect(persistir(crearRol('PROFESOR'))).rejects.toThrow();
+    entorno.orm.em.clear();
+
+    await persistir(crearPermiso('Crear plan'));
+
+    await expect(persistir(crearPermiso('crear PLAN'))).rejects.toThrow();
+  });
+
   it('[persistencia] carga los alumnos asignados desde el profesor', async () => {
     const profesor = crearProfesor('profesor@gym.com', '30111222');
     const alumno = crearAlumno(

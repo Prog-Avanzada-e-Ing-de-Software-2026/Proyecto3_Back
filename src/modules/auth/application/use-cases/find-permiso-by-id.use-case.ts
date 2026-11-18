@@ -2,8 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 import { PERMISO_REPOSITORY } from '../../auth.repository-tokens.js';
 import type { IPermisoRepository } from '../../domain/interfaces/permiso.repository.interface.js';
-import { permisoResumenDe } from './list-permisos.use-case.js';
-import type { PermisoResumen } from './list-permisos.use-case.js';
+import { toPermisoResumen } from '../mappers/permiso.mapper.js';
+import type { PermisoResumen } from './permiso-resumen.result.js';
 
 /** Detalle de un permiso vigente del catálogo. */
 @Injectable()
@@ -21,6 +21,6 @@ export class FindPermisoByIdUseCase {
       );
     }
 
-    return permisoResumenDe(permiso);
+    return toPermisoResumen(permiso);
   }
 }

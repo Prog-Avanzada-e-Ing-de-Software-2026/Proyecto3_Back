@@ -14,8 +14,9 @@ import { ApiSolicitudInvalida } from '../../../common/presentation/swagger/solic
 import { RequierePermiso } from '../../../common/presentation/auth/requiere-permiso.decorator.js';
 import { CreateRolUseCase } from '../application/use-cases/create-rol.use-case.js';
 import { FindRolByIdUseCase } from '../application/use-cases/find-rol-by-id.use-case.js';
-import { ListRolesUseCase, rolResumenDe } from '../application/use-cases/list-roles.use-case.js';
-import type { RolResumen } from '../application/use-cases/list-roles.use-case.js';
+import { toRolResumen } from '../application/mappers/rol.mapper.js';
+import type { RolResumen } from '../application/use-cases/rol-resumen.result.js';
+import { ListRolesUseCase } from '../application/use-cases/list-roles.use-case.js';
 import { ReplaceRolPermisosUseCase } from '../application/use-cases/replace-rol-permisos.use-case.js';
 import { UpdateRolUseCase } from '../application/use-cases/update-rol.use-case.js';
 import { NOMBRES_PERMISO } from '../domain/catalogos.js';
@@ -63,7 +64,7 @@ export class RolesController {
       actorId,
     });
 
-    return rolResumenDe(rol);
+    return toRolResumen(rol);
   }
 
   @Patch(':id')
@@ -75,9 +76,10 @@ export class RolesController {
     @Body() dto: UpdateRolDto,
     @ActorActual() actorId: number,
   ): Promise<RolResumen> {
-    const rol = await this.actualizar.execute({ id, nombre: dto.nombre, descripcion: dto.descripcion, actorId });
+    const input = { id, nombre: dto.nombre, descripcion: dto.descripcion, actorId };
+    const rol = await this.actualizar.execute(input);
 
-    return rolResumenDe(rol);
+    return toRolResumen(rol);
   }
 
   @Put(':id/permisos')
@@ -91,6 +93,6 @@ export class RolesController {
   ): Promise<RolResumen> {
     const rol = await this.reemplazarPermisos.execute({ id, permisos: dto.permisos, actorId });
 
-    return rolResumenDe(rol);
+    return toRolResumen(rol);
   }
 }

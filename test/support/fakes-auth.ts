@@ -24,7 +24,11 @@ export class PermisoRepositoryFalso implements IPermisoRepository {
   }
 
   async findByNombre(nombre: string): Promise<Permiso | null> {
-    return this.guardados.find((permiso) => permiso.nombre === nombre) ?? null;
+    return (
+      this.guardados.find(
+        (permiso) => permiso.nombre.toLowerCase() === nombre.toLowerCase(),
+      ) ?? null
+    );
   }
 
   async findById(id: number): Promise<Permiso | null> {
@@ -37,7 +41,9 @@ export class PermisoRepositoryFalso implements IPermisoRepository {
 
   async existeNombre(nombre: string, exceptoId?: number): Promise<boolean> {
     return this.guardados.some(
-      (permiso) => permiso.nombre === nombre && (exceptoId === undefined || permiso.id !== exceptoId),
+      (permiso) =>
+        permiso.nombre.toLowerCase() === nombre.toLowerCase() &&
+        (exceptoId === undefined || permiso.id !== exceptoId),
     );
   }
 
@@ -65,7 +71,9 @@ export class RolRepositoryFalso implements IRolRepository {
   }
 
   async findByNombre(nombre: string): Promise<Rol | null> {
-    return this.guardados.find((rol) => rol.nombre === nombre) ?? null;
+    return (
+      this.guardados.find((rol) => rol.nombre.toLowerCase() === nombre.toLowerCase()) ?? null
+    );
   }
 
   async findById(id: number): Promise<Rol | null> {
@@ -77,7 +85,11 @@ export class RolRepositoryFalso implements IRolRepository {
   }
 
   async existeNombre(nombre: string, exceptoId?: number): Promise<boolean> {
-    return this.guardados.some((rol) => rol.nombre === nombre && (exceptoId === undefined || rol.id !== exceptoId));
+    return this.guardados.some(
+      (rol) =>
+        rol.nombre.toLowerCase() === nombre.toLowerCase() &&
+        (exceptoId === undefined || rol.id !== exceptoId),
+    );
   }
 
   precargar(...roles: Rol[]): void {
@@ -111,10 +123,14 @@ export class UsuarioRepositoryFalso implements IUsuarioRepository {
   }
 
   async findByEmail(email: string): Promise<Usuario | null> {
+    return this.usuarios.find((usuario) => usuario.email === email && usuario.estaActivo()) ?? null;
+  }
+
+  async findByEmailIncluyendoBaja(email: string): Promise<Usuario | null> {
     return this.usuarios.find((usuario) => usuario.email === email) ?? null;
   }
 
   async findById(id: number): Promise<Usuario | null> {
-    return this.usuarios.find((usuario) => usuario.id === id) ?? null;
+    return this.usuarios.find((usuario) => usuario.id === id && usuario.estaActivo()) ?? null;
   }
 }

@@ -78,10 +78,17 @@ describe('MikroOrmUsuarioRepository', () => {
     expect(usuario?.permisosEfectivos().map((permiso) => permiso.nombre)).toEqual(['Crear plan']);
   });
 
-  it('[RN-34] devuelve al usuario dado de baja en lugar de ocultarlo', async () => {
+  it('[RN-34] la lectura habitual oculta al usuario dado de baja', async () => {
+    const sembrado = await sembrarUsuario(true);
+
+    await expect(repositorio().findByEmail('profesor@gym.com')).resolves.toBeNull();
+    await expect(repositorio().findById(sembrado.id)).resolves.toBeNull();
+  });
+
+  it('[identidad-usuario] la variante explícita devuelve al usuario dado de baja', async () => {
     await sembrarUsuario(true);
 
-    const usuario = await repositorio().findByEmail('profesor@gym.com');
+    const usuario = await repositorio().findByEmailIncluyendoBaja('profesor@gym.com');
 
     expect(usuario).not.toBeNull();
     expect(usuario?.estaActivo()).toBe(false);
