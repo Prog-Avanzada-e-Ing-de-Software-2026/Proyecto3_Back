@@ -11,9 +11,11 @@ import {
 import {
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { ActorActual } from '../../../common/presentation/auth/actor-actual.decorator.js';
 import { ApiSolicitudInvalida } from '../../../common/presentation/swagger/solicitud-invalida.decorator.js';
@@ -33,6 +35,8 @@ import { UpdateRolDto } from './dto/update-rol.dto.js';
 
 @ApiTags('roles')
 @ApiCookieAuth('access')
+@ApiUnauthorizedResponse({ description: 'No hay una sesión válida' })
+@ApiForbiddenResponse({ description: 'Falta el permiso que exige la operación' })
 @Controller('roles')
 export class RolesController {
   constructor(

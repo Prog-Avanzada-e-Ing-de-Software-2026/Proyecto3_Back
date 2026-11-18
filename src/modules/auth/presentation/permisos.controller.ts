@@ -2,9 +2,11 @@ import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs
 import {
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { ActorActual } from '../../../common/presentation/auth/actor-actual.decorator.js';
 import { ApiSolicitudInvalida } from '../../../common/presentation/swagger/solicitud-invalida.decorator.js';
@@ -22,6 +24,8 @@ import { UpdatePermisoDto } from './dto/update-permiso.dto.js';
 
 @ApiTags('permisos')
 @ApiCookieAuth('access')
+@ApiUnauthorizedResponse({ description: 'No hay una sesión válida' })
+@ApiForbiddenResponse({ description: 'Falta el permiso que exige la operación' })
 @Controller('permisos')
 export class PermisosController {
   constructor(
