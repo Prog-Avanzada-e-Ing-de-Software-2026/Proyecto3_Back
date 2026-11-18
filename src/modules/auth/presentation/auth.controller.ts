@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res } from '@nestjs/common';
 import {
+  ApiCookieAuth,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -13,6 +14,7 @@ import { LoginUseCase } from '../application/use-cases/login.use-case.js';
 import { ReadSesionUseCase } from '../application/use-cases/read-sesion.use-case.js';
 import type { SesionOtorgada } from '../application/use-cases/sesion-otorgada.result.js';
 import { LoginDto } from './dto/login.dto.js';
+import { SesionOtorgadaDto } from './swagger/sesion-otorgada.response.js';
 import { COOKIE_REFRESH, SesionService } from './sesion.service.js';
 
 @ApiTags('auth')
@@ -29,7 +31,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Inicia sesión y emite las cookies de access y refresh' })
   @ApiSolicitudInvalida()
-  @ApiOkResponse({ description: 'Devuelve el rol y los permisos efectivos.' })
+  @ApiOkResponse({ type: SesionOtorgadaDto, description: 'Devuelve el rol y los permisos efectivos.' })
   @ApiUnauthorizedResponse({
     description: 'Credenciales inválidas o usuario dado de baja, sin distinguir la causa.',
   })
@@ -45,8 +47,9 @@ export class AuthController {
   }
 
   @Get('me')
+  @ApiCookieAuth('access')
   @ApiOperation({ summary: 'Devuelve el usuario autenticado con su rol y sus permisos' })
-  @ApiOkResponse({ description: 'Identidad, rol y permisos efectivos del usuario de la sesión.' })
+  @ApiOkResponse({ type: SesionOtorgadaDto, description: 'Identidad, rol y permisos efectivos del usuario de la sesión.' })
   @ApiUnauthorizedResponse({ description: 'No hay una sesión válida' })
   async consultarIdentidad(@ActorActual() actorId: number): Promise<SesionOtorgada> {
     return this.sesionActual.execute(actorId);
@@ -56,7 +59,7 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Renueva la cookie de access a partir de la de refresh' })
-  @ApiOkResponse({ description: 'Emite un access nuevo y devuelve rol y permisos.' })
+  @ApiOkResponse({ type: SesionOtorgadaDto, description: 'Emite un access nuevo y devuelve rol y permisos.' })
   @ApiUnauthorizedResponse({ description: 'No hay un refresh válido' })
   async renovarSesion(
     @Req() solicitud: Request,

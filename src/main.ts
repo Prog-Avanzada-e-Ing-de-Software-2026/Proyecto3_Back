@@ -18,6 +18,7 @@ async function bootstrap() {
     new DocumentBuilder()
       .setTitle('Gym MVP API')
       .setDescription('Backend de gestión de un gimnasio: planes, entrenamientos y seguimiento.')
+      .addCookieAuth('access', undefined, 'access')
       .build(),
   );
 

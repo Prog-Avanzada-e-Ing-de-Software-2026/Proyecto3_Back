@@ -8,7 +8,13 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ActorActual } from '../../../common/presentation/auth/actor-actual.decorator.js';
 import { ApiSolicitudInvalida } from '../../../common/presentation/swagger/solicitud-invalida.decorator.js';
 import { RequierePermiso } from '../../../common/presentation/auth/requiere-permiso.decorator.js';
@@ -21,10 +27,12 @@ import { ReplaceRolPermisosUseCase } from '../application/use-cases/replace-rol-
 import { UpdateRolUseCase } from '../application/use-cases/update-rol.use-case.js';
 import { NOMBRES_PERMISO } from '../domain/catalogos.js';
 import { CreateRolDto } from './dto/create-rol.dto.js';
+import { RolResumenDto } from './swagger/rol-resumen.response.js';
 import { ReplaceRolPermisosDto } from './dto/replace-rol-permisos.dto.js';
 import { UpdateRolDto } from './dto/update-rol.dto.js';
 
 @ApiTags('roles')
+@ApiCookieAuth('access')
 @Controller('roles')
 export class RolesController {
   constructor(
@@ -38,6 +46,7 @@ export class RolesController {
   @Get()
   @RequierePermiso(NOMBRES_PERMISO.ROL_CONSULTAR)
   @ApiOperation({ summary: 'Lista los roles vigentes con sus permisos' })
+  @ApiOkResponse({ type: RolResumenDto, isArray: true, description: 'Roles vigentes.' })
   async listarRoles(): Promise<RolResumen[]> {
     return this.listar.execute();
   }
@@ -45,6 +54,7 @@ export class RolesController {
   @Get(':id')
   @RequierePermiso(NOMBRES_PERMISO.ROL_CONSULTAR)
   @ApiOperation({ summary: 'Devuelve un rol vigente con sus permisos' })
+  @ApiOkResponse({ type: RolResumenDto, description: 'Rol vigente con sus permisos.' })
   async buscarRol(@Param('id', ParseIntPipe) id: number): Promise<RolResumen> {
     return this.buscar.execute(id);
   }
@@ -52,6 +62,7 @@ export class RolesController {
   @Post()
   @RequierePermiso(NOMBRES_PERMISO.ROL_CREAR)
   @ApiOperation({ summary: 'Da de alta un rol del catálogo' })
+  @ApiCreatedResponse({ type: RolResumenDto, description: 'Rol creado.' })
   @ApiSolicitudInvalida()
   async crearRol(
     @Body() dto: CreateRolDto,
@@ -70,6 +81,7 @@ export class RolesController {
   @Patch(':id')
   @RequierePermiso(NOMBRES_PERMISO.ROL_EDITAR)
   @ApiOperation({ summary: 'Edita nombre y descripción de un rol' })
+  @ApiOkResponse({ type: RolResumenDto, description: 'Rol actualizado.' })
   @ApiSolicitudInvalida()
   async editarRol(
     @Param('id', ParseIntPipe) id: number,
@@ -85,6 +97,7 @@ export class RolesController {
   @Put(':id/permisos')
   @RequierePermiso(NOMBRES_PERMISO.ROL_PERMISOS)
   @ApiOperation({ summary: 'Reemplaza el conjunto de permisos de un rol' })
+  @ApiOkResponse({ type: RolResumenDto, description: 'Rol con el conjunto pedido.' })
   @ApiSolicitudInvalida()
   async reemplazarLosPermisos(
     @Param('id', ParseIntPipe) id: number,
