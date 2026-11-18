@@ -146,6 +146,19 @@ describe('persistencia del modelo de identidad', () => {
     await expect(persistir(crearPermiso('crear PLAN'))).rejects.toThrow();
   });
 
+  it('[persistencia][RN-36] la base declara la unicidad del nombre sobre lower(nombre)', async () => {
+    const filas = await entorno.orm.em.getConnection().execute<{ indexname: string }[]>(
+      `select indexname from pg_indexes
+        where indexname in ('permiso_nombre_lower_unique', 'rol_nombre_lower_unique')
+        order by indexname`,
+    );
+
+    expect(filas.map((fila) => fila.indexname)).toEqual([
+      'permiso_nombre_lower_unique',
+      'rol_nombre_lower_unique',
+    ]);
+  });
+
   it('[persistencia] carga los alumnos asignados desde el profesor', async () => {
     const profesor = crearProfesor('profesor@gym.com', '30111222');
     const alumno = crearAlumno(
