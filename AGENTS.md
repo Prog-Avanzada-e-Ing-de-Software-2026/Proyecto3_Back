@@ -288,6 +288,20 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 - Usar subscribers del ORM como escondite de reglas de negocio.
 - Un `CatalogoController` único o un submódulo de catálogo que concentre los cinco agregados.
 
+### 5.10 Catálogo de permisos
+
+Un permiso por operación, con la forma `recurso:acción`. Es una convención obligatoria para todo módulo nuevo, y el permiso se agrega en el mismo cambio que expone la operación.
+
+- `recurso` en singular, minúsculas, sin tildes y con guion si es compuesto: `categoria-ejercicio`, `objetivo-plan`.
+- `acción` en minúsculas: `crear`, `consultar`, `editar`, `eliminar`, y las operaciones con nombre propio cuando no son CRUD (`reactivar`, `asignar`, `permisos`).
+- Un permiso por endpoint o por intención. No se admite uno que agrupe varias operaciones (`rol:gestionar`) ni un nombre de rol: `Administrador` es un rol, no un permiso.
+- Los datos propios del usuario no son permisos: registrar un entrenamiento o consultar estadísticas se resuelve con el rol y la regla de pertenencia, no con una clave del catálogo.
+- Cada permiso nuevo entra en `NOMBRES_PERMISO` (`domain/catalogos.ts`), en `PERMISOS_INICIALES` del seed y en la asignación de los roles que lo necesitan, en el mismo cambio que crea el endpoint y con su test. Un permiso sin endpoint no se agrega: nadie puede ejercerlo.
+- Un nombre del catálogo no se renombra después (`RN-44`), así que la convención se aplica desde el alta.
+
+Recursos ya definidos por las historias pendientes, con la acción de cada una: `plan`, `alumno`, `profesor`, `ejercicio`, `categoria-ejercicio`, `material`, `unidad` y `objetivo-plan`.
+
+
 ## 6. Auditoría de entidades
 
 Toda entidad persistente registra **quién** creó, editó y eliminó cada fila. Es un requisito transversal del modelo: cada entidad declara las seis columnas de §6.1 y el flujo de aplicación que la crea o la modifica las completa. No hay base abstracta compartida ni suscriptor central; la repetición entre entidades es una decisión explícita del proyecto. Lo que no se negocia son los campos ni las reglas de esta sección.

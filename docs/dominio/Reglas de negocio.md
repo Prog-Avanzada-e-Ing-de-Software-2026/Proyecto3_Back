@@ -65,7 +65,7 @@ Cada regla tiene un identificador estable `RN-nn` que se usa para trazabilidad e
 | RN-41 | Seguimiento | La mejor serie de un ejercicio se determina así: si las series del ejercicio tienen peso, es la de mayor peso y, si empatan, la de mayor cantidad; si ninguna tiene peso (peso ausente o igual a 0), es la de mayor cantidad. Si hay empate total entre series, gana la más antigua. La unidad define qué significa la cantidad (repeticiones, segundos o metros). |
 | RN-42 | Seguimiento | El récord de un ejercicio es su mejor serie considerando todo el historial del alumno; la evolución es la mejor serie de cada entrenamiento dentro del período indicado. |
 | RN-43 | Catálogo de autorización | Nadie otorga un permiso que no tiene: dar de alta un rol o cambiar sus permisos exige que el actor tenga todos los permisos que asigna. |
-| RN-44 | Catálogo de autorización | Los nombres requeridos del catálogo de autorización no se pueden cambiar: el catálogo conserva los tres roles y los cinco permisos con los que inicia. |
+| RN-44 | Catálogo de autorización | Los nombres requeridos del catálogo de autorización no se pueden cambiar: el catálogo conserva los roles y permisos con los que inicia. |
 
 ## Cobertura de test
 
