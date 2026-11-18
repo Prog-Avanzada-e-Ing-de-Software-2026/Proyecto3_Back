@@ -558,14 +558,13 @@
       },
       "indexes": [
         {
-          "columnNames": [
-            "nombre"
-          ],
+          "columnNames": [],
           "composite": false,
           "constraint": true,
-          "keyName": "permiso_nombre_unique",
+          "keyName": "permiso_nombre_lower_unique",
           "primary": false,
-          "unique": true
+          "unique": true,
+          "expression": "lower(\"nombre\")"
         },
         {
           "columnNames": [
@@ -1141,14 +1140,13 @@
       },
       "indexes": [
         {
-          "columnNames": [
-            "nombre"
-          ],
+          "columnNames": [],
           "composite": false,
           "constraint": true,
-          "keyName": "rol_nombre_unique",
+          "keyName": "rol_nombre_lower_unique",
           "primary": false,
-          "unique": true
+          "unique": true,
+          "expression": "lower(\"nombre\")"
         },
         {
           "columnNames": [
