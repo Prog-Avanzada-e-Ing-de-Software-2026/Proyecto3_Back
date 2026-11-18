@@ -2,7 +2,7 @@
 
 ## 1. Catálogo y puertos
 
-- [x] 1.1 Agregar los siete permisos del catálogo de autorización (`rol:consultar`, `rol:crear`, `rol:editar`, `rol:permisos`, `permiso:consultar`, `permiso:crear` y `permiso:editar`) a `PERMISOS_INICIALES` y a la asignación de `Administrador` en `ROLES_INICIALES`. Verificación: test del seed sobre una base recién migrada que compruebe los siete permisos y que `Administrador` queda con los siete. Trazabilidad: `identidad-usuario` — Catálogo de permisos; `design.md` D6, D7.
+- [x] 1.1 Agregar los ocho permisos del catálogo de autorización (`rol:consultar`, `rol:crear`, `rol:editar`, `rol:permisos`, `permiso:consultar`, `permiso:crear`, `permiso:editar` y `permiso:otorgar`) a `PERMISOS_INICIALES` y a la asignación de `Administrador` en `ROLES_INICIALES`. Verificación: test del seed sobre una base recién migrada que compruebe los ocho permisos y que `Administrador` queda con los ocho. Trazabilidad: `identidad-usuario` — Catálogo de permisos; `design.md` D6, D7.
 - [x] 1.2 Extender `IRolRepository` con `findAll()` y `findById(id)`, e `IPermisoRepository` con los mismos dos métodos. Verificación: `yarn typecheck`; el contrato se ejercita en 1.3. Trazabilidad: `design.md` D5.
 - [x] 1.3 Implementar las cuatro lecturas en los adaptadores MikroORM, con `populate` de permisos en el de roles. Verificación: test de integración contra PostgreSQL real que compruebe el listado con permisos, la búsqueda por id y que un registro dado de baja no aparece. Trazabilidad: `identidad-usuario` — Listado del catálogo, Exclusión de registros dados de baja; `design.md` D5.
 

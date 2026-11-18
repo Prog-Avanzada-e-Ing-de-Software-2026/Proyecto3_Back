@@ -90,6 +90,14 @@ describe('ReplaceRolPermisosUseCase', () => {
     ).toEqual([CREAR_PLAN, GESTIONAR_ALUMNOS].sort());
   });
 
+  it('[identidad-usuario] un actor que puede otorgar todo asigna un permiso que no tiene', async () => {
+    const { caso } = armar({ permisosDelActor: ['permiso:otorgar'] });
+
+    const rol = await caso.execute({ id: 1, permisos: [GESTIONAR_ALUMNOS], actorId: 9 });
+
+    expect(rol.permisos.getItems().map((permiso) => permiso.nombre)).toEqual([GESTIONAR_ALUMNOS]);
+  });
+
   it('[identidad-usuario] registra la edición con su actor', async () => {
     const { caso } = armar();
 

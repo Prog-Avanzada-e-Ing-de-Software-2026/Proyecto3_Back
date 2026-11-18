@@ -4,7 +4,7 @@
 
 ### Requirement: Catálogo de permisos
 
-El sistema SHALL persistir los permisos como entidades con nombre único sin distinguir mayúsculas y descripción, y MUST contener los permisos `rol:consultar`, `rol:crear`, `rol:editar`, `rol:permisos`, `permiso:consultar`, `permiso:crear` y `permiso:editar`, que habilitan las nueve operaciones del catálogo de autorización.
+El sistema SHALL persistir los permisos como entidades con nombre único sin distinguir mayúsculas y descripción, y MUST contener los permisos `rol:consultar`, `rol:crear`, `rol:editar`, `rol:permisos`, `permiso:consultar`, `permiso:crear`, `permiso:editar` y `permiso:otorgar`, que habilitan las nueve operaciones del catálogo de autorización y la asignación sin restricción.
 
 Cada permiso MUST nombrarse `recurso:acción`, en minúsculas y sin tildes, y MUST corresponder a una sola operación. Todo módulo nuevo MUST declarar sus permisos con esa forma y agregarlos en el cambio que expone la operación. El nombre de un permiso MUST NOT reutilizarse.
 
@@ -16,7 +16,7 @@ Cada permiso MUST nombrarse `recurso:acción`, en minúsculas y sin tildes, y MU
 #### Scenario: Permisos requeridos disponibles
 
 - **WHEN** se ejecuta la carga inicial del catálogo sobre un esquema recién aplicado
-- **THEN** el catálogo contiene `rol:consultar`, `rol:crear`, `rol:editar`, `rol:permisos`, `permiso:consultar`, `permiso:crear` y `permiso:editar`
+- **THEN** el catálogo contiene `rol:consultar`, `rol:crear`, `rol:editar`, `rol:permisos`, `permiso:consultar`, `permiso:crear`, `permiso:editar` y `permiso:otorgar`
 
 ### Requirement: Permisos efectivos del usuario
 
@@ -75,7 +75,7 @@ El sistema SHALL permitir consultar, dar de alta y editar roles y permisos, y MU
 
 ### Requirement: Nadie otorga un permiso que no tiene
 
-Una operación que asigne permisos a un rol MUST rechazarse si el actor no tiene, entre sus permisos efectivos, todos los permisos que intenta asignar (`RN-43`).
+Una operación que asigne permisos a un rol MUST rechazarse si el actor no tiene, entre sus permisos efectivos, todos los permisos que intenta asignar (`RN-43`), salvo que el actor tenga `permiso:otorgar`, que lo habilita a asignar cualquier permiso del catálogo. Quitar permisos no requiere esa comparación.
 
 #### Scenario: Alta de un rol con un permiso que el actor no tiene
 
@@ -86,6 +86,11 @@ Una operación que asigne permisos a un rol MUST rechazarse si el actor no tiene
 
 - **WHEN** un usuario reemplaza los permisos de un rol incluyendo uno que no tiene
 - **THEN** el conjunto del rol no cambia y la operación se rechaza
+
+#### Scenario: Asignación con el permiso de otorgar
+
+- **WHEN** un usuario con `permiso:otorgar` asigna a un rol un permiso que su propio rol no tiene
+- **THEN** la asignación se acepta
 
 ### Requirement: Inmutabilidad de los nombres requeridos
 

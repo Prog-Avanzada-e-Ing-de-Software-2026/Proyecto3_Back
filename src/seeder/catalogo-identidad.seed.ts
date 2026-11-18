@@ -45,6 +45,10 @@ const PERMISOS_INICIALES: readonly PermisoInicial[] = [
     nombre: NOMBRES_PERMISO.PERMISO_EDITAR,
     descripcion: 'Editar el nombre y la descripción de un permiso.',
   },
+  {
+    nombre: NOMBRES_PERMISO.PERMISO_OTORGAR,
+    descripcion: 'Asignar cualquier permiso del catálogo, aunque el rol del actor no lo tenga.',
+  },
 ];
 
 const ROLES_INICIALES: readonly RolInicial[] = [
@@ -58,6 +62,7 @@ const ROLES_INICIALES: readonly RolInicial[] = [
       NOMBRES_PERMISO.PERMISO_CONSULTAR,
       NOMBRES_PERMISO.PERMISO_CREAR,
       NOMBRES_PERMISO.PERMISO_EDITAR,
+      NOMBRES_PERMISO.PERMISO_OTORGAR,
     ],
   },
   // `Profesor` recibe los permisos de plan cuando exista la operación que los

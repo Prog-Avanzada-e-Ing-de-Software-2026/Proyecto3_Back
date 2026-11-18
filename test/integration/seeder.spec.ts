@@ -97,17 +97,18 @@ afterAll(async () => {
 });
 
 describe('seed catalogo-identidad', () => {
-  it('[seeder] deja los tres roles, los siete permisos y sus asignaciones', async () => {
+  it('[seeder] deja los tres roles, los ocho permisos y sus asignaciones', async () => {
     await correrSeed();
 
     expect(await contar('rol')).toBe(3);
-    expect(await contar('permiso')).toBe(7);
-    expect(await contar('rol_permiso')).toBe(7);
+    expect(await contar('permiso')).toBe(8);
+    expect(await contar('rol_permiso')).toBe(8);
 
     expect(await permisosDeRol(NOMBRES_ROL.ADMINISTRADOR)).toEqual([
       NOMBRES_PERMISO.PERMISO_CONSULTAR,
       NOMBRES_PERMISO.PERMISO_CREAR,
       NOMBRES_PERMISO.PERMISO_EDITAR,
+      NOMBRES_PERMISO.PERMISO_OTORGAR,
       NOMBRES_PERMISO.ROL_CONSULTAR,
       NOMBRES_PERMISO.ROL_CREAR,
       NOMBRES_PERMISO.ROL_EDITAR,
@@ -134,7 +135,7 @@ describe('seed catalogo-identidad', () => {
 
     expect(despues).toEqual(antes);
     expect(await contar('rol')).toBe(3);
-    expect(await contar('permiso')).toBe(7);
+    expect(await contar('permiso')).toBe(8);
   });
 
   it('[seeder] converge después de una ejecución interrumpida entre permisos y roles', async () => {
@@ -147,9 +148,9 @@ describe('seed catalogo-identidad', () => {
 
     await correrSeed();
 
-    expect(await contar('permiso')).toBe(7);
+    expect(await contar('permiso')).toBe(8);
     expect(await contar('rol')).toBe(3);
-    expect(await contar('rol_permiso')).toBe(7);
+    expect(await contar('rol_permiso')).toBe(8);
   });
 });
 

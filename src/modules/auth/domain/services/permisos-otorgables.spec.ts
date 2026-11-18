@@ -45,6 +45,15 @@ describe('exigirPermisosOtorgables', () => {
     ).toThrow(ErrorSemantico);
   });
 
+  it('[identidad-usuario][RN-43] acepta cualquier permiso cuando el actor puede otorgar todo', () => {
+    expect(() =>
+      exigirPermisosOtorgables(usuarioCon(['permiso:otorgar']), [
+        permiso('plan:crear'),
+        permiso('rol:permisos'),
+      ]),
+    ).not.toThrow();
+  });
+
   it('[identidad-usuario] usa los permisos efectivos, que excluyen los dados de baja', () => {
     const vigente = permiso('rol:editar');
     const dadoDeBaja = permiso('permiso:editar');
