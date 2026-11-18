@@ -1,7 +1,7 @@
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 
 /**
- * Rechaza renombrar un registro cuyo nombre exige la especificación (`RN-44`).
+ * Rechaza renombrar un registro cuyo nombre exige la especificación.
  *
  * Se evalúa sobre el nombre actual: cambiar de otro nombre hacia uno requerido ya
  * lo rechaza la unicidad.

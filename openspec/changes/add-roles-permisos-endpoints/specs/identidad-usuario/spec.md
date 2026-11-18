@@ -75,7 +75,7 @@ El sistema SHALL permitir consultar, dar de alta y editar roles y permisos, y MU
 
 ### Requirement: Nadie otorga un permiso que no tiene
 
-Una operación que asigne permisos a un rol MUST rechazarse si el actor no tiene, entre sus permisos efectivos, todos los permisos que intenta asignar (`RN-43`), salvo que el actor tenga `permiso:otorgar`, que lo habilita a asignar cualquier permiso del catálogo. Quitar permisos no requiere esa comparación.
+Una operación que asigne permisos a un rol MUST rechazarse si el actor no tiene, entre sus permisos efectivos, todos los permisos que intenta asignar, salvo que el actor tenga `permiso:otorgar`, que lo habilita a asignar cualquier permiso del catálogo. Quitar permisos no requiere esa comparación.
 
 #### Scenario: Alta de un rol con un permiso que el actor no tiene
 
@@ -94,7 +94,7 @@ Una operación que asigne permisos a un rol MUST rechazarse si el actor no tiene
 
 ### Requirement: Inmutabilidad de los nombres requeridos
 
-Los nombres de los roles `Administrador`, `Profesor` y `Alumno` y los de los permisos que el catálogo obliga a contener MUST NOT modificarse, porque el catálogo dejaría de contenerlos (`RN-44`).
+Los nombres de los roles `Administrador`, `Profesor` y `Alumno` y los de los permisos que el catálogo obliga a contener MUST NOT modificarse, porque el catálogo dejaría de contenerlos.
 
 #### Scenario: Renombrar un rol requerido
 

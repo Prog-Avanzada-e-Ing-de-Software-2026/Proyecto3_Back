@@ -36,7 +36,7 @@ describe('exigirPermisosOtorgables', () => {
     expect(() => exigirPermisosOtorgables(usuarioCon([]), [])).not.toThrow();
   });
 
-  it('[identidad-usuario][RN-43] rechaza un permiso que el actor no tiene', () => {
+  it('[identidad-usuario] rechaza un permiso que el actor no tiene', () => {
     expect(() =>
       exigirPermisosOtorgables(usuarioCon(['rol:editar']), [
         permiso('rol:editar'),
@@ -45,7 +45,7 @@ describe('exigirPermisosOtorgables', () => {
     ).toThrow(ErrorSemantico);
   });
 
-  it('[identidad-usuario][RN-43] acepta cualquier permiso cuando el actor puede otorgar todo', () => {
+  it('[identidad-usuario] acepta cualquier permiso cuando el actor puede otorgar todo', () => {
     expect(() =>
       exigirPermisosOtorgables(usuarioCon(['permiso:otorgar']), [
         permiso('plan:crear'),

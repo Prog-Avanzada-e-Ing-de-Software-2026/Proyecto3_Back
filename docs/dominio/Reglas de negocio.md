@@ -64,8 +64,6 @@ Cada regla tiene un identificador estable `RN-nn` que se usa para trazabilidad e
 | RN-40 | Seguimiento | La semana va de lunes a domingo y el mes es calendario. |
 | RN-41 | Seguimiento | La mejor serie de un ejercicio se determina así: si las series del ejercicio tienen peso, es la de mayor peso y, si empatan, la de mayor cantidad; si ninguna tiene peso (peso ausente o igual a 0), es la de mayor cantidad. Si hay empate total entre series, gana la más antigua. La unidad define qué significa la cantidad (repeticiones, segundos o metros). |
 | RN-42 | Seguimiento | El récord de un ejercicio es su mejor serie considerando todo el historial del alumno; la evolución es la mejor serie de cada entrenamiento dentro del período indicado. |
-| RN-43 | Catálogo de autorización | Nadie otorga un permiso que no tiene: dar de alta un rol o cambiar sus permisos exige que el actor tenga todos los permisos que asigna. La excepción es `permiso:otorgar`, que habilita a asignar cualquier permiso del catálogo. |
-| RN-44 | Catálogo de autorización | Los nombres requeridos del catálogo de autorización no se pueden cambiar: el catálogo conserva los roles y permisos con los que inicia. |
 
 ## Cobertura de test
 
@@ -81,4 +79,4 @@ La trazabilidad se declara en el nombre del test con el identificador entre corc
 it('[RN-09] no permite planes con fechas solapadas', () => { ... });
 ```
 
-Las 44 reglas deben tener test automatizado antes del despliegue final, y ninguna historia de usuario se considera terminada mientras una regla que implementa carezca de test.
+Las 42 reglas deben tener test automatizado antes del despliegue final, y ninguna historia de usuario se considera terminada mientras una regla que implementa carezca de test.

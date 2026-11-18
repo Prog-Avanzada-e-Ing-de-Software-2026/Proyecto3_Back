@@ -16,13 +16,13 @@ describe('exigirNombreEditable', () => {
     ).not.toThrow();
   });
 
-  it('[identidad-usuario][RN-44] rechaza renombrar un rol requerido', () => {
+  it('[identidad-usuario] rechaza renombrar un rol requerido', () => {
     expect(() =>
       exigirNombreEditable('Administrador', 'Admin', NOMBRES_ROL_REQUERIDOS),
     ).toThrow(ErrorSemantico);
   });
 
-  it('[identidad-usuario][RN-44] rechaza renombrar un permiso requerido', () => {
+  it('[identidad-usuario] rechaza renombrar un permiso requerido', () => {
     expect(() =>
       exigirNombreEditable(
         'rol:consultar',

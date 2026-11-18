@@ -297,7 +297,7 @@ Un permiso por operación, con la forma `recurso:acción`. Es una convención ob
 - Un permiso por endpoint o por intención. No se admite uno que agrupe varias operaciones (`rol:gestionar`) ni un nombre de rol: `Administrador` es un rol, no un permiso.
 - Los datos propios del usuario no son permisos: registrar un entrenamiento o consultar estadísticas se resuelve con el rol y la regla de pertenencia, no con una clave del catálogo.
 - Cada permiso nuevo entra en `NOMBRES_PERMISO` (`domain/catalogos.ts`), en `PERMISOS_INICIALES` del seed y en la asignación de los roles que lo necesitan, en el mismo cambio que crea el endpoint y con su test. Un permiso sin endpoint no se agrega: nadie puede ejercerlo.
-- Un nombre del catálogo no se renombra después (`RN-44`), así que la convención se aplica desde el alta.
+- Un nombre del catálogo no se renombra después, así que la convención se aplica desde el alta.
 
 Recursos ya definidos por las historias pendientes, con la acción de cada una: `plan`, `alumno`, `profesor`, `ejercicio`, `categoria-ejercicio`, `material`, `unidad` y `objetivo-plan`.
 
