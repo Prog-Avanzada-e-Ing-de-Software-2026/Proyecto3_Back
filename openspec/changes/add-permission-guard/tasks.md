@@ -19,4 +19,4 @@
 ## Workflow follow-up
 
 - Archivar con `openspec archive add-permission-guard` después del merge a `develop`.
-- Declarar los permisos reales en `add-alta-alumno` (`Gestionar alumnos`) y `add-alta-profesor` (`Gestionar profesores`) usando las constantes de `src/seeder/catalogos.ts`.
+- Declarar los permisos reales en `add-alta-alumno` (`alumno:crear`) y `add-alta-profesor` (`profesor:crear`) usando las constantes de `src/modules/auth/domain/catalogos.ts`, con la forma `recurso:acción` de `AGENTS.md` §5.10.

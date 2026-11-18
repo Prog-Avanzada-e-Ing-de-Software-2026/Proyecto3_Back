@@ -4,7 +4,7 @@
 
 `identidad-usuario` exige que la autorización de una operación protegida se decida por la **presencia de un permiso** y no comparando el código del rol, y `http-error-contract` ya traduce `prohibido` a `403` con el cuerpo estable. Ninguna de las dos cosas tiene todavía quien las ejerza: hoy todo lo que el guard de sesión deja pasar puede ejecutarse con cualquier rol.
 
-`implement-login` dejó la autorización por permiso explícitamente fuera de su alcance porque no había ninguna operación de negocio que la reclamara. Las altas de alumno y profesor son esas operaciones, y llegan con `Gestionar alumnos` y `Gestionar profesores`: si el guard no existe antes, cada cambio arrastra su propia versión.
+`implement-login` dejó la autorización por permiso explícitamente fuera de su alcance porque no había ninguna operación de negocio que la reclamara. Las altas de alumno y profesor son esas operaciones, y llegan con `alumno:crear` y `profesor:crear`: si el guard no existe antes, cada cambio arrastra su propia versión.
 
 ## What Changes
 

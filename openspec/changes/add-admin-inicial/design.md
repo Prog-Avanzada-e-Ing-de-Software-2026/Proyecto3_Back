@@ -68,7 +68,7 @@ El caso de uso recibe el nombre del rol y lo resuelve con `IRolRepository.findBy
 
 - **[Contraseña en el entorno]** Queda en `.env` y en la configuración del despliegue. → Es el mismo tratamiento que los secretos de sesión: el `.env` no se versiona y `env.example` queda vacío.
 - **[Contraseña débil]** Nadie impone una política más allá del mínimo de 8. → El seed es una herramienta de puesta en marcha, no la vía normal de alta; se documenta el mínimo y se confía en el operador.
-- **[Un administrador con todas las llaves]** El usuario inicial tiene el rol `Administrador`, que hoy incluye los cinco permisos. → Es lo que hace posible administrar el resto; la deuda del auto-bloqueo ya está registrada aparte.
+- **[Un administrador con todas las llaves]** El usuario inicial tiene el rol `Administrador`, que hoy incluye todo el catálogo de autorización. → Es lo que hace posible administrar el resto; la deuda del auto-bloqueo ya está registrada aparte.
 
 ## Migration Plan
 

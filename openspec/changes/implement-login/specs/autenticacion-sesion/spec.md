@@ -23,7 +23,7 @@ El sistema SHALL conceder una sesión a un usuario activo que presente el email 
 #### Scenario: Funciones correspondientes al rol
 
 - **WHEN** inicia sesión un usuario cuyo rol es `Alumno`
-- **THEN** los permisos devueltos no incluyen `Gestionar alumnos` ni `Gestionar profesores`
+- **THEN** los permisos devueltos son solo los del rol y no incluyen los del catálogo de autorización
 
 ### Requirement: Rechazo de credenciales inválidas sin revelar el dato fallido
 

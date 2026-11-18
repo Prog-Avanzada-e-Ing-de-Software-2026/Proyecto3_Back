@@ -18,6 +18,25 @@ Cada permiso MUST nombrarse `recurso:acción`, en minúsculas y sin tildes, y MU
 - **WHEN** se ejecuta la carga inicial del catálogo sobre un esquema recién aplicado
 - **THEN** el catálogo contiene `rol:consultar`, `rol:crear`, `rol:editar`, `rol:permisos`, `permiso:consultar`, `permiso:crear` y `permiso:editar`
 
+### Requirement: Permisos efectivos del usuario
+
+Los permisos efectivos de un `Usuario` SHALL ser la unión de los permisos asignados a su rol, y la autorización de una operación protegida MUST decidirse por la presencia de un permiso, no comparando el código del rol.
+
+#### Scenario: Profesor con el permiso de armar planes
+
+- **WHEN** se consultan los permisos efectivos de un `Usuario` cuyo rol es `Profesor`
+- **THEN** son exactamente los permisos asignados a `Profesor`, que hoy no incluyen ninguno del catálogo de autorización
+
+#### Scenario: Alumno con permisos de gestión
+
+- **WHEN** se consultan los permisos efectivos de un `Usuario` cuyo rol es `Alumno`
+- **THEN** no incluyen ninguno de los permisos del catálogo de autorización
+
+#### Scenario: Autorización por permiso
+
+- **WHEN** una operación protegida exige un permiso que el rol del usuario no tiene
+- **THEN** la operación se rechaza aunque el usuario autenticado tenga un rol válido
+
 ## ADDED Requirements
 
 ### Requirement: Administración del catálogo de roles y permisos
