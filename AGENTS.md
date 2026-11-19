@@ -133,7 +133,8 @@ src/
 ├── seeder/                  # Entrypoints de seeds; la lógica vive en cada módulo
 ├── common/                  # Solo lo transversal real, usado por dos o más módulos
 │   ├── domain/              # Errores comunes
-│   └── presentation/        # Filtro HTTP global, decorador de actor
+│   ├── application/         # Contratos de aplicación compartidos (paginación)
+│   └── presentation/        # Filtro HTTP global, decorador de actor, DTOs comunes
 └── modules/
     └── <capacidad>/         # alumnos, profesores, planes, entrenamientos, seguimiento, auth
         ├── <capacidad>.module.ts

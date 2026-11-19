@@ -2,8 +2,8 @@
 
 ## 1. Núcleo de paginación
 
-- [ ] 1.1 Crear `PaginacionQueryDto` en `src/common/presentation/dto/paginacion-query.dto.ts` con `skip` (entero, mínimo 0, default 0) y `take` (entero, mínimo 1, máximo 100, default 10), cada decorador con su `message` en español. Verificación: `yarn test` sobre el gate `mensajes-en-dtos.spec.ts` y un test unitario del DTO que acepte el default y rechace `take=0`, `take=101`, `skip=-1` y `skip=abc`. Trazabilidad: `catalogo` — Parámetros de paginación; `design.md` D2, D5.
-- [ ] 1.2 Crear el tipo `Pagina<T>` en `src/common/application/pagination/pagina.ts` y actualizar el árbol de `AGENTS.md` §5.2 y de `docs/agreements/arquitectura.md` para incluir `common/application/`. Verificación: `yarn typecheck` y `yarn check:docs`. Trazabilidad: `design.md` D2, D12.
+- [x] 1.1 Crear `PaginacionQueryDto` en `src/common/presentation/dto/paginacion-query.dto.ts` con `skip` (entero, mínimo 0, default 0) y `take` (entero, mínimo 1, máximo 100, default 10), cada decorador con su `message` en español. Verificación: `yarn test` sobre el gate `mensajes-en-dtos.spec.ts` y un test unitario del DTO que acepte el default y rechace `take=0`, `take=101`, `skip=-1` y `skip=abc`. Trazabilidad: `catalogo` — Parámetros de paginación; `design.md` D2, D5.
+- [x] 1.2 Crear el tipo `Pagina<T>` en `src/common/application/pagination/pagina.ts` y actualizar el árbol de `AGENTS.md` §5.2 y de `docs/agreements/arquitectura.md` para incluir `common/application/`. Verificación: `yarn typecheck` y `yarn check:docs`. Trazabilidad: `design.md` D2, D12.
 
 ## 2. Dominio y persistencia
 

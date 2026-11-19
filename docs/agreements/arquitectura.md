@@ -57,7 +57,8 @@ src/
 ├── migrations/
 ├── common/                              # Solo preocupaciones transversales reales
 │   ├── domain/                          # Ej.: errores comunes
-│   ├── presentation/                    # Ej.: filtro HTTP global, decorador actor
+│   ├── application/                     # Ej.: contratos compartidos (paginación, auditoría)
+│   ├── presentation/                    # Ej.: filtro HTTP global, decorador actor, DTOs comunes
 │   └── infrastructure/                  # Ej.: auditoría persistente
 └── modules/
     ├── auth/                            # Seguridad/autenticación, según alcance aprobado
