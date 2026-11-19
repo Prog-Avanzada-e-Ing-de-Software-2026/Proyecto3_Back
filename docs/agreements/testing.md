@@ -178,7 +178,7 @@ Las descripciones deben expresar **comportamiento y resultado esperado**, no det
 - No introducir `any`, casts para omitir reglas o cambios a producción para facilitar tests, salvo justificación técnica explícita.
 - Para fallos, comprobar **qué error o efecto se produce** y, cuando importe, que no quede persistido un estado parcial.
 - Mantener legibilidad: una prueba puede tener varias aserciones cuando describan un mismo escenario, pero no debería abarcar comportamientos independientes.
-- Las pruebas deben respetar los DTO de presentación, Inputs de aplicación, entidades de dominio y contratos de repositorio existentes; no confundirlos entre capas.
+- Las pruebas deben respetar los DTO de entrada, las entidades de dominio y los contratos de repositorio existentes; no confundirlos entre capas.
 
 ## 8. Procedimiento obligatorio para agentes
 

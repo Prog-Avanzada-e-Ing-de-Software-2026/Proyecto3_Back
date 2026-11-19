@@ -60,11 +60,7 @@ export class PermisosController {
     @Body() dto: CreatePermisoDto,
     @ActorActual() actorId: number,
   ): Promise<PermisoResumen> {
-    const permiso = await this.crear.execute({
-      nombre: dto.nombre,
-      descripcion: dto.descripcion,
-      actorId,
-    });
+    const permiso = await this.crear.execute(dto, actorId);
 
     return toPermisoResumen(permiso);
   }
@@ -79,7 +75,7 @@ export class PermisosController {
     @Body() dto: UpdatePermisoDto,
     @ActorActual() actorId: number,
   ): Promise<PermisoResumen> {
-    const permiso = await this.actualizar.execute({ id, nombre: dto.nombre, descripcion: dto.descripcion, actorId });
+    const permiso = await this.actualizar.execute(id, dto, actorId);
 
     return toPermisoResumen(permiso);
   }

@@ -54,33 +54,31 @@ src/modules/<capacidad>/
 
 | Capa | Responsabilidad | No debe hacer |
 | --- | --- | --- |
-| `presentation/` | recibir HTTP, DTO, validar formato, identificar actor, construir el Input y delegar | lógica de negocio, consultas ORM o transacciones |
+| `presentation/` | recibir HTTP, DTO, validar formato, identificar actor, entregar el DTO y delegar | lógica de negocio, consultas ORM o transacciones |
 | `application/` | coordinar casos de uso (comandos y lecturas) y, cuando existan, Query Objects; permisos operativos y la unidad de trabajo **a través de sus puertos** | duplicar invariantes de entidades; importar `@mikro-orm/*` |
 | `domain/` | entidades, agregados, VOs, reglas de negocio y puertos de escritura | depender de HTTP o de detalles técnicos en sus reglas puras |
 | `infrastructure/` | implementar los puertos con MikroORM, consultas especializadas y traducción de excepciones técnicas | decidir reglas del dominio por su cuenta; recibir DTO |
 
-**Comando:** `Controller → Input → UseCase → dominio → I<Agregado>Repository → MikroOrm<Agregado>Repository`.
+**Comando:** `Controller → DTO → UseCase → dominio → I<Agregado>Repository → MikroOrm<Agregado>Repository`.
 
 **Consulta:** `Controller → UseCase → puerto de persistencia → lector MikroORM → proyección → respuesta`. Si la consulta lo justifica, un **Query Object** en `application/use-cases/` es una alternativa opcional para implementarla, con su puerto de lectura.
 
 Ningún caso de uso ni Query Object inyecta `EntityRepository`, `EntityManager` ni `QueryBuilder`: reciben su contrato por constructor y lo vincula el `*.module.ts`. Si hay una regla de negocio de una entidad, invocar sus operaciones desde el caso de uso. Un servicio de dominio se justifica cuando la regla no pertenece claramente a una sola entidad.
 
-### 2.1. Frontera de datos: puertos, Query Objects e Inputs
+### 2.1. Frontera de datos: puertos, Query Objects y DTOs
 
 Reglas de convivencia entre capas; el detalle y el fundamento están en `AGENTS.md` §5 y `docs/agreements/arquitectura.md`.
 
 - **Interfaces de persistencia:** el acceso a datos siempre pasa por un contrato, y un contrato puede agrupar operaciones relacionadas de lectura y escritura. Un puerto, una implementación; no apilar un repositorio sobre otro ni declarar una interfaz nueva por operación si la existente cubre lo necesario.
-- **Query Objects:** son **opcionales**. Un caso de uso resuelve la lectura; se agrega un Query Object en `application/use-cases/<nombre>.query.ts` cuando la consulta lo justifica —varias entidades, filtros dinámicos, ordenamiento, paginación o agregaciones— con nombre de intención y `execute(input)`. No se crea uno por lectura.
+- **Query Objects:** son **opcionales**. Un caso de uso resuelve la lectura; se agrega un Query Object en `application/use-cases/<nombre>.query.ts` cuando la consulta lo justifica —varias entidades, filtros dinámicos, ordenamiento, paginación o agregaciones— con nombre de intención y `execute(dto)`. No se crea uno por lectura.
 - **Proyecciones:** cuando no hace falta el agregado completo, el contrato de lectura devuelve una proyección (`*.result.ts`) en lugar de hidratar entidades.
-- **DTO → Input → entidad:** el DTO es contrato HTTP; el Input, la entrada de aplicación; la entidad, el objeto con invariantes. El controller construye el Input y el caso de uso no conoce el DTO.
-- **Input de aplicación:** puede ser un tipo, una interfaz o una clase según lo que la intención necesite; no se crea un archivo o una abstracción adicional cuando no aporta valor.
+- **DTO → entidad:** el DTO es el contrato de entrada del caso de uso y la entidad, el objeto con invariantes. **No existe un Input de aplicación**: no se crea un `<verbo>-<sustantivo>.input.ts` ni un tipo paralelo al DTO. El actor llega aparte —nunca en un campo del DTO— y el caso de uso no vuelve a validar formato.
 - **El DTO nunca llega a un repositorio ni a MikroORM**, ni directo ni envuelto en un `Partial`/`any`.
 - **Factory o método de creación:** solo cuando aporta —datos de varias fuentes, valores por defecto que deben aplicarse siempre o un nombre de negocio de armado—. No se crea una Factory por entidad ni una que esquive invariantes.
 
 | Artefacto | Vive en | Qué valida |
 | --- | --- | --- |
-| DTO HTTP | `presentation/dto/` | Formato, tipos y campos obligatorios (`class-validator`) |
-| Input de aplicación | junto a su caso de uso | Nada: ya viene validado |
+| DTO | `presentation/dto/` | Formato, tipos y campos obligatorios (`class-validator`); es el contrato de entrada del caso de uso |
 | Entidad / agregado | `domain/entities/` | Invariantes del gimnasio |
 
 ## 3. Contratos HTTP, validaciones y seguridad
@@ -88,7 +86,7 @@ Reglas de convivencia entre capas; el detalle y el fundamento están en `AGENTS.
 - **Controladores livianos:** recibir la solicitud y delegar al caso de uso; no contener SQL, ORM ni decisiones de negocio.
 - **Tipado explícito:** declarar los tipos de parámetros y retornos de los métodos de controller, usando DTO o tipos de respuesta adecuados.
 - **DTO de entrada y salida:** representar contratos HTTP, no entidades de dominio; no exponer directamente entidades ni información sensible.
-- **Frontera de datos:** el controller transforma el DTO en un Input de aplicación antes de invocar el caso de uso; el DTO no se convierte en entidad ni se entrega a un repositorio (§2.1).
+- **Frontera de datos:** el controller entrega el DTO al caso de uso tal cual; el DTO no se convierte en entidad ni se entrega a un repositorio (§2.1).
 - **Validación técnica:** usar DTO y los mecanismos aprobados (`class-validator`, `class-transformer` y `ValidationPipe` según `AGENTS.md`) para formato, tipos y campos permitidos.
 - **Validación de dominio:** comprobar invariantes y estados válidos en agregados o servicios de dominio, aunque el DTO sea válido.
 - **REST:** mantener coherencia en rutas, verbos HTTP, códigos de respuesta, errores y versionado cuando corresponda.
@@ -264,7 +262,7 @@ No incluir secretos, credenciales, tokens ni información personal en los PR ni 
 2. Identificar el requerimiento, la capacidad de negocio, el actor autorizado y las invariantes afectadas.
 3. Seguir el **flujo OpenSpec** establecido por `AGENTS.md` para cambios de comportamiento; no pasar a implementación sin la aprobación que exige.
 4. Implementar cada comando y cada lectura con un **caso de uso**; agregar un Query Object solo si la consulta lo justifica. El acceso a datos pasa por un contrato de persistencia, reutilizando el existente cuando ya cubre la operación. Servicios de dominio solo para reglas que lo justifiquen y Factory solo si aporta valor.
-5. Definir el artefacto de cada borde: DTO HTTP en presentación, Input de aplicación junto al caso de uso —tipo, interfaz o clase, según lo que aporte—, entidad en dominio. El DTO no llega a la persistencia.
+5. Definir el artefacto de cada borde: DTO en presentación —que es también el contrato de entrada del caso de uso— y entidad en dominio. No hay Input de aplicación. El DTO no llega a la persistencia.
 6. Determinar garantías de persistencia, auditoría, índices, migraciones, baja lógica, efectos de concurrencia y pruebas necesarias.
 7. No inventar rutas, esquemas, permisos, eventos ni infraestructura que no consten en fuentes aprobadas.
 

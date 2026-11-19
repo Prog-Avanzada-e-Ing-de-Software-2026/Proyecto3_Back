@@ -27,7 +27,7 @@ describe('CreateRolUseCase', () => {
     const crearPlan = Permiso.crear({ nombre: 'plan:crear' });
     const { rolesRepo, caso } = armar([crearPlan]);
 
-    const rol = await caso.execute({ nombre: ' Profesor ', permisos: ['plan:crear'], actorId: 1 });
+    const rol = await caso.execute({ nombre: ' Profesor ', permisos: ['plan:crear'] }, 1);
 
     expect(rol.nombre).toBe('Profesor');
     expect(rol.permisos.getItems()).toEqual([crearPlan]);
@@ -71,7 +71,7 @@ describe('CreateRolUseCase', () => {
     const gestionarRoles = Permiso.crear({ nombre: 'rol:editar' });
     const { rolesRepo, caso } = armar([crearPlan, gestionarRoles]);
 
-    const rol = await caso.execute({ nombre: 'Profesor', permisos: ['plan:crear'], actorId: 1 });
+    const rol = await caso.execute({ nombre: 'Profesor', permisos: ['plan:crear'] }, 1);
 
     expect(rol.permisos.getItems()).toEqual([crearPlan]);
     expect(rol.createdById).toBe(1);

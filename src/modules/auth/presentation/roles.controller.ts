@@ -72,12 +72,7 @@ export class RolesController {
     @Body() dto: CreateRolDto,
     @ActorActual() actorId: number,
   ): Promise<RolResumen> {
-    const rol = await this.crear.execute({
-      nombre: dto.nombre,
-      descripcion: dto.descripcion,
-      permisos: dto.permisos,
-      actorId,
-    });
+    const rol = await this.crear.execute(dto, actorId);
 
     return toRolResumen(rol);
   }
@@ -92,8 +87,7 @@ export class RolesController {
     @Body() dto: UpdateRolDto,
     @ActorActual() actorId: number,
   ): Promise<RolResumen> {
-    const input = { id, nombre: dto.nombre, descripcion: dto.descripcion, actorId };
-    const rol = await this.actualizar.execute(input);
+    const rol = await this.actualizar.execute(id, dto, actorId);
 
     return toRolResumen(rol);
   }
@@ -108,7 +102,7 @@ export class RolesController {
     @Body() dto: ReplaceRolPermisosDto,
     @ActorActual() actorId: number,
   ): Promise<RolResumen> {
-    const rol = await this.reemplazarPermisos.execute({ id, permisos: dto.permisos, actorId });
+    const rol = await this.reemplazarPermisos.execute(id, dto, actorId);
 
     return toRolResumen(rol);
   }

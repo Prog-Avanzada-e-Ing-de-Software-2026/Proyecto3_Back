@@ -34,7 +34,10 @@ export async function runUsuarioInicial(app: INestApplicationContext): Promise<v
   const crearUsuario = app.get(CreateUsuarioUseCase);
 
   try {
-    await crearUsuario.execute({ email, password, rolNombre: NOMBRES_ROL.ADMINISTRADOR });
+    await crearUsuario.execute(
+      { email, password, rolNombre: NOMBRES_ROL.ADMINISTRADOR },
+      null,
+    );
   } catch (error) {
     // El contrato del seed es «que exista», no «crearlo»: un email repetido es el
     // resultado esperado en la segunda ejecución. Cualquier otro fallo se propaga.

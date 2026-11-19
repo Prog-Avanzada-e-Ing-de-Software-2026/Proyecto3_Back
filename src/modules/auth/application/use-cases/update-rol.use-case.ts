@@ -6,13 +6,7 @@ import { NOMBRES_ROL_REQUERIDOS } from '../../domain/catalogos.js';
 import type { Rol } from '../../domain/entities/rol.entity.js';
 import type { IRolRepository } from '../../domain/interfaces/rol.repository.interface.js';
 import { exigirNombreEditable } from '../../domain/services/nombres-requeridos.js';
-
-export interface UpdateRolInput {
-  id: number;
-  nombre?: string;
-  descripcion?: string | null;
-  actorId?: number | null;
-}
+import type { UpdateRolDto } from '../../presentation/dto/update-rol.dto.js';
 
 /**
  * Edición de un rol del catálogo.
@@ -24,14 +18,14 @@ export interface UpdateRolInput {
 export class UpdateRolUseCase {
   constructor(@Inject(ROL_REPOSITORY) private readonly roles: IRolRepository) {}
 
-  async execute(input: UpdateRolInput): Promise<Rol> {
-    const rol = await this.roles.findById(input.id);
+  async execute(id: number, dto: UpdateRolDto, actorId?: number | null): Promise<Rol> {
+    const rol = await this.roles.findById(id);
 
     if (rol === null) {
       throw new ErrorSemantico('no_encontrado', 'ROL_NO_ENCONTRADO', 'El rol no existe.');
     }
 
-    if (input.nombre === undefined && input.descripcion === undefined) {
+    if (dto.nombre === undefined && dto.descripcion === undefined) {
       throw new ErrorSemantico(
         'entrada_invalida',
         'SIN_CAMBIOS',
@@ -39,8 +33,8 @@ export class UpdateRolUseCase {
       );
     }
 
-    if (input.nombre !== undefined) {
-      const nombre = normalizarTextoObligatorio(input.nombre, 'NOMBRE');
+    if (dto.nombre !== undefined) {
+      const nombre = normalizarTextoObligatorio(dto.nombre, 'NOMBRE');
 
       exigirNombreEditable(rol.nombre, nombre, NOMBRES_ROL_REQUERIDOS);
 
@@ -51,12 +45,12 @@ export class UpdateRolUseCase {
       rol.nombre = nombre;
     }
 
-    if (input.descripcion !== undefined) {
-      rol.descripcion = input.descripcion;
+    if (dto.descripcion !== undefined) {
+      rol.descripcion = dto.descripcion;
     }
 
     rol.updatedAt = new Date();
-    rol.updatedById = input.actorId ?? null;
+    rol.updatedById = actorId ?? null;
 
     await this.roles.save(rol);
 

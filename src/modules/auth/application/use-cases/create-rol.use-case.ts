@@ -4,15 +4,9 @@ import { normalizarTextoObligatorio } from '../../../../common/domain/validacion
 import { ROL_REPOSITORY } from '../../auth.repository-tokens.js';
 import { Rol } from '../../domain/entities/rol.entity.js';
 import type { IRolRepository } from '../../domain/interfaces/rol.repository.interface.js';
+import type { CreateRolDto } from '../../presentation/dto/create-rol.dto.js';
 import { resolverPermisos } from '../services/resolver-permisos.js';
 import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
-
-export interface CreateRolInput {
-  nombre: string;
-  descripcion?: string | null;
-  permisos?: string[];
-  actorId?: number | null;
-}
 
 /**
  * Alta de un rol del catálogo.
@@ -27,18 +21,18 @@ export class CreateRolUseCase {
     private readonly buscarPermiso: FindPermisoByNombreUseCase,
   ) {}
 
-  async execute(input: CreateRolInput): Promise<Rol> {
-    const nombre = normalizarTextoObligatorio(input.nombre, 'NOMBRE');
+  async execute(dto: CreateRolDto, actorId?: number | null): Promise<Rol> {
+    const nombre = normalizarTextoObligatorio(dto.nombre, 'NOMBRE');
 
     if (await this.roles.existeNombre(nombre)) {
       throw new ErrorSemantico('conflicto', 'ROL_DUPLICADO', `El rol ${nombre} ya existe.`);
     }
 
-    const permisos = await resolverPermisos(input.permisos ?? [], this.buscarPermiso);
+    const permisos = await resolverPermisos(dto.permisos ?? [], this.buscarPermiso);
 
-    const rol = Rol.crear({ nombre, descripcion: input.descripcion ?? null, permisos });
+    const rol = Rol.crear({ nombre, descripcion: dto.descripcion ?? null, permisos });
     rol.createdAt = new Date();
-    rol.createdById = input.actorId ?? null;
+    rol.createdById = actorId ?? null;
 
     await this.roles.save(rol);
 

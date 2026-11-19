@@ -39,7 +39,7 @@ export class AuthController {
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) respuesta: Response,
   ): Promise<SesionOtorgada> {
-    const resultado = await this.login.execute({ email: dto.email, password: dto.password });
+    const resultado = await this.login.execute(dto);
 
     await this.sesion.establecer(respuesta, resultado.id);
 

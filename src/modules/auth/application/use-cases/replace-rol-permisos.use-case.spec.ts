@@ -45,11 +45,7 @@ describe('ReplaceRolPermisosUseCase', () => {
   it('[identidad-usuario] deja el rol con exactamente el conjunto pedido', async () => {
     const { caso } = armar({ permisosDelRol: [CREAR_PLAN] });
 
-    const rol = await caso.execute({
-      id: 1,
-      permisos: [GESTIONAR_ALUMNOS],
-      actorId: 9,
-    });
+    const rol = await caso.execute(1, { permisos: [GESTIONAR_ALUMNOS] }, 9);
 
     expect(rol.permisos.getItems().map((permiso) => permiso.nombre)).toEqual([GESTIONAR_ALUMNOS]);
   });
@@ -57,11 +53,7 @@ describe('ReplaceRolPermisosUseCase', () => {
   it('[identidad-usuario] agrega sin quitar lo que ya estaba cuando se pide conservarlo', async () => {
     const { caso } = armar({ permisosDelRol: [CREAR_PLAN] });
 
-    const rol = await caso.execute({
-      id: 1,
-      permisos: [CREAR_PLAN, GESTIONAR_ALUMNOS],
-      actorId: 9,
-    });
+    const rol = await caso.execute(1, { permisos: [CREAR_PLAN, GESTIONAR_ALUMNOS] }, 9);
 
     expect(
       rol.permisos
@@ -74,11 +66,7 @@ describe('ReplaceRolPermisosUseCase', () => {
   it('[identidad-usuario] asigna cualquier permiso vigente sin mirar los del actor', async () => {
     const { caso, rol } = armar({ permisosDelRol: [CREAR_PLAN] });
 
-    const actualizado = await caso.execute({
-      id: 1,
-      permisos: [GESTIONAR_ALUMNOS],
-      actorId: 9,
-    });
+    const actualizado = await caso.execute(1, { permisos: [GESTIONAR_ALUMNOS] }, 9);
 
     expect(actualizado.permisos.getItems().map((permiso) => permiso.nombre)).toEqual([
       GESTIONAR_ALUMNOS,
@@ -89,7 +77,7 @@ describe('ReplaceRolPermisosUseCase', () => {
   it('[identidad-usuario] registra la edición con su actor', async () => {
     const { caso } = armar();
 
-    const rol = await caso.execute({ id: 1, permisos: [], actorId: 9 });
+    const rol = await caso.execute(1, { permisos: [] }, 9);
 
     expect(rol.updatedById).toBe(9);
     expect(rol.updatedAt).toBeInstanceOf(Date);
@@ -99,7 +87,7 @@ describe('ReplaceRolPermisosUseCase', () => {
     const { caso, rol } = armar({ permisosDelRol: [CREAR_PLAN] });
 
     await expect(
-      caso.execute({ id: 1, permisos: ['Inexistente'], actorId: 9 }),
+      caso.execute(1, { permisos: ['Inexistente'] }, 9),
     ).rejects.toMatchObject({ codigo: 'PERMISO_NO_ENCONTRADO' });
     expect(rol.permisos.getItems().map((permiso) => permiso.nombre)).toEqual([CREAR_PLAN]);
   });
@@ -108,14 +96,14 @@ describe('ReplaceRolPermisosUseCase', () => {
     const { caso } = armar();
 
     await expect(
-      caso.execute({ id: 1, permisos: [CREAR_PLAN, CREAR_PLAN], actorId: 9 }),
+      caso.execute(1, { permisos: [CREAR_PLAN, CREAR_PLAN] }, 9),
     ).rejects.toMatchObject({ codigo: 'PERMISO_DUPLICADO' });
   });
 
   it('[identidad-usuario] rechaza un rol inexistente', async () => {
     const { caso } = armar();
 
-    await expect(caso.execute({ id: 99, permisos: [], actorId: 9 })).rejects.toMatchObject({
+    await expect(caso.execute(99, { permisos: [] }, 9)).rejects.toMatchObject({
       codigo: 'ROL_NO_ENCONTRADO',
     });
   });

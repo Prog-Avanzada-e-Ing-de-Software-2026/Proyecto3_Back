@@ -4,14 +4,9 @@ import { ROL_REPOSITORY } from '../../auth.repository-tokens.js';
 import type { Permiso } from '../../domain/entities/permiso.entity.js';
 import type { Rol } from '../../domain/entities/rol.entity.js';
 import type { IRolRepository } from '../../domain/interfaces/rol.repository.interface.js';
+import type { ReplaceRolPermisosDto } from '../../presentation/dto/replace-rol-permisos.dto.js';
 import { resolverPermisos } from '../services/resolver-permisos.js';
 import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
-
-export interface ReplaceRolPermisosInput {
-  id: number;
-  permisos: string[];
-  actorId?: number | null;
-}
 
 /**
  * Reemplaza el conjunto de permisos de un rol.
@@ -26,18 +21,22 @@ export class ReplaceRolPermisosUseCase {
     private readonly buscarPermiso: FindPermisoByNombreUseCase,
   ) {}
 
-  async execute(input: ReplaceRolPermisosInput): Promise<Rol> {
-    const rol = await this.roles.findById(input.id);
+  async execute(
+    id: number,
+    dto: ReplaceRolPermisosDto,
+    actorId?: number | null,
+  ): Promise<Rol> {
+    const rol = await this.roles.findById(id);
 
     if (rol === null) {
       throw new ErrorSemantico('no_encontrado', 'ROL_NO_ENCONTRADO', 'El rol no existe.');
     }
 
-    const solicitados = await resolverPermisos(input.permisos, this.buscarPermiso);
+    const solicitados = await resolverPermisos(dto.permisos, this.buscarPermiso);
 
     this.aplicarConjunto(rol, solicitados);
     rol.updatedAt = new Date();
-    rol.updatedById = input.actorId ?? null;
+    rol.updatedById = actorId ?? null;
 
     await this.roles.save(rol);
 

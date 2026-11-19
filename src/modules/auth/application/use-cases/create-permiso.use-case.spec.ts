@@ -12,10 +12,10 @@ describe('CreatePermisoUseCase', () => {
   it('[identidad-usuario] crea el permiso con el nombre normalizado y el actor', async () => {
     const repositorio = new PermisoRepositoryFalso();
 
-    const permiso = await new CreatePermisoUseCase(repositorio).execute({
-      nombre: '  plan:crear  ',
-      actorId: 7,
-    });
+    const permiso = await new CreatePermisoUseCase(repositorio).execute(
+      { nombre: '  plan:crear  ' },
+      7,
+    );
 
     expect(repositorio.guardados).toHaveLength(1);
     expect(permiso.nombre).toBe('plan:crear');

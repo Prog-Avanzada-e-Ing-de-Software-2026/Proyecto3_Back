@@ -5,13 +5,17 @@ import { ListPermisosUseCase } from '../modules/auth/application/use-cases/list-
 import { ListRolesUseCase } from '../modules/auth/application/use-cases/list-roles.use-case.js';
 import { NOMBRES_PERMISO, NOMBRES_ROL } from '../modules/auth/domain/catalogos.js';
 import type { NombrePermiso, NombreRol } from '../modules/auth/domain/catalogos.js';
+import type { CreatePermisoDto } from '../modules/auth/presentation/dto/create-permiso.dto.js';
+import type { CreateRolDto } from '../modules/auth/presentation/dto/create-rol.dto.js';
 
-interface PermisoInicial {
+// Los nombres se acotan al catálogo: el seed no puede inventar un permiso ni un
+// rol que el código no conozca.
+interface PermisoInicial extends CreatePermisoDto {
   nombre: NombrePermiso;
   descripcion: string;
 }
 
-interface RolInicial {
+interface RolInicial extends CreateRolDto {
   nombre: NombreRol;
   permisos: NombrePermiso[];
 }
@@ -94,7 +98,7 @@ export async function runCatalogoIdentidad(
 
   for (const permiso of PERMISOS_INICIALES) {
     if (!permisosExistentes.has(permiso.nombre)) {
-      await crearPermiso.execute(permiso);
+      await crearPermiso.execute(permiso, null);
     }
   }
 
@@ -102,7 +106,7 @@ export async function runCatalogoIdentidad(
 
   for (const rol of ROLES_INICIALES) {
     if (!rolesExistentes.has(rol.nombre)) {
-      await crearRol.execute(rol);
+      await crearRol.execute(rol, null);
     }
   }
 }

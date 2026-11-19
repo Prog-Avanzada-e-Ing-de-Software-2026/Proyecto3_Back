@@ -4,13 +4,9 @@ import { PASSWORD_HASHER, USUARIO_REPOSITORY } from '../../auth.repository-token
 import { CredencialesInvalidasError } from '../../domain/errors/credenciales-invalidas.error.js';
 import type { IPasswordHasher } from '../../domain/interfaces/password-hasher.interface.js';
 import type { IUsuarioRepository } from '../../domain/interfaces/usuario.repository.interface.js';
+import type { LoginDto } from '../../presentation/dto/login.dto.js';
 import { toSesionOtorgada } from '../mappers/sesion-otorgada.mapper.js';
 import type { SesionOtorgada } from './sesion-otorgada.result.js';
-
-export interface LoginInput {
-  email: string;
-  password: string;
-}
 
 /**
  * Inicio de sesión con email y contraseña.
@@ -26,14 +22,14 @@ export class LoginUseCase {
     @Inject(PASSWORD_HASHER) private readonly hasher: IPasswordHasher,
   ) {}
 
-  async execute(input: LoginInput): Promise<SesionOtorgada> {
-    const usuario = await this.usuarios.findByEmail(normalizarEmail(input.email));
+  async execute(dto: LoginDto): Promise<SesionOtorgada> {
+    const usuario = await this.usuarios.findByEmail(normalizarEmail(dto.email));
 
     if (usuario === null || !usuario.rol.estaActivo()) {
       throw new CredencialesInvalidasError();
     }
 
-    const verificada = await this.hasher.verify(usuario.passwordHash, input.password);
+    const verificada = await this.hasher.verify(usuario.passwordHash, dto.password);
 
     if (!verificada) {
       throw new CredencialesInvalidasError();

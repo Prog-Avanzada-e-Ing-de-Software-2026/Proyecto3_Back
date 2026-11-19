@@ -21,12 +21,11 @@ describe('UpdateRolUseCase', () => {
     const roles = new RolRepositoryFalso();
     roles.precargar(rolGuardado('Entrenador'));
 
-    const rol = await new UpdateRolUseCase(roles).execute({
-      id: 1,
-      nombre: 'Coach',
-      descripcion: 'Acompaña alumnos',
-      actorId: 5,
-    });
+    const rol = await new UpdateRolUseCase(roles).execute(
+      1,
+      { nombre: 'Coach', descripcion: 'Acompaña alumnos' },
+      5,
+    );
 
     expect(rol.nombre).toBe('Coach');
     expect(rol.descripcion).toBe('Acompaña alumnos');
@@ -39,7 +38,7 @@ describe('UpdateRolUseCase', () => {
     roles.precargar(rolGuardado('Administrador'));
 
     await expect(
-      new UpdateRolUseCase(roles).execute({ id: 1, nombre: 'Admin' }),
+      new UpdateRolUseCase(roles).execute(1, { nombre: 'Admin' }),
     ).rejects.toMatchObject({ codigo: 'NOMBRE_REQUERIDO' });
   });
 
@@ -47,7 +46,7 @@ describe('UpdateRolUseCase', () => {
     const roles = new RolRepositoryFalso();
     roles.precargar(rolGuardado('Profesor'));
 
-    const rol = await new UpdateRolUseCase(roles).execute({ id: 1, descripcion: 'Da clases' });
+    const rol = await new UpdateRolUseCase(roles).execute(1, { descripcion: 'Da clases' });
 
     expect(rol.nombre).toBe('Profesor');
     expect(rol.descripcion).toBe('Da clases');
@@ -58,7 +57,7 @@ describe('UpdateRolUseCase', () => {
     roles.precargar(rolGuardado('Entrenador', 1), rolGuardado('Coach', 2));
 
     await expect(
-      new UpdateRolUseCase(roles).execute({ id: 1, nombre: 'Coach' }),
+      new UpdateRolUseCase(roles).execute(1, { nombre: 'Coach' }),
     ).rejects.toMatchObject({ codigo: 'ROL_DUPLICADO' });
   });
 
@@ -67,7 +66,7 @@ describe('UpdateRolUseCase', () => {
     roles.precargar(rolGuardado('Entrenador'));
 
     await expect(
-      new UpdateRolUseCase(roles).execute({ id: 1, nombre: 'Entrenador' }),
+      new UpdateRolUseCase(roles).execute(1, { nombre: 'Entrenador' }),
     ).resolves.toBeDefined();
   });
 
@@ -76,7 +75,7 @@ describe('UpdateRolUseCase', () => {
     roles.precargar(rolGuardado('Entrenador'));
     const antes = roles.guardados[0]?.updatedAt ?? null;
 
-    await expect(new UpdateRolUseCase(roles).execute({ id: 1 })).rejects.toMatchObject({
+    await expect(new UpdateRolUseCase(roles).execute(1, {})).rejects.toMatchObject({
       codigo: 'SIN_CAMBIOS',
     });
 
@@ -87,7 +86,7 @@ describe('UpdateRolUseCase', () => {
     const roles = new RolRepositoryFalso();
     roles.precargar(rolGuardado('Entrenador'));
 
-    const rol = await new UpdateRolUseCase(roles).execute({ id: 1, descripcion: null });
+    const rol = await new UpdateRolUseCase(roles).execute(1, { descripcion: null });
 
     expect(rol.descripcion).toBeNull();
     expect(rol.updatedAt).toBeInstanceOf(Date);
@@ -95,7 +94,7 @@ describe('UpdateRolUseCase', () => {
 
   it('[identidad-usuario] rechaza un rol inexistente', async () => {
     await expect(
-      new UpdateRolUseCase(new RolRepositoryFalso()).execute({ id: 99, nombre: 'Otro' }),
+      new UpdateRolUseCase(new RolRepositoryFalso()).execute(99, { nombre: 'Otro' }),
     ).rejects.toMatchObject({ codigo: 'ROL_NO_ENCONTRADO' });
   });
 });

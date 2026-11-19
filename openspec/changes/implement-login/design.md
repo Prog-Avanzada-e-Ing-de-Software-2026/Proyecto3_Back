@@ -91,13 +91,13 @@ Emisión y verificación con `@nestjs/jwt` sobre el secreto `AUTH_JWT_SECRET`; l
 
 ### D5 — El actor llega por decorador de parámetro, no por `AsyncLocalStorage`
 
-El guard deja el `Usuario` autenticado en la petición y un decorador `@ActorActual()` lo entrega como parámetro al método del controller, que lo pasa al Input del caso de uso.
+El guard deja el `Usuario` autenticado en la petición y un decorador `@ActorActual()` lo entrega como parámetro al método del controller, que lo pasa al caso de uso junto con el DTO.
 
-**Por qué:** `AGENTS.md` §5.4 dice que presentación "obtiene el actor autenticado" y lo traduce a Input de aplicación. Un decorador es explícito, tipado y visible en la firma; `AsyncLocalStorage` funciona pero esconde la dependencia y complica las pruebas.
+**Por qué:** `AGENTS.md` §5.4 dice que presentación "obtiene el actor autenticado" y §5.6 fija que el actor va como parámetro propio, nunca en el DTO. Un decorador es explícito, tipado y visible en la firma; `AsyncLocalStorage` funciona pero esconde la dependencia y complica las pruebas.
 
 **Alternativas descartadas:**
 
-- **`AsyncLocalStorage`:** útil cuando el actor se lee en capas profundas; acá el caso de uso ya recibe su Input.
+- **`AsyncLocalStorage`:** útil cuando el actor se lee en capas profundas; acá el caso de uso ya recibe el actor por parámetro.
 - **Leer el `request` dentro del caso de uso:** mete HTTP en aplicación y contradice §5.4.
 
 ### D6 — `IUsuarioRepository` excluye la baja y la excepción es explícita

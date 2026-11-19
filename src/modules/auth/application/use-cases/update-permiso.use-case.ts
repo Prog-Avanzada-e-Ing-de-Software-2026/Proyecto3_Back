@@ -6,13 +6,7 @@ import { NOMBRES_PERMISO_REQUERIDOS } from '../../domain/catalogos.js';
 import type { Permiso } from '../../domain/entities/permiso.entity.js';
 import type { IPermisoRepository } from '../../domain/interfaces/permiso.repository.interface.js';
 import { exigirNombreEditable } from '../../domain/services/nombres-requeridos.js';
-
-export interface UpdatePermisoInput {
-  id: number;
-  nombre?: string;
-  descripcion?: string | null;
-  actorId?: number | null;
-}
+import type { UpdatePermisoDto } from '../../presentation/dto/update-permiso.dto.js';
 
 /** Edición de un permiso del catálogo. */
 @Injectable()
@@ -21,8 +15,8 @@ export class UpdatePermisoUseCase {
     @Inject(PERMISO_REPOSITORY) private readonly permisos: IPermisoRepository,
   ) {}
 
-  async execute(input: UpdatePermisoInput): Promise<Permiso> {
-    const permiso = await this.permisos.findById(input.id);
+  async execute(id: number, dto: UpdatePermisoDto, actorId?: number | null): Promise<Permiso> {
+    const permiso = await this.permisos.findById(id);
 
     if (permiso === null) {
       throw new ErrorSemantico(
@@ -32,7 +26,7 @@ export class UpdatePermisoUseCase {
       );
     }
 
-    if (input.nombre === undefined && input.descripcion === undefined) {
+    if (dto.nombre === undefined && dto.descripcion === undefined) {
       throw new ErrorSemantico(
         'entrada_invalida',
         'SIN_CAMBIOS',
@@ -40,8 +34,8 @@ export class UpdatePermisoUseCase {
       );
     }
 
-    if (input.nombre !== undefined) {
-      const nombre = normalizarTextoObligatorio(input.nombre, 'NOMBRE');
+    if (dto.nombre !== undefined) {
+      const nombre = normalizarTextoObligatorio(dto.nombre, 'NOMBRE');
 
       exigirNombreEditable(permiso.nombre, nombre, NOMBRES_PERMISO_REQUERIDOS);
 
@@ -52,12 +46,12 @@ export class UpdatePermisoUseCase {
       permiso.nombre = nombre;
     }
 
-    if (input.descripcion !== undefined) {
-      permiso.descripcion = input.descripcion;
+    if (dto.descripcion !== undefined) {
+      permiso.descripcion = dto.descripcion;
     }
 
     permiso.updatedAt = new Date();
-    permiso.updatedById = input.actorId ?? null;
+    permiso.updatedById = actorId ?? null;
 
     await this.permisos.save(permiso);
 

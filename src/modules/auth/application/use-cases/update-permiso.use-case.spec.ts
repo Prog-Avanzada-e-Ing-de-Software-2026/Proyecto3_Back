@@ -21,12 +21,11 @@ describe('UpdatePermisoUseCase', () => {
     const permisos = new PermisoRepositoryFalso();
     permisos.precargar(permisoGuardado('material:crear'));
 
-    const permiso = await new UpdatePermisoUseCase(permisos).execute({
-      id: 1,
-      nombre: 'material:editar',
-      descripcion: 'Alta y baja de material',
-      actorId: 3,
-    });
+    const permiso = await new UpdatePermisoUseCase(permisos).execute(
+      1,
+      { nombre: 'material:editar', descripcion: 'Alta y baja de material' },
+      3,
+    );
 
     expect(permiso.nombre).toBe('material:editar');
     expect(permiso.descripcion).toBe('Alta y baja de material');
@@ -38,7 +37,7 @@ describe('UpdatePermisoUseCase', () => {
     permisos.precargar(permisoGuardado('rol:consultar'));
 
     await expect(
-      new UpdatePermisoUseCase(permisos).execute({ id: 1, nombre: 'rol:leer' }),
+      new UpdatePermisoUseCase(permisos).execute(1, { nombre: 'rol:leer' }),
     ).rejects.toMatchObject({ codigo: 'NOMBRE_REQUERIDO' });
   });
 
@@ -50,7 +49,7 @@ describe('UpdatePermisoUseCase', () => {
     );
 
     await expect(
-      new UpdatePermisoUseCase(permisos).execute({ id: 1, nombre: 'unidad:editar' }),
+      new UpdatePermisoUseCase(permisos).execute(1, { nombre: 'unidad:editar' }),
     ).rejects.toMatchObject({ codigo: 'PERMISO_DUPLICADO' });
   });
 
@@ -58,7 +57,7 @@ describe('UpdatePermisoUseCase', () => {
     const permisos = new PermisoRepositoryFalso();
     permisos.precargar(permisoGuardado('material:crear'));
 
-    await expect(new UpdatePermisoUseCase(permisos).execute({ id: 1 })).rejects.toMatchObject({
+    await expect(new UpdatePermisoUseCase(permisos).execute(1, {})).rejects.toMatchObject({
       codigo: 'SIN_CAMBIOS',
     });
 
@@ -67,7 +66,7 @@ describe('UpdatePermisoUseCase', () => {
 
   it('[identidad-usuario] rechaza un permiso inexistente', async () => {
     await expect(
-      new UpdatePermisoUseCase(new PermisoRepositoryFalso()).execute({ id: 99 }),
+      new UpdatePermisoUseCase(new PermisoRepositoryFalso()).execute(99, {}),
     ).rejects.toMatchObject({ codigo: 'PERMISO_NO_ENCONTRADO' });
   });
 });

@@ -9,14 +9,8 @@ import { exigirCredencial } from '../../domain/credencial.js';
 import { Usuario } from '../../domain/entities/usuario.entity.js';
 import type { IPasswordHasher } from '../../domain/interfaces/password-hasher.interface.js';
 import type { IUsuarioRepository } from '../../domain/interfaces/usuario.repository.interface.js';
+import type { CreateUsuarioDto } from '../../presentation/dto/create-usuario.dto.js';
 import { FindRolByNombreUseCase } from './find-rol-by-nombre.use-case.js';
-
-export interface CreateUsuarioInput {
-  email: string;
-  password: string;
-  rolNombre: string;
-  actorId?: number | null;
-}
 
 /**
  * Alta de un `Usuario` con su rol.
@@ -33,9 +27,9 @@ export class CreateUsuarioUseCase {
     @Inject(PASSWORD_HASHER) private readonly hasher: IPasswordHasher,
   ) {}
 
-  async execute(input: CreateUsuarioInput): Promise<Usuario> {
-    const email = normalizarEmail(input.email);
-    exigirCredencial(input.password);
+  async execute(dto: CreateUsuarioDto, actorId?: number | null): Promise<Usuario> {
+    const email = normalizarEmail(dto.email);
+    exigirCredencial(dto.password);
 
     if ((await this.usuarios.findByEmailIncluyendoBaja(email)) !== null) {
       throw new ErrorSemantico(
@@ -45,23 +39,23 @@ export class CreateUsuarioUseCase {
       );
     }
 
-    const rol = await this.buscarRol.execute(input.rolNombre);
+    const rol = await this.buscarRol.execute(dto.rolNombre);
 
     if (rol === null || !rol.estaActivo()) {
       throw new ErrorSemantico(
         'no_encontrado',
         'ROL_NO_ENCONTRADO',
-        `El rol ${input.rolNombre} no existe o está dado de baja.`,
+        `El rol ${dto.rolNombre} no existe o está dado de baja.`,
       );
     }
 
     const usuario = Usuario.crear({
       email,
-      passwordHash: await this.hasher.hash(input.password),
+      passwordHash: await this.hasher.hash(dto.password),
       rol,
     });
     usuario.createdAt = new Date();
-    usuario.createdById = input.actorId ?? null;
+    usuario.createdById = actorId ?? null;
 
     await this.usuarios.save(usuario);
 
