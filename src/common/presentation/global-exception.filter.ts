@@ -4,6 +4,8 @@ import type { Request, Response } from 'express';
 import type { CategoriaError } from '../domain/errors/error-semantico.js';
 import { ErrorSemantico } from '../domain/errors/error-semantico.js';
 import { resolverIdentificadorSolicitud } from './request-id.js';
+import type { DetalleValidacion } from './validation/detalle-validacion.interface.js';
+import { esErrorConDetalle } from './validation/entrada-invalida.exception.js';
 
 type SolicitudConIdentificador = Request & { id?: string };
 
@@ -39,12 +41,30 @@ const MENSAJES_POR_ESTADO: Record<number, string> = {
 const CODE_GENERICO = 'ERROR_HTTP';
 const CODE_INTERNO = 'ERROR_INTERNO';
 const MENSAJE_INTERNO = 'Ocurrió un error inesperado.';
+const MENSAJE_CLIENTE = 'La solicitud no pudo procesarse.';
+
+/**
+ * Mensaje genérico de una excepción HTTP sin redacción propia.
+ *
+ * Un estado de cliente no puede responder el texto de fallo inesperado: el
+ * cliente leería que se rompió el servidor cuando el problema es su solicitud.
+ */
+function mensajePorEstado(estado: number): string {
+  const declarado = MENSAJES_POR_ESTADO[estado];
+
+  if (declarado !== undefined) {
+    return declarado;
+  }
+
+  return estado >= 500 ? MENSAJE_INTERNO : MENSAJE_CLIENTE;
+}
 
 interface CuerpoError {
   statusCode: number;
   code: string;
   message: string;
   requestId: string;
+  errores?: DetalleValidacion[];
 }
 
 /**
@@ -73,6 +93,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private construirCuerpo(exception: unknown, requestId: string): CuerpoError {
+    if (esErrorConDetalle(exception)) {
+      const estado = exception.getStatus();
+
+      return {
+        statusCode: estado,
+        code: CODIGOS_POR_ESTADO[estado] ?? CODE_GENERICO,
+        message: mensajePorEstado(estado),
+        requestId,
+        errores: exception.errores,
+      };
+    }
+
     if (exception instanceof ErrorSemantico) {
       const estado = ESTADOS_POR_CATEGORIA[exception.categoria];
 
@@ -92,7 +124,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return {
         statusCode: estado,
         code: CODIGOS_POR_ESTADO[estado] ?? CODE_GENERICO,
-        message: MENSAJES_POR_ESTADO[estado] ?? MENSAJE_INTERNO,
+        message: mensajePorEstado(estado),
         requestId,
       };
     }

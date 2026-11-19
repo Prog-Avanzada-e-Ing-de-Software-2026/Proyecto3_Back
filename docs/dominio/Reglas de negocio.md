@@ -46,7 +46,7 @@ Cada regla tiene un identificador estable `RN-nn` que se usa para trazabilidad e
 | RN-22 | Entrenamiento | Una serie debe tener cantidad ≥ 1 y peso ≥ 0 (o ausente). |
 | RN-23 | Entrenamiento | Para finalizar un entrenamiento se necesita al menos un ejercicio realizado, y cada ejercicio con al menos una serie. |
 | RN-24 | Entrenamiento | Un entrenamiento finalizado es inmutable. |
-| RN-25 | Alumno y Profesor | No se pueden tener registrados dos alumnos o dos profesores con igual nombre y número de documento. |
+| RN-25 | Alumno y Profesor | No se pueden tener registrados dos alumnos o dos profesores con igual número de documento. |
 | RN-26 | Alumno y Profesor | Solo se asignan profesores activos y solo se asignan o reasignan alumnos activos. |
 | RN-27 | Alumno y Profesor | Al dar de baja un profesor, sus alumnos quedan sin profesor asignado, pudiendo luego ser reasignados. |
 | RN-28 | Alumno | Un alumno sin profesor puede seguir consultando su plan y entrenando. No aparece en el seguimiento de ningún profesor. |

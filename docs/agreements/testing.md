@@ -171,13 +171,14 @@ Las descripciones deben expresar **comportamiento y resultado esperado**, no det
 
 - Seguir la estructura modular real del backend, con sus capas de presentación, aplicación, dominio e infraestructura.
 - Ubicar unitarias preferentemente junto al archivo probado (`*.spec.ts` u otra convención existente). Agrupar integraciones por módulo/funcionalidad siguiendo la convención del repositorio; `*.integration.spec.ts` es solo una **opción**, no una imposición.
+- El arnés compartido vive en `test/support/`: `postgres.ts` levanta PostgreSQL real con Testcontainers y vacía las tablas entre casos, `fakes-auth.ts` son dobles en memoria de los puertos —nunca mocks del ORM—, `env.ts` fija los secretos de sesión antes de instanciar el módulo y `orm-metadata.ts` inicializa los metadatos. `test/app.e2e-spec.ts` es el humo sobre `AppModule` real: comprueba que el guard global cierra las rutas que no declaran `@Public()`.
 - Estructurar cada test en **Arrange → Act → Assert**, con datos mínimos y aserciones específicas.
 - Evitar fixtures gigantes, `sleep` arbitrarios, mocks globales persistentes y dependencias entre casos.
 - No probar métodos privados ni detalles accidentales del código cuando exista una interfaz pública observable.
 - No introducir `any`, casts para omitir reglas o cambios a producción para facilitar tests, salvo justificación técnica explícita.
 - Para fallos, comprobar **qué error o efecto se produce** y, cuando importe, que no quede persistido un estado parcial.
 - Mantener legibilidad: una prueba puede tener varias aserciones cuando describan un mismo escenario, pero no debería abarcar comportamientos independientes.
-- Las pruebas deben respetar los DTO de presentación, Inputs de aplicación, entidades de dominio y contratos de repositorio existentes; no confundirlos entre capas.
+- Las pruebas deben respetar los DTO de entrada, las entidades de dominio y los contratos de repositorio existentes; no confundirlos entre capas.
 
 ## 8. Procedimiento obligatorio para agentes
 

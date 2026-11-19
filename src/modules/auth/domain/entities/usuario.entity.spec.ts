@@ -72,12 +72,12 @@ describe('Usuario', () => {
   });
 
   it('[usuario] los permisos efectivos son los del rol', () => {
-    const rol = crearRol('Profesor', [crearPermiso('Crear plan')]);
+    const rol = crearRol('Profesor', [crearPermiso('plan:crear')]);
     const usuario = crearUsuario('profesor@gym.com', rol);
 
     expect(
       usuario.permisosEfectivos().map((permiso) => permiso.nombre),
-    ).toEqual(['Crear plan']);
+    ).toEqual(['plan:crear']);
   });
 
   it('[usuario] un rol sin permisos no habilita ninguna operacion de gestion', () => {
@@ -87,7 +87,7 @@ describe('Usuario', () => {
   });
 
   it('[usuario] excluye de los permisos efectivos el permiso dado de baja', () => {
-    const permiso = crearPermiso('Crear plan');
+    const permiso = crearPermiso('plan:crear');
     const rol = crearRol('Profesor', [permiso]);
     const usuario = crearUsuario('profesor@gym.com', rol);
 

@@ -1,67 +1,56 @@
 import { beforeAll, describe, expect, it } from 'vitest';
+import { PermisoRepositoryFalso } from '../../../../../test/support/fakes-auth.js';
 import { initOrmMetadata } from '../../../../../test/support/orm-metadata.js';
-import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
-import type { Permiso } from '../../domain/entities/permiso.entity.js';
-import type { IPermisoRepository } from '../../domain/interfaces/permiso.repository.interface.js';
+import { Permiso } from '../../domain/entities/permiso.entity.js';
 import { CreatePermisoUseCase } from './create-permiso.use-case.js';
-
-class PermisoRepositoryFalso implements IPermisoRepository {
-  readonly guardados: Permiso[] = [];
-  private readonly porNombre = new Map<string, Permiso>();
-
-  async save(permiso: Permiso): Promise<void> {
-    this.guardados.push(permiso);
-    this.porNombre.set(permiso.nombre, permiso);
-  }
-
-  async findByNombre(nombre: string): Promise<Permiso | null> {
-    return this.porNombre.get(nombre) ?? null;
-  }
-
-  precargar(permiso: Permiso): void {
-    this.porNombre.set(permiso.nombre, permiso);
-  }
-}
 
 beforeAll(() => {
   initOrmMetadata();
 });
 
 describe('CreatePermisoUseCase', () => {
-  it('[create-permiso] crea el permiso cuando el nombre no existe', async () => {
+  it('[identidad-usuario] crea el permiso con el nombre normalizado y el actor', async () => {
     const repositorio = new PermisoRepositoryFalso();
-    const caso = new CreatePermisoUseCase(repositorio);
 
-    const permiso = await caso.execute({ nombre: '  Crear plan  ' });
+    const permiso = await new CreatePermisoUseCase(repositorio).execute(
+      { nombre: '  plan:crear  ' },
+      7,
+    );
 
     expect(repositorio.guardados).toHaveLength(1);
-    expect(permiso.nombre).toBe('Crear plan');
+    expect(permiso.nombre).toBe('plan:crear');
     expect(permiso.descripcion).toBeNull();
-    expect(permiso.createdById).toBeNull();
+    expect(permiso.createdById).toBe(7);
     expect(permiso.createdAt).toBeInstanceOf(Date);
     expect(permiso.updatedAt).toBeNull();
   });
 
-  it('[create-permiso] no escribe cuando el nombre ya existe', async () => {
+  it('[identidad-usuario] rechaza un nombre que ya existe', async () => {
     const repositorio = new PermisoRepositoryFalso();
-    const caso = new CreatePermisoUseCase(repositorio);
-    const existente = await caso.execute({ nombre: 'Crear plan' });
-    const guardadosAntes = repositorio.guardados.length;
+    repositorio.precargar(Permiso.crear({ nombre: 'plan:crear' }));
 
-    const resultado = await caso.execute({
-      nombre: '  Crear plan  ',
-      descripcion: 'Otra descripción',
-    });
-
-    expect(resultado).toBe(existente);
-    expect(repositorio.guardados).toHaveLength(guardadosAntes);
+    await expect(
+      new CreatePermisoUseCase(repositorio).execute({ nombre: ' plan:crear ' }),
+    ).rejects.toMatchObject({ codigo: 'PERMISO_DUPLICADO' });
+    expect(repositorio.guardados).toHaveLength(1);
   });
 
-  it('[create-permiso] rechaza el nombre vacío sin escribir', async () => {
+  it('[identidad-usuario] rechaza un nombre que difiere solo en mayúsculas', async () => {
     const repositorio = new PermisoRepositoryFalso();
-    const caso = new CreatePermisoUseCase(repositorio);
+    repositorio.precargar(Permiso.crear({ nombre: 'plan:crear' }));
 
-    await expect(caso.execute({ nombre: '  ' })).rejects.toThrow(ErrorSemantico);
+    await expect(
+      new CreatePermisoUseCase(repositorio).execute({ nombre: 'PLAN:CREAR' }),
+    ).rejects.toMatchObject({ codigo: 'PERMISO_DUPLICADO' });
+    expect(repositorio.guardados).toHaveLength(1);
+  });
+
+  it('[identidad-usuario] rechaza el nombre vacío sin escribir', async () => {
+    const repositorio = new PermisoRepositoryFalso();
+
+    await expect(
+      new CreatePermisoUseCase(repositorio).execute({ nombre: '   ' }),
+    ).rejects.toThrow();
     expect(repositorio.guardados).toHaveLength(0);
   });
 });

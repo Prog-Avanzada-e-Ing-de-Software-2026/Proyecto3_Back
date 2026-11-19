@@ -1,5 +1,6 @@
 import type { INestApplicationContext } from '@nestjs/common';
 import { runCatalogoIdentidad } from './catalogo-identidad.seed.js';
+import { runUsuarioInicial } from './usuario-inicial.seed.js';
 
 /**
  * Un seed recibe el contexto de Nest ya inicializado y ejecuta un caso de uso.
@@ -12,6 +13,7 @@ export type SeedRunner = (app: INestApplicationContext) => Promise<void>;
 /** Seeds disponibles, indexados por el nombre que recibe `yarn db:seed <nombre>`. */
 export const SEEDERS: Readonly<Record<string, SeedRunner>> = {
   'catalogo-identidad': runCatalogoIdentidad,
+  'usuario-inicial': runUsuarioInicial,
 };
 
 export class UnknownSeedError extends Error {

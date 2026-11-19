@@ -1,0 +1,88 @@
+# Spec Delta
+
+## MODIFIED Requirements
+
+### Requirement: Catálogo de permisos
+
+El sistema SHALL persistir los permisos como entidades con nombre único sin distinguir mayúsculas y descripción, y MUST contener los permisos `rol:consultar`, `rol:crear`, `rol:editar`, `rol:permisos`, `permiso:consultar`, `permiso:crear` y `permiso:editar`, que habilitan las nueve operaciones del catálogo de autorización.
+
+Cada permiso MUST nombrarse `recurso:acción`, en minúsculas y sin tildes, y MUST corresponder a una sola operación. Todo módulo nuevo MUST declarar sus permisos con esa forma y agregarlos en el cambio que expone la operación. El nombre de un permiso MUST NOT reutilizarse.
+
+#### Scenario: Nombre de permiso repetido
+
+- **WHEN** se intenta registrar un permiso con un nombre ya existente, comparado sin espacios circundantes y sin distinguir mayúsculas
+- **THEN** la operación se rechaza como nombre duplicado
+
+#### Scenario: Permisos requeridos disponibles
+
+- **WHEN** se ejecuta la carga inicial del catálogo sobre un esquema recién aplicado
+- **THEN** el catálogo contiene `rol:consultar`, `rol:crear`, `rol:editar`, `rol:permisos`, `permiso:consultar`, `permiso:crear` y `permiso:editar`
+
+### Requirement: Permisos efectivos del usuario
+
+Los permisos efectivos de un `Usuario` SHALL ser la unión de los permisos asignados a su rol, y la autorización de una operación protegida MUST decidirse por la presencia de un permiso, no comparando el código del rol.
+
+#### Scenario: Profesor con el permiso de armar planes
+
+- **WHEN** se consultan los permisos efectivos de un `Usuario` cuyo rol es `Profesor`
+- **THEN** son exactamente los permisos asignados a `Profesor`, que hoy no incluyen ninguno del catálogo de autorización
+
+#### Scenario: Alumno con permisos de gestión
+
+- **WHEN** se consultan los permisos efectivos de un `Usuario` cuyo rol es `Alumno`
+- **THEN** no incluyen ninguno de los permisos del catálogo de autorización
+
+#### Scenario: Autorización por permiso
+
+- **WHEN** una operación protegida exige un permiso que el rol del usuario no tiene
+- **THEN** la operación se rechaza aunque el usuario autenticado tenga un rol válido
+
+## ADDED Requirements
+
+### Requirement: Administración del catálogo de roles y permisos
+
+El sistema SHALL permitir consultar, dar de alta y editar roles y permisos, y MUST proteger esas operaciones con un permiso del catálogo. Las lecturas habituales MUST excluir los registros dados de baja. El nombre de un rol o de un permiso MUST ser único sin distinguir mayúsculas (`RN-36`), y la unicidad MUST estar garantizada por una restricción de la base y no solo por una lectura previa.
+
+#### Scenario: Alta de un permiso nuevo
+
+- **WHEN** un usuario con `permiso:crear` registra un permiso con un nombre inexistente
+- **THEN** el permiso queda disponible en el catálogo con su nombre y descripción
+
+#### Scenario: Nombre que difiere solo en mayúsculas
+
+- **WHEN** se intenta registrar un rol o un permiso cuyo nombre solo difiere en mayúsculas del de uno existente
+- **THEN** la operación se rechaza como nombre duplicado
+
+#### Scenario: Alta con nombre ya usado por un registro dado de baja
+
+- **WHEN** se intenta registrar un permiso o un rol con el nombre de uno dado de baja
+- **THEN** el alta se rechaza como nombre duplicado y el nombre no se libera
+
+#### Scenario: Listado del catálogo
+
+- **WHEN** se consulta el catálogo de roles o de permisos
+- **THEN** la respuesta incluye solo los registros vigentes
+
+#### Scenario: Reemplazo de los permisos de un rol
+
+- **WHEN** se reemplaza el conjunto de permisos de un rol con otro conjunto
+- **THEN** el rol queda exactamente con los permisos indicados, sin los anteriores y sin repetidos
+
+#### Scenario: Permiso repetido en el mismo rol
+
+- **WHEN** el conjunto enviado repite el mismo permiso
+- **THEN** la operación se rechaza y el conjunto del rol no cambia
+
+### Requirement: Inmutabilidad de los nombres requeridos
+
+Los nombres de los roles `Administrador`, `Profesor` y `Alumno` y los de los permisos que el catálogo obliga a contener MUST NOT modificarse, porque el catálogo dejaría de contenerlos.
+
+#### Scenario: Renombrar un rol requerido
+
+- **WHEN** se intenta cambiar el nombre de `Administrador`
+- **THEN** la operación se rechaza y el rol conserva su nombre
+
+#### Scenario: Editar la descripción de un rol requerido
+
+- **WHEN** se cambia solo la descripción de `Profesor`
+- **THEN** la edición se acepta y el nombre no cambia

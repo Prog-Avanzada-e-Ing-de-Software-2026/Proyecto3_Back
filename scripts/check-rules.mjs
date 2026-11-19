@@ -9,7 +9,7 @@
  * Modes:
  *   (default)      report only, never fails
  *   --require ...  fail if any required rule has no passing test
- *   --all          fail unless the 42 rules are covered
+ *   --all          fail unless every documented rule is covered
  *
  * For pull requests the required rules are read from the PR body:
  *   Reglas: RN-01, RN-05, RN-09

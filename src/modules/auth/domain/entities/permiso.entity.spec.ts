@@ -4,7 +4,7 @@ import { Permiso } from './permiso.entity.js';
 
 const edicion = new Date('2026-02-01T10:00:00.000Z');
 
-function crearPermiso(nombre = 'Crear plan'): Permiso {
+function crearPermiso(nombre = 'plan:crear'): Permiso {
   return Permiso.crear({ nombre });
 }
 
@@ -14,7 +14,7 @@ describe('Permiso', () => {
   });
 
   it('[permiso] recorta los espacios circundantes del nombre', () => {
-    expect(crearPermiso('  Crear plan  ').nombre).toBe('Crear plan');
+    expect(crearPermiso('  plan:crear  ').nombre).toBe('plan:crear');
   });
 
   it('[permiso] el alta no escribe auditoría: la completa el caso de uso', () => {

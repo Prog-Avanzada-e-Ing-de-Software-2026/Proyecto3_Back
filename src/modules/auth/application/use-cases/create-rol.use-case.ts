@@ -1,22 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 import { normalizarTextoObligatorio } from '../../../../common/domain/validaciones.js';
+import { ROL_REPOSITORY } from '../../auth.repository-tokens.js';
 import { Rol } from '../../domain/entities/rol.entity.js';
 import type { IRolRepository } from '../../domain/interfaces/rol.repository.interface.js';
-import { ROL_REPOSITORY } from '../../auth.repository-tokens.js';
+import type { CreateRolDto } from '../../presentation/dto/create-rol.dto.js';
+import { resolverPermisos } from '../services/resolver-permisos.js';
 import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
 
-export interface CreateRolInput {
-  nombre: string;
-  descripcion?: string | null;
-  permisos: string[];
-}
-
 /**
- * Alta idempotente de un rol con sus permisos.
+ * Alta de un rol del catálogo.
  *
- * Resuelve cada permiso antes de escribir: un código inexistente se rechaza sin
- * dejar el rol a medio construir.
+ * El nombre no se libera con la baja, así que la unicidad también mira los roles
+ * dados de baja.
  */
 @Injectable()
 export class CreateRolUseCase {
@@ -25,36 +21,18 @@ export class CreateRolUseCase {
     private readonly buscarPermiso: FindPermisoByNombreUseCase,
   ) {}
 
-  async execute(input: CreateRolInput): Promise<Rol> {
-    const nombre = normalizarTextoObligatorio(input.nombre, 'NOMBRE');
-    const existente = await this.roles.findByNombre(nombre);
+  async execute(dto: CreateRolDto, actorId?: number | null): Promise<Rol> {
+    const nombre = normalizarTextoObligatorio(dto.nombre, 'NOMBRE');
 
-    if (existente !== null) {
-      return existente;
+    if (await this.roles.existeNombre(nombre)) {
+      throw new ErrorSemantico('conflicto', 'ROL_DUPLICADO', `El rol ${nombre} ya existe.`);
     }
 
-    const permisos = [];
+    const permisos = await resolverPermisos(dto.permisos ?? [], this.buscarPermiso);
 
-    for (const nombrePermiso of input.permisos) {
-      const permiso = await this.buscarPermiso.execute(nombrePermiso);
-
-      if (permiso === null) {
-        throw new ErrorSemantico(
-          'no_encontrado',
-          'PERMISO_NO_ENCONTRADO',
-          `El permiso ${nombrePermiso} no existe.`,
-        );
-      }
-
-      permisos.push(permiso);
-    }
-
-    const rol = Rol.crear({
-      nombre,
-      descripcion: input.descripcion ?? null,
-      permisos,
-    });
+    const rol = Rol.crear({ nombre, descripcion: dto.descripcion ?? null, permisos });
     rol.createdAt = new Date();
+    rol.createdById = actorId ?? null;
 
     await this.roles.save(rol);
 

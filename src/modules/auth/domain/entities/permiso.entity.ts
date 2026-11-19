@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
+import { Entity, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 import { normalizarTextoObligatorio } from '../../../../common/domain/validaciones.js';
 import type { CrearPermiso } from './permiso.input.js';
 
@@ -7,11 +7,12 @@ import type { CrearPermiso } from './permiso.input.js';
  * conoce a los roles que lo usan. Su nombre es la identidad del permiso.
  */
 @Entity({ tableName: 'permiso' })
+@Unique({ name: 'permiso_nombre_lower_unique', expression: 'lower("nombre")' })
 export class Permiso {
   @PrimaryKey({ type: 'integer' })
   id!: number;
 
-  @Property({ type: 'text', unique: true })
+  @Property({ type: 'text' })
   nombre!: string;
 
   @Property({ type: 'text', nullable: true })

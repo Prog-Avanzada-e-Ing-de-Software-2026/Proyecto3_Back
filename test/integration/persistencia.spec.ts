@@ -129,10 +129,34 @@ describe('persistencia del modelo de identidad', () => {
     await expect(persistir(crearRol('  Profesor  '))).rejects.toThrow();
     entorno.orm.em.clear();
 
-    const permiso = crearPermiso('Crear plan');
+    const permiso = crearPermiso('plan:crear');
     await persistir(permiso);
 
-    await expect(persistir(crearPermiso('  Crear plan  '))).rejects.toThrow();
+    await expect(persistir(crearPermiso('  plan:crear  '))).rejects.toThrow();
+  });
+
+  it('[persistencia][RN-36] rechaza nombres de rol y de permiso que difieren solo en mayúsculas', async () => {
+    await persistir(crearRol('Profesor'));
+
+    await expect(persistir(crearRol('PROFESOR'))).rejects.toThrow();
+    entorno.orm.em.clear();
+
+    await persistir(crearPermiso('plan:crear'));
+
+    await expect(persistir(crearPermiso('PLAN:CREAR'))).rejects.toThrow();
+  });
+
+  it('[persistencia][RN-36] la base declara la unicidad del nombre sobre lower(nombre)', async () => {
+    const filas = await entorno.orm.em.getConnection().execute<{ indexname: string }[]>(
+      `select indexname from pg_indexes
+        where indexname in ('permiso_nombre_lower_unique', 'rol_nombre_lower_unique')
+        order by indexname`,
+    );
+
+    expect(filas.map((fila) => fila.indexname)).toEqual([
+      'permiso_nombre_lower_unique',
+      'rol_nombre_lower_unique',
+    ]);
   });
 
   it('[persistencia] carga los alumnos asignados desde el profesor', async () => {
@@ -227,7 +251,7 @@ describe('persistencia del modelo de identidad', () => {
 
   it('[persistencia] rechaza el mismo permiso dos veces en un rol', async () => {
     const rol = crearRol('Profesor');
-    const permiso = crearPermiso('Crear plan');
+    const permiso = crearPermiso('plan:crear');
     await persistir([rol, permiso]);
 
     const conexion = entorno.orm.em.getConnection();

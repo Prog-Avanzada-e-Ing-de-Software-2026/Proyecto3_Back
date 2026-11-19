@@ -1,5 +1,5 @@
 import { Collection } from '@mikro-orm/core';
-import { Entity, ManyToMany, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
+import { Entity, ManyToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 import { normalizarTextoObligatorio } from '../../../../common/domain/validaciones.js';
 import { Permiso } from './permiso.entity.js';
@@ -10,11 +10,12 @@ import type { CrearRol } from './rol.input.js';
  * asignación de permisos: la colección solo se modifica por sus métodos.
  */
 @Entity({ tableName: 'rol' })
+@Unique({ name: 'rol_nombre_lower_unique', expression: 'lower("nombre")' })
 export class Rol {
   @PrimaryKey({ type: 'integer' })
   id!: number;
 
-  @Property({ type: 'text', unique: true })
+  @Property({ type: 'text' })
   nombre!: string;
 
   @Property({ type: 'text', nullable: true })
