@@ -99,6 +99,26 @@ describe('detallesDeValidacion', () => {
     ]);
   });
 
+  it('[http-error-contract] colapsa dos restricciones del mismo campo con el mismo texto', () => {
+    const detalles = detallesDeValidacion([
+      errorDeValidacion({
+        property: 'take',
+        constraints: {
+          isInt: 'La cantidad a traer debe ser un número entero entre 1 y 100.',
+          min: 'La cantidad a traer debe ser un número entero entre 1 y 100.',
+          max: 'La cantidad a traer debe ser un número entero entre 1 y 100.',
+        },
+      }),
+    ]);
+
+    expect(detalles).toEqual([
+      {
+        campo: 'take',
+        mensaje: 'La cantidad a traer debe ser un número entero entre 1 y 100.',
+      },
+    ]);
+  });
+
   it('[http-error-contract] no incluye el valor recibido en el detalle', () => {
     const detalles = detallesDeValidacion([
       errorDeValidacion({

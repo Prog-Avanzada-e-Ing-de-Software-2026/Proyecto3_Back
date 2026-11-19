@@ -26,17 +26,35 @@ interface DetalleInterno extends DetalleValidacion {
  * declarado en el decorador del DTO. Se emite una entrada por restricción
  * incumplida, los DTO anidados se componen con puntos y el resultado se ordena
  * por campo y restricción para que dos solicitudes equivalentes respondan igual.
+ * Dos restricciones del mismo campo con el mismo texto —el caso de un valor que
+ * viola el tipo y el rango a la vez— producen una sola entrada: al cliente no le
+ * agrega nada leer dos veces el mismo mensaje.
  */
 export function detallesDeValidacion(
   errores: ValidationError[],
 ): DetalleValidacion[] {
-  return errores
+  const detalles = errores
     .flatMap((error) => detallesDe(error, ''))
     .sort(
       (a, b) =>
         a.campo.localeCompare(b.campo, 'es') ||
         a.restriccion.localeCompare(b.restriccion, 'es'),
-    )
+    );
+
+  const vistos = new Set<string>();
+
+  return detalles
+    .filter(({ campo, mensaje }) => {
+      const clave = `${campo}\u0000${mensaje}`;
+
+      if (vistos.has(clave)) {
+        return false;
+      }
+
+      vistos.add(clave);
+
+      return true;
+    })
     .map(({ campo, mensaje }) => ({ campo, mensaje }));
 }
 
