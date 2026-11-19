@@ -1,15 +1,9 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import {
-  PermisoRepositoryFalso,
-  RolRepositoryFalso,
-  UsuarioRepositoryFalso,
-} from '../../../../../test/support/fakes-auth.js';
+import { PermisoRepositoryFalso, RolRepositoryFalso } from '../../../../../test/support/fakes-auth.js';
 import { initOrmMetadata } from '../../../../../test/support/orm-metadata.js';
 import { Permiso } from '../../domain/entities/permiso.entity.js';
 import { Rol } from '../../domain/entities/rol.entity.js';
-import { Usuario } from '../../domain/entities/usuario.entity.js';
 import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
-import { FindUsuarioByIdUseCase } from './find-usuario-by-id.use-case.js';
 import { ReplaceRolPermisosUseCase } from './replace-rol-permisos.use-case.js';
 
 beforeAll(() => {
@@ -20,7 +14,7 @@ const CREAR_PLAN = 'plan:crear';
 const GESTIONAR_ALUMNOS = 'alumno:consultar';
 const GESTIONAR_ROLES = 'rol:editar';
 
-function armar(opciones: { permisosDelRol?: string[]; permisosDelActor?: string[] } = {}) {
+function armar(opciones: { permisosDelRol?: string[] } = {}) {
   const crearPlan = Permiso.crear({ nombre: CREAR_PLAN });
   const gestionarAlumnos = Permiso.crear({ nombre: GESTIONAR_ALUMNOS });
   const gestionarRoles = Permiso.crear({ nombre: GESTIONAR_ROLES });
@@ -40,23 +34,10 @@ function armar(opciones: { permisosDelRol?: string[]; permisosDelActor?: string[
   const roles = new RolRepositoryFalso();
   roles.precargar(rol);
 
-  const rolDelActor = Rol.crear({
-    nombre: 'Administrador',
-    permisos: (opciones.permisosDelActor ?? [CREAR_PLAN, GESTIONAR_ALUMNOS, GESTIONAR_ROLES]).map(
-      (nombre) => Permiso.crear({ nombre }),
-    ),
-  });
-  const actor = Usuario.crear({ email: 'admin@gym.com', passwordHash: 'hash', rol: rolDelActor });
-  actor.id = 9;
-
   return {
     rol,
     roles,
-    caso: new ReplaceRolPermisosUseCase(
-      roles,
-      new FindUsuarioByIdUseCase(new UsuarioRepositoryFalso([actor])),
-      new FindPermisoByNombreUseCase(permisos),
-    ),
+    caso: new ReplaceRolPermisosUseCase(roles, new FindPermisoByNombreUseCase(permisos)),
   };
 }
 
@@ -90,12 +71,19 @@ describe('ReplaceRolPermisosUseCase', () => {
     ).toEqual([CREAR_PLAN, GESTIONAR_ALUMNOS].sort());
   });
 
-  it('[identidad-usuario] un actor que puede otorgar todo asigna un permiso que no tiene', async () => {
-    const { caso } = armar({ permisosDelActor: ['permiso:otorgar'] });
+  it('[identidad-usuario] asigna cualquier permiso vigente sin mirar los del actor', async () => {
+    const { caso, rol } = armar({ permisosDelRol: [CREAR_PLAN] });
 
-    const rol = await caso.execute({ id: 1, permisos: [GESTIONAR_ALUMNOS], actorId: 9 });
+    const actualizado = await caso.execute({
+      id: 1,
+      permisos: [GESTIONAR_ALUMNOS],
+      actorId: 9,
+    });
 
-    expect(rol.permisos.getItems().map((permiso) => permiso.nombre)).toEqual([GESTIONAR_ALUMNOS]);
+    expect(actualizado.permisos.getItems().map((permiso) => permiso.nombre)).toEqual([
+      GESTIONAR_ALUMNOS,
+    ]);
+    expect(rol.updatedById).toBe(9);
   });
 
   it('[identidad-usuario] registra la edición con su actor', async () => {
@@ -122,18 +110,6 @@ describe('ReplaceRolPermisosUseCase', () => {
     await expect(
       caso.execute({ id: 1, permisos: [CREAR_PLAN, CREAR_PLAN], actorId: 9 }),
     ).rejects.toMatchObject({ codigo: 'PERMISO_DUPLICADO' });
-  });
-
-  it('[identidad-usuario] rechaza otorgar un permiso que el actor no tiene', async () => {
-    const { caso, rol } = armar({
-      permisosDelRol: [CREAR_PLAN],
-      permisosDelActor: [GESTIONAR_ROLES],
-    });
-
-    await expect(
-      caso.execute({ id: 1, permisos: [GESTIONAR_ALUMNOS], actorId: 9 }),
-    ).rejects.toMatchObject({ codigo: 'PERMISO_NO_OTORGABLE' });
-    expect(rol.permisos.getItems().map((permiso) => permiso.nombre)).toEqual([CREAR_PLAN]);
   });
 
   it('[identidad-usuario] rechaza un rol inexistente', async () => {

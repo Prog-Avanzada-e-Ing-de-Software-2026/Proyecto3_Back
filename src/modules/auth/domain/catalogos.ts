@@ -20,7 +20,6 @@ export const NOMBRES_PERMISO = {
   PERMISO_CONSULTAR: 'permiso:consultar',
   PERMISO_CREAR: 'permiso:crear',
   PERMISO_EDITAR: 'permiso:editar',
-  PERMISO_OTORGAR: 'permiso:otorgar',
 } as const;
 
 export type NombreRol = (typeof NOMBRES_ROL)[keyof typeof NOMBRES_ROL];

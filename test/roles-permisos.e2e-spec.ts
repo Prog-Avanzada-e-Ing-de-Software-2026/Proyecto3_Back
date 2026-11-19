@@ -67,11 +67,11 @@ function crearModulo(
       UpdatePermisoUseCase,
       {
         provide: CreateRolUseCase,
-        useFactory: () => new CreateRolUseCase(roles, buscarUsuario, buscarPermiso),
+        useFactory: () => new CreateRolUseCase(roles, buscarPermiso),
       },
       {
         provide: ReplaceRolPermisosUseCase,
-        useFactory: () => new ReplaceRolPermisosUseCase(roles, buscarUsuario, buscarPermiso),
+        useFactory: () => new ReplaceRolPermisosUseCase(roles, buscarPermiso),
       },
       { provide: CreatePermisoUseCase, useFactory: () => new CreatePermisoUseCase(permisos) },
       SesionService,
@@ -131,8 +131,8 @@ describe('Catálogo de roles y permisos (e2e)', () => {
     const permisoEditar = Permiso.crear({ nombre: NOMBRES_PERMISO.PERMISO_EDITAR });
     permisoEditar.id = 7;
     permisoEditar.createdAt = new Date('2026-01-01T10:00:00.000Z');
-    // Permiso del catálogo de planes, todavía sin endpoint: es el que el
-    // administrador no tiene, así que sirve para observar la escalada.
+    // Permiso del catálogo de planes, todavía sin endpoint: el administrador no
+    // lo tiene, así que sirve para observar que la asignación no lo compara.
     const planCrear = Permiso.crear({ nombre: 'plan:crear' });
     planCrear.id = 8;
     planCrear.createdAt = new Date('2026-01-01T10:00:00.000Z');
@@ -150,7 +150,7 @@ describe('Catálogo de roles y permisos (e2e)', () => {
     );
 
     // El administrador tiene todo el catálogo de roles y nada del de permisos:
-    // así la escalada es observable.
+    // así se observa que asignar permisos no depende de los del actor.
     const rolAdmin = Rol.crear({
       nombre: 'Administrador',
       permisos: [rolConsultar, rolCrear, rolEditar, rolPermisos],
@@ -348,15 +348,15 @@ describe('Catálogo de roles y permisos (e2e)', () => {
     expect(respuesta.body.permisos).toEqual([NOMBRES_PERMISO.ROL_EDITAR]);
   });
 
-  it('[identidad-usuario] rechaza otorgar un permiso que el actor no tiene', async () => {
+  it('[identidad-usuario] asigna un permiso que el actor no tiene', async () => {
     const access = await accessPara(1);
     const respuesta = await request(app.getHttpServer())
       .put('/api/roles/2/permisos')
       .set('Cookie', `access=${access}`)
       .send({ permisos: ['plan:crear'] })
-      .expect(403);
+      .expect(200);
 
-    expect(respuesta.body.code).toBe('PERMISO_NO_OTORGABLE');
+    expect(respuesta.body.permisos).toEqual(['plan:crear']);
   });
 
   it('[identidad-usuario] rechaza un permiso inexistente al reemplazar el conjunto', async () => {

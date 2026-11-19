@@ -1,53 +1,31 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import {
-  PermisoRepositoryFalso,
-  RolRepositoryFalso,
-  UsuarioRepositoryFalso,
-} from '../../../../../test/support/fakes-auth.js';
+import { PermisoRepositoryFalso, RolRepositoryFalso } from '../../../../../test/support/fakes-auth.js';
 import { initOrmMetadata } from '../../../../../test/support/orm-metadata.js';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 import { Permiso } from '../../domain/entities/permiso.entity.js';
 import { Rol } from '../../domain/entities/rol.entity.js';
-import { Usuario } from '../../domain/entities/usuario.entity.js';
 import { CreateRolUseCase } from './create-rol.use-case.js';
 import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
-import { FindUsuarioByIdUseCase } from './find-usuario-by-id.use-case.js';
 
 beforeAll(() => {
   initOrmMetadata();
 });
 
-function armar(permisos: Permiso[] = [], actores: Usuario[] = []) {
+function armar(permisos: Permiso[] = []) {
   const permisosRepo = new PermisoRepositoryFalso();
   permisosRepo.precargar(...permisos);
   const rolesRepo = new RolRepositoryFalso();
-  const usuariosRepo = new UsuarioRepositoryFalso(actores);
 
   return {
     rolesRepo,
-    caso: new CreateRolUseCase(
-      rolesRepo,
-      new FindUsuarioByIdUseCase(usuariosRepo),
-      new FindPermisoByNombreUseCase(permisosRepo),
-    ),
+    caso: new CreateRolUseCase(rolesRepo, new FindPermisoByNombreUseCase(permisosRepo)),
   };
-}
-
-function actorCon(nombresPermisos: string[]): Usuario {
-  const rol = Rol.crear({
-    nombre: `rol-de-${nombresPermisos.length}`,
-    permisos: nombresPermisos.map((nombre) => Permiso.crear({ nombre })),
-  });
-  const actor = Usuario.crear({ email: 'admin@gym.com', passwordHash: 'hash', rol });
-  actor.id = 1;
-
-  return actor;
 }
 
 describe('CreateRolUseCase', () => {
   it('[identidad-usuario] crea el rol con sus permisos y registra al actor', async () => {
     const crearPlan = Permiso.crear({ nombre: 'plan:crear' });
-    const { rolesRepo, caso } = armar([crearPlan], [actorCon(['plan:crear'])]);
+    const { rolesRepo, caso } = armar([crearPlan]);
 
     const rol = await caso.execute({ nombre: ' Profesor ', permisos: ['plan:crear'], actorId: 1 });
 
@@ -88,18 +66,16 @@ describe('CreateRolUseCase', () => {
     expect(rolesRepo.guardados).toHaveLength(0);
   });
 
-  it('[identidad-usuario] rechaza otorgar un permiso que el actor no tiene', async () => {
+  it('[identidad-usuario] asigna cualquier permiso vigente sin mirar los del actor', async () => {
     const crearPlan = Permiso.crear({ nombre: 'plan:crear' });
     const gestionarRoles = Permiso.crear({ nombre: 'rol:editar' });
-    const { rolesRepo, caso } = armar(
-      [crearPlan, gestionarRoles],
-      [actorCon(['rol:editar'])],
-    );
+    const { rolesRepo, caso } = armar([crearPlan, gestionarRoles]);
 
-    await expect(
-      caso.execute({ nombre: 'Profesor', permisos: ['plan:crear'], actorId: 1 }),
-    ).rejects.toMatchObject({ codigo: 'PERMISO_NO_OTORGABLE' });
-    expect(rolesRepo.guardados).toHaveLength(0);
+    const rol = await caso.execute({ nombre: 'Profesor', permisos: ['plan:crear'], actorId: 1 });
+
+    expect(rol.permisos.getItems()).toEqual([crearPlan]);
+    expect(rol.createdById).toBe(1);
+    expect(rolesRepo.guardados).toHaveLength(1);
   });
 
   it('[identidad-usuario] un rol sin permisos es válido y no consulta al actor', async () => {

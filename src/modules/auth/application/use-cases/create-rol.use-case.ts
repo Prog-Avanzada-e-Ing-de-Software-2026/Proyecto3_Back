@@ -4,10 +4,8 @@ import { normalizarTextoObligatorio } from '../../../../common/domain/validacion
 import { ROL_REPOSITORY } from '../../auth.repository-tokens.js';
 import { Rol } from '../../domain/entities/rol.entity.js';
 import type { IRolRepository } from '../../domain/interfaces/rol.repository.interface.js';
-import { exigirActorPuedeOtorgar } from '../services/exigir-actor-puede-otorgar.js';
 import { resolverPermisos } from '../services/resolver-permisos.js';
 import { FindPermisoByNombreUseCase } from './find-permiso-by-nombre.use-case.js';
-import { FindUsuarioByIdUseCase } from './find-usuario-by-id.use-case.js';
 
 export interface CreateRolInput {
   nombre: string;
@@ -20,14 +18,12 @@ export interface CreateRolInput {
  * Alta de un rol del catálogo.
  *
  * El nombre no se libera con la baja, así que la unicidad también mira los roles
- * dados de baja. Cuando la operación asigna permisos, el actor solo puede
- * otorgar los que él tiene.
+ * dados de baja.
  */
 @Injectable()
 export class CreateRolUseCase {
   constructor(
     @Inject(ROL_REPOSITORY) private readonly roles: IRolRepository,
-    private readonly buscarActor: FindUsuarioByIdUseCase,
     private readonly buscarPermiso: FindPermisoByNombreUseCase,
   ) {}
 
@@ -39,7 +35,6 @@ export class CreateRolUseCase {
     }
 
     const permisos = await resolverPermisos(input.permisos ?? [], this.buscarPermiso);
-    await exigirActorPuedeOtorgar(input.actorId, permisos, this.buscarActor);
 
     const rol = Rol.crear({ nombre, descripcion: input.descripcion ?? null, permisos });
     rol.createdAt = new Date();
