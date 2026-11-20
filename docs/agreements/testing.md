@@ -89,6 +89,7 @@ Si un endpoint interactúa con persistencia y la prueba pretende verificar ese c
 Priorizar:
 
 - Consultas con filtros dinámicos, ordenamientos con lógica, paginación o combinaciones de condiciones.
+- La aritmética y el contrato de la paginación común ya tienen sus pruebas en `common/`: una consulta paginada nueva se prueba por sus propios filtros, la exclusión de dados de baja y el orden estable, sin repetir el `skip`/`take`.
 - Consultas con relaciones, agregaciones, proyecciones o QueryBuilder cuyo resultado no sea trivial.
 - Restricciones de integridad, transacciones, reactivación/soft delete y consultas que deben excluir dados de baja, **cuando esas reglas dependan del comportamiento real de persistencia**.
 - Mapeos o relaciones cuya corrección tenga impacto funcional.
