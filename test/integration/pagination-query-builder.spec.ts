@@ -52,9 +52,9 @@ describe('applyPagination', () => {
   it('[pagination] devuelve la primera página con el total completo', async () => {
     await sembrar();
 
-    const page = await applyPagination(query(), { page: 1, limit: 5 });
+    const page = await applyPagination(query(), { page: 1, limit: 5 }, (permiso) => permiso.nombre);
 
-    expect(page.items.map((permiso) => permiso.nombre)).toEqual([
+    expect(page.items).toEqual([
       nombre(0),
       nombre(1),
       nombre(2),
@@ -69,9 +69,9 @@ describe('applyPagination', () => {
   it('[pagination] el offset saltea las filas de las páginas anteriores', async () => {
     await sembrar();
 
-    const page = await applyPagination(query(), { page: 2, limit: 5 });
+    const page = await applyPagination(query(), { page: 2, limit: 5 }, (permiso) => permiso.nombre);
 
-    expect(page.items.map((permiso) => permiso.nombre)).toEqual([
+    expect(page.items).toEqual([
       nombre(5),
       nombre(6),
       nombre(7),
@@ -84,16 +84,16 @@ describe('applyPagination', () => {
   it('[pagination] la última página trae solo las filas restantes', async () => {
     await sembrar();
 
-    const page = await applyPagination(query(), { page: 3, limit: 5 });
+    const page = await applyPagination(query(), { page: 3, limit: 5 }, (permiso) => permiso.nombre);
 
-    expect(page.items.map((permiso) => permiso.nombre)).toEqual([nombre(10), nombre(11)]);
+    expect(page.items).toEqual([nombre(10), nombre(11)]);
     expect(page.total).toBe(CANTIDAD);
   });
 
   it('[pagination] una página fuera de rango no trae filas y conserva el total', async () => {
     await sembrar();
 
-    const page = await applyPagination(query(), { page: 4, limit: 5 });
+    const page = await applyPagination(query(), { page: 4, limit: 5 }, (permiso) => permiso.nombre);
 
     expect(page.items).toEqual([]);
     expect(page.total).toBe(CANTIDAD);

@@ -11,22 +11,22 @@ export interface PaginableQuery<Entity> {
 }
 
 /**
- * Aplica skip/take a una consulta y devuelve la página junto al total de filas
- * que cumplen el filtro.
+ * Aplica skip/take a una consulta y devuelve la página ya proyectada.
  *
- * `offset` es el único cálculo de la paginación: `(page - 1) * limit`. El
- * `count` de `getResultAndCount` ignora límite y desplazamiento, así que el
- * total no queda recortado. Lo usa la implementación del puerto de lectura: el
- * `QueryBuilder` nunca cruza hacia `application/`.
+ * `map` es el mapper de la capacidad: así la entidad no sale de infraestructura
+ * y el sobre se arma una sola vez. `offset` es el único cálculo de la
+ * paginación: `(page - 1) * limit`. El `count` de `getResultAndCount` ignora
+ * límite y desplazamiento, así que el total no queda recortado.
  */
-export async function applyPagination<Entity extends object>(
+export async function applyPagination<Entity extends object, Projection>(
   query: PaginableQuery<Entity>,
   pagination: { page: number; limit: number },
-): Promise<Page<Entity>> {
+  map: (entity: Entity) => Projection,
+): Promise<Page<Projection>> {
   const offset = (pagination.page - 1) * pagination.limit;
   const [items, total] = await query
     .limit(pagination.limit, offset)
     .getResultAndCount();
 
-  return toPage(items, total, pagination);
+  return toPage(items.map(map), total, pagination);
 }
