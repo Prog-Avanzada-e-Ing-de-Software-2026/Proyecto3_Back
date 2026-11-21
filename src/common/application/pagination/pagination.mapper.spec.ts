@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { toPage } from './pagination.mapper.js';
+import { mapPage, toPage } from './pagination.mapper.js';
+import type { Page } from './page.interface.js';
 
 describe('toPage', () => {
   it('[pagination] compone las filas con la ubicación y la cantidad de páginas', () => {
@@ -33,5 +34,37 @@ describe('toPage', () => {
 
     expect(page.items).not.toBe(items);
     expect(page.items).toEqual(items);
+  });
+});
+
+describe('mapPage', () => {
+  const page: Page<{ id: number; nombre: string }> = {
+    items: [
+      { id: 1, nombre: 'uno' },
+      { id: 2, nombre: 'dos' },
+    ],
+    page: 2,
+    limit: 2,
+    totalPages: 3,
+  };
+
+  it('[pagination] proyecta las filas y conserva la ubicación y la cantidad de páginas', () => {
+    const mapped = mapPage(page, (item) => ({ identificador: item.id }));
+
+    expect(mapped).toEqual({
+      items: [{ identificador: 1 }, { identificador: 2 }],
+      page: 2,
+      limit: 2,
+      totalPages: 3,
+    });
+  });
+
+  it('[pagination] no muta la página original', () => {
+    mapPage(page, (item) => item.nombre);
+
+    expect(page.items).toEqual([
+      { id: 1, nombre: 'uno' },
+      { id: 2, nombre: 'dos' },
+    ]);
   });
 });
