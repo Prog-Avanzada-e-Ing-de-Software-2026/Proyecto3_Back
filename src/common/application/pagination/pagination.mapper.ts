@@ -12,8 +12,8 @@ export function toPage<T>(
 ): Page<T> {
   return {
     items: [...items],
-    total,
     page: pagination.page,
     limit: pagination.limit,
+    totalPages: Math.ceil(total / pagination.limit),
   };
 }
