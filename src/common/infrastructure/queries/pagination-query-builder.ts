@@ -1,6 +1,3 @@
-import { toPage } from '../../application/pagination/pagination.mapper.js';
-import type { Page } from '../../application/pagination/page.interface.js';
-
 /**
  * Superficie mínima de una consulta paginable. La cumple el `QueryBuilder` de
  * MikroORM; el tipo evita acoplar el helper a sus genéricos de alias y campos.
@@ -10,23 +7,26 @@ export interface PaginableQuery<Entity> {
   getResultAndCount(): Promise<[Entity[], number]>;
 }
 
+/** Consulta ya paginada, lista para que la implementación del puerto la ejecute. */
+export interface ExecutableQuery<Entity> {
+  getResultAndCount(): Promise<[Entity[], number]>;
+}
+
 /**
- * Aplica skip/take a una consulta y devuelve la página ya proyectada.
+ * Aplica skip/take a una consulta y devuelve su ejecutor.
  *
- * `map` es el mapper de la capacidad: así la entidad no sale de infraestructura
- * y el sobre se arma una sola vez. `offset` es el único cálculo de la
- * paginación: `(page - 1) * limit`. El `count` de `getResultAndCount` ignora
- * límite y desplazamiento, así que el total no queda recortado.
+ * `offset` es el único cálculo de la paginación: `(page - 1) * limit`. No
+ * ejecuta la consulta ni proyecta filas: eso queda en la implementación del
+ * puerto, que ejecuta y arma la página con `toPage`. El tipo devuelto oculta el
+ * resto del `QueryBuilder` para que nadie vuelva a paginar una consulta ya
+ * paginada.
  */
-export async function applyPagination<Entity extends object, Projection>(
+export function applyPagination<Entity extends object>(
   query: PaginableQuery<Entity>,
   pagination: { page: number; limit: number },
-  map: (entity: Entity) => Projection,
-): Promise<Page<Projection>> {
+): ExecutableQuery<Entity> {
   const offset = (pagination.page - 1) * pagination.limit;
-  const [items, total] = await query
-    .limit(pagination.limit, offset)
-    .getResultAndCount();
+  const paginada = query.limit(pagination.limit, offset);
 
-  return toPage(items.map(map), total, pagination);
+  return { getResultAndCount: () => paginada.getResultAndCount() };
 }

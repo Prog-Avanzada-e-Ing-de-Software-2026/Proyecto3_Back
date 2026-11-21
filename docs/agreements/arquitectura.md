@@ -408,7 +408,7 @@ El documento distingue comandos de consultas. Esa distinción es **semántica**:
 - Devuelve una **proyección** (`<Nombre>Result`) cuando el resultado no coincide con una entidad, o los agregados cuando la lectura es de una sola raíz y el agregado ya es el modelo adecuado. La proyección es la opción por defecto en lecturas que cruzan agregados.
 - No muta estado, no llama `flush()` y no conoce MikroORM.
 
-**Paginación:** no se reimplementa. Todo listado paginado usa los componentes comunes de `common/` —`PaginationDto`, `Page<T>`, `toPage` y `applyPagination`—; la implementación del puerto pasa el mapper de la capacidad a `applyPagination` y devuelve `Page<Proyeccion>`. La norma y el detalle están en `AGENTS.md` §5.11. La paginación por sí sola no obliga a un Query Object.
+**Paginación:** no se reimplementa. Todo listado paginado usa los componentes comunes de `common/` —`PaginationDto`, `Page<T>`, `toPage` y `applyPagination`—; la implementación del puerto aplica `applyPagination`, ejecuta la consulta y devuelve `Page<Agregado>`, y el caso de uso proyecta con el mapper de la capacidad. La norma y el detalle están en `AGENTS.md` §5.11. La paginación por sí sola no obliga a un Query Object.
 
 Ejemplos de intención para las lecturas que sí ameritan un Query Object:
 

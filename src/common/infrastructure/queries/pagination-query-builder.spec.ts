@@ -7,9 +7,10 @@ interface Row {
   name: string;
 }
 
-/** Doble de la consulta: registra los argumentos de `limit` y devuelve una página fija. */
+/** Doble de la consulta: registra los argumentos de `limit` y cuenta las ejecuciones. */
 class FakeQuery implements PaginableQuery<Row> {
   invocation: { limit?: number; offset?: number } = {};
+  ejecuciones = 0;
 
   constructor(
     private readonly rows: Row[],
@@ -23,41 +24,49 @@ class FakeQuery implements PaginableQuery<Row> {
   }
 
   getResultAndCount(): Promise<[Row[], number]> {
+    this.ejecuciones += 1;
+
     return Promise.resolve([this.rows, this.total]);
   }
 }
 
 describe('applyPagination', () => {
-  it('[pagination] traduce la página al skip y el límite al take', async () => {
-    const query = new FakeQuery(
-      [
-        { id: 11, name: 'once' },
-        { id: 12, name: 'doce' },
-      ],
-      12,
-    );
+  it('[pagination] traduce la página al skip y el límite al take', () => {
+    const query = new FakeQuery([{ id: 11, name: 'once' }], 12);
 
-    const page = await applyPagination(query, { page: 3, limit: 5 }, (row) => row.name);
+    applyPagination(query, { page: 3, limit: 5 });
 
     expect(query.invocation).toEqual({ limit: 5, offset: 10 });
-    expect(page).toEqual({ items: ['once', 'doce'], total: 12, page: 3, limit: 5 });
   });
 
-  it('[pagination] la primera página no saltea filas', async () => {
+  it('[pagination] la primera página no saltea filas', () => {
     const query = new FakeQuery([{ id: 1, name: 'uno' }], 1);
 
-    await applyPagination(query, { page: 1, limit: 10 }, (row) => row.id);
+    applyPagination(query, { page: 1, limit: 10 });
 
     expect(query.invocation).toEqual({ limit: 10, offset: 0 });
   });
 
-  it('[pagination] proyecta cada fila con el mapper de la capacidad', async () => {
+  it('[pagination] no ejecuta la consulta: la ejecuta quien la recibe', async () => {
     const query = new FakeQuery([{ id: 1, name: 'uno' }], 1);
 
-    const page = await applyPagination(query, { page: 1, limit: 10 }, (row) => ({
-      identificador: row.id,
-    }));
+    const ejecutable = applyPagination(query, { page: 1, limit: 10 });
 
-    expect(page.items).toEqual([{ identificador: 1 }]);
+    expect(query.ejecuciones).toBe(0);
+
+    const [rows, total] = await ejecutable.getResultAndCount();
+
+    expect(query.ejecuciones).toBe(1);
+    expect(rows).toEqual([{ id: 1, name: 'uno' }]);
+    expect(total).toBe(1);
+  });
+
+  it('[pagination] entrega las filas sin transformarlas', async () => {
+    const rows = [{ id: 1, name: 'uno' }];
+    const query = new FakeQuery(rows, 1);
+
+    const [items] = await applyPagination(query, { page: 1, limit: 10 }).getResultAndCount();
+
+    expect(items).toBe(rows);
   });
 });
