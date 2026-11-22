@@ -56,9 +56,10 @@ src/
 ├── mikro-orm.config.ts
 ├── migrations/
 ├── common/                              # Solo preocupaciones transversales reales
+│   ├── application/                     # Ej.: componentes comunes de paginación
 │   ├── domain/                          # Ej.: errores comunes
 │   ├── presentation/                    # Ej.: filtro HTTP global, decorador actor
-│   └── infrastructure/                  # Ej.: auditoría persistente
+│   └── infrastructure/                  # Ej.: auditoría persistente, query builder de paginación
 └── modules/
     ├── auth/                            # Seguridad/autenticación, según alcance aprobado
     │   └── auth.module.ts
@@ -249,7 +250,7 @@ src/modules/catalogo/
 
 - Toda modificación de un agregado debe pasar por su raíz cuando afecte invariantes internas.
 - Un servicio de dominio solo se justifica si la regla genuinamente no pertenece a una entidad, abarca varios agregados o una entidad no puede resolverla con la información que posee. Coordinar agregados, por sí solo, no lo justifica.
-- Las interfaces llevan prefijo `I`. Los puertos de escritura viven en `domain/interfaces/<nombre>.repository.interface.ts` —`IPlanRepository` en `plan.repository.interface.ts`— porque devuelven agregados. Los puertos de lectura viven junto a la operación que los consume, en `application/use-cases/<nombre>.query.interface.ts`, porque devuelven proyecciones de aplicación (§6). No se exige una interfaz por operación: un contrato existente puede servir a varias lecturas. La implementación concreta no lleva prefijo: `MikroOrmPlanRepository` en `infrastructure/repositories/mikro-orm-plan.repository.ts`, `MikroOrmPlanDeAlumnoReader` en `infrastructure/queries/`. La ubicación no es libre: el contrato vive del lado del consumidor y la implementación, siempre en `infrastructure/`.
+- Los **puertos** llevan prefijo `I`; una interfaz que solo describe la forma de un dato (`DetalleValidacion`, `Page`) vive en `<nombre>.interface.ts` y no lleva prefijo. Los puertos de escritura viven en `domain/interfaces/<nombre>.repository.interface.ts` —`IPlanRepository` en `plan.repository.interface.ts`— porque devuelven agregados. Los puertos de lectura viven junto a la operación que los consume, en `application/use-cases/<nombre>.query.interface.ts`, porque devuelven proyecciones de aplicación (§6). No se exige una interfaz por operación: un contrato existente puede servir a varias lecturas. La implementación concreta no lleva prefijo: `MikroOrmPlanRepository` en `infrastructure/repositories/mikro-orm-plan.repository.ts`, `MikroOrmPlanDeAlumnoReader` en `infrastructure/queries/`. La ubicación no es libre: el contrato vive del lado del consumidor y la implementación, siempre en `infrastructure/`.
 - **Factory:** se incorpora cuando construir la entidad lo justifica —reunir datos de varias fuentes antes de invocar la raíz, fijar valores por defecto coherentes o preservar una invariante de armado que el constructor no puede expresar—. No se crea una Factory por entidad: en la mayoría de los casos alcanza el constructor o un método estático nombrado de la propia raíz (`Plan.crear(...)`).
 - Las validaciones que requieren consultar la base se coordinan desde aplicación a través de los puertos; el criterio sigue siendo del dominio y la consulta a la persistencia no lo redefine.
 
@@ -406,6 +407,8 @@ El documento distingue comandos de consultas. Esa distinción es **semántica**:
 - Declara su **puerto de lectura** `I<Nombre>Reader` en `application/use-cases/<nombre>.query.interface.ts`, implementado en `infrastructure/queries/`. Si un contrato existente ya expone la lectura, se reutiliza en lugar de crear otro.
 - Devuelve una **proyección** (`<Nombre>Result`) cuando el resultado no coincide con una entidad, o los agregados cuando la lectura es de una sola raíz y el agregado ya es el modelo adecuado. La proyección es la opción por defecto en lecturas que cruzan agregados.
 - No muta estado, no llama `flush()` y no conoce MikroORM.
+
+**Paginación:** no se reimplementa. Todo listado paginado usa los componentes comunes de `common/` —`PaginationDto`, `Page<T>`, `toPage`, `mapPage` y `applyPagination`—; la implementación del puerto aplica `applyPagination`, ejecuta la consulta y devuelve `Page<Agregado>`, y el caso de uso proyecta con `mapPage` y el mapper de la capacidad. La norma y el detalle están en `AGENTS.md` §5.11. La paginación por sí sola no obliga a un Query Object.
 
 Ejemplos de intención para las lecturas que sí ameritan un Query Object:
 

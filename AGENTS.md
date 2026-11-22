@@ -81,8 +81,8 @@ Solo los cambios sin efecto en comportamiento, contratos, esquema o código pued
   - Verbos técnicos y de intención en inglés: `createEntrenamiento()`, `findPlanById()`, `listAlumnos()`, `CreatePlanUseCase`, `FindPlanByIdQuery`, `CreatePlanDto`.
   - Entidades, value objects, atributos, enums y conceptos en español, sin traducir: `Plan`, `Entrenamiento`, `Alumno`, `Profesor`, `fechaDesde`, `cantidadObjetivo`, `prescripcionesSemanales`.
   - Comportamientos del dominio en español, tal como figuran en el lenguaje ubicuo: `estaActivo()`, `abarcaRangoDeFechas()`, `darDeAlta()`, `obtenerRecordDeEjercicio()`. Un método de entidad nombra un comportamiento del negocio, no una operación de CRUD.
-  - Identificadores transversales técnicos en inglés: `createdAt`, `updatedById`, `deletedAt` (§6.1), `execute`, `input`, `result`.
-  - Archivos y carpetas: verbo en inglés y sustantivo de dominio en español, con el guion de §5.2: `create-plan.use-case.ts`, `plan.entity.ts`, `plan.repository.interface.ts`, `micro-orm-plan.repository.ts`.
+  - Identificadores transversales técnicos en inglés: `createdAt`, `updatedById`, `deletedAt` (§6.1), `execute`, `input`, `result`, y los componentes comunes de paginación (§5.11): `Page`, `PaginationDto`, `toPage`, `mapPage`, `applyPagination`, con `page`, `limit`, `total` y `offset` como parámetros.
+  - Archivos y carpetas: verbo en inglés y sustantivo de dominio en español, con el guion de §5.2: `create-plan.use-case.ts`, `plan.entity.ts`, `plan.repository.interface.ts`, `micro-orm-plan.repository.ts`. Un sustantivo transversal técnico, que no pertenece al dominio, queda en inglés: `pagination.dto.ts`, `pagination.mapper.ts`, `page.interface.ts`.
   - **La frontera entre las dos reglas es la naturaleza del nombre:** si describe una regla del gimnasio, queda en español aunque sea un método; si describe una operación técnica sobre los datos, va en inglés. `createEntrenamiento()` crea una fila; `darDeAlta()` cambia el estado de negocio de un `Alumno`.
   - Renombrar un concepto de dominio es una decisión de alcance: se cambia primero en `docs/dominio/` mediante un cambio de OpenSpec, nunca solo en el código.
 - **ESM:** `package.json` tiene `"type": "module"` y `tsconfig` usa `nodenext`. Todo import relativo lleva extensión `.js` (`import { AppModule } from './app.module.js'`).
@@ -132,8 +132,10 @@ src/
 ├── migrations/
 ├── seeder/                  # Entrypoints de seeds; la lógica vive en cada módulo
 ├── common/                  # Solo lo transversal real, usado por dos o más módulos
+│   ├── application/         # Colaboradores de aplicación transversales (paginación)
 │   ├── domain/              # Errores comunes
-│   └── presentation/        # Filtro HTTP global, decorador de actor
+│   ├── infrastructure/      # Adaptadores transversales (query builder de paginación)
+│   └── presentation/        # Filtro HTTP global, decorador de actor, DTO comunes
 └── modules/
     └── <capacidad>/         # alumnos, profesores, planes, entrenamientos, seguimiento, auth
         ├── <capacidad>.module.ts
@@ -212,7 +214,7 @@ Las reglas propias de una entidad o agregado pertenecen a su dominio. Un servici
 
 **El borde de persistencia es obligatorio y no se evalúa caso por caso:** el acceso a datos siempre pasa por un contrato, y no se declara una interfaz nueva por operación si un contrato existente ya cubre lo necesario. Lo que no se admite es apilar capas por encima del puerto: `IPlanRepository -> PlanRepository -> MikroOrmPlanRepository` es el mismo defecto que un repositorio que solo reenvía a un adaptador.
 
-Las interfaces llevan prefijo `I` y viven en `<nombre>.interface.ts`: `IPlanRepository` en `plan.repository.interface.ts` para escritura, e `IHistorialEntrenamientosReader` en `historial-entrenamientos.query.interface.ts` para lectura, junto a la operación que la consume. El prefijo es la convención de nombres del proyecto; lo que se evalúa es que el contrato tenga propósito y una sola implementación.
+Los **puertos** llevan prefijo `I` y viven en `<nombre>.interface.ts`: `IPlanRepository` en `plan.repository.interface.ts` para escritura, e `IHistorialEntrenamientosReader` en `historial-entrenamientos.query.interface.ts` para lectura, junto a la operación que la consume. Una interfaz que solo describe la forma de un dato —`DetalleValidacion` en `detalle-validacion.interface.ts`, `Page<T>` en `page.interface.ts`— sigue `<nombre>.interface.ts` pero no lleva prefijo: `I` marca un contrato que alguien implementa. El prefijo es la convención de nombres del proyecto; lo que se evalúa es que el contrato tenga propósito y una sola implementación.
 
 No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni dos capas de delegación cuando una solo reenvía métodos a la otra.
 
@@ -304,6 +306,17 @@ Un permiso por operación, con la forma `recurso:acción`. Es una convención ob
 - Un nombre del catálogo no se renombra después, así que la convención se aplica desde el alta.
 
 Recursos ya definidos por las historias pendientes, con la acción de cada una: `plan`, `alumno`, `profesor`, `ejercicio`, `categoria-ejercicio`, `material`, `unidad` y `objetivo-plan`.
+
+### 5.11 Paginación
+
+La paginación está resuelta en `common/` y **no se reimplementa por módulo**. Todo listado paginado se apoya en estos componentes tal como están; no se crea una variante propia.
+
+- **`PaginationDto`** (`common/presentation/dto/pagination.dto.ts`) declara `page` y `limit` como query params con `class-validator`: página 1 y 10 filas por defecto, techo de 100. Un DTO de listado propio lo extiende y agrega sus filtros; nunca redeclara `page` ni `limit`.
+- **`skip`/`take`:** `applyPagination` (`common/infrastructure/queries/pagination-query-builder.ts`) calcula `offset = (page - 1) * limit`, aplica `limit`/`offset` y devuelve la consulta lista para ejecutar; no ejecuta ni proyecta. Es el único lugar con esa aritmética y vive en `infrastructure/`. La ejecución queda en la implementación del puerto.
+- **`Page<T>`** (`common/application/pagination/page.interface.ts`) es la única forma de una página: `{ items, page, limit, totalPages }`, con `totalPages = ceil(total / limit)`. El total de filas no se expone en el sobre. La compone el puerto de lectura con `toPage`, a partir de las filas y el total; el caso de uso conserva el sobre al proyectar las filas.
+- **Ejecución y proyección:** la implementación del puerto ejecuta la consulta paginada con `getResultAndCount()` —que cuenta sin límite ni desplazamiento— y arma `Page<Agregado>` con `toPage`. El caso de uso proyecta las filas con el mapper de la capacidad (`application/mappers/`) y `mapPage(page, mapper)`, que conserva `page`, `limit` y `totalPages`. El mapper no se pasa a `applyPagination`: la proyección pertenece a la capa de aplicación.
+- **El puerto de lectura recibe valores** —`{ page, limit }` y los filtros—, nunca el DTO (§5.9). Ni el `QueryBuilder` ni `applyPagination` cruzan hacia `application/`.
+- Un listado paginado no obliga a un Query Object: el caso de uso y el puerto de lectura alcanzan, y el Query Object sigue siendo opcional (§5.8).
 
 
 ## 6. Auditoría de entidades
