@@ -7,7 +7,10 @@ import type { CrearPermiso } from './permiso.input.js';
  * conoce a los roles que lo usan. Su nombre es la identidad del permiso.
  */
 @Entity({ tableName: 'permiso' })
-@Unique({ name: 'permiso_nombre_lower_unique', expression: 'lower("nombre")' })
+@Unique({
+  name: 'permiso_nombre_lower_unique',
+  expression: 'create unique index "permiso_nombre_lower_unique" on "permiso" (lower("nombre"))',
+})
 export class Permiso {
   @PrimaryKey({ type: 'integer' })
   id!: number;
