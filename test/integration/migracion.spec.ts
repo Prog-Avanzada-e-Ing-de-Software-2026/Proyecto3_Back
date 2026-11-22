@@ -41,7 +41,7 @@ const INDICES_ESPERADOS = [
   'material_nombre_lower_unique',
   'objetivo_plan_nombre_lower_unique',
   'plan_alumno_fecha_desde_index',
-  'plan_alumno_numero_unique',
+  'plan_alumno_numero_index',
   'plan_objetivo_id_index',
   'plan_profesor_id_index',
   'prescripcion_semanal_plan_semana_unique',

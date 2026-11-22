@@ -74,7 +74,7 @@ export class Migration20261122180000 extends Migration {
       `create table "plan" ("id" serial primary key, "fecha_desde" date not null, "fecha_hasta" date not null, "numero_plan" int not null, "fecha_registro" timestamptz not null, "alumno_id" int not null, "profesor_id" int not null, "objetivo_id" int not null, ${COLUMNAS_DE_AUDITORIA});`,
     );
     this.addSql(
-      `alter table "plan" add constraint "plan_alumno_numero_unique" unique ("alumno_id", "numero_plan");`,
+      `create index "plan_alumno_numero_index" on "plan" ("alumno_id", "numero_plan");`,
     );
     this.addSql(
       `create index "plan_alumno_fecha_desde_index" on "plan" ("alumno_id", "fecha_desde");`,

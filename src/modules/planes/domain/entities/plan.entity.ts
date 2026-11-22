@@ -7,7 +7,6 @@ import {
   OneToMany,
   PrimaryKey,
   Property,
-  Unique,
 } from '@mikro-orm/decorators/legacy';
 // oxlint-disable-next-line import/no-cycle -- el alumno declara la colección inversa de sus planes.
 import { Alumno } from '../../../alumnos/domain/entities/alumno.entity.js';
@@ -30,7 +29,9 @@ import { EjercicioPlanificado } from './ejercicio-planificado.entity.js';
  * se persiste: se calcula a partir de las fechas (`RN-8`).
  */
 @Entity({ tableName: 'plan' })
-@Unique({ name: 'plan_alumno_numero_unique', properties: ['alumno', 'numeroPlan'] })
+// El número de plan es sucesivo por alumno (`HU 1`), pero la unicidad se resuelve
+// en el caso de uso: la base solo indexa la búsqueda del próximo número.
+@Index({ name: 'plan_alumno_numero_index', properties: ['alumno', 'numeroPlan'] })
 @Index({ name: 'plan_alumno_fecha_desde_index', properties: ['alumno', 'fechaDesde'] })
 @Index({ name: 'plan_profesor_id_index', properties: ['profesor'] })
 @Index({ name: 'plan_objetivo_id_index', properties: ['objetivo'] })
