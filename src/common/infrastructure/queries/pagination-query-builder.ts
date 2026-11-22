@@ -7,26 +7,22 @@ export interface PaginableQuery<Entity> {
   getResultAndCount(): Promise<[Entity[], number]>;
 }
 
-/** Consulta ya paginada, lista para que la implementación del puerto la ejecute. */
-export interface ExecutableQuery<Entity> {
-  getResultAndCount(): Promise<[Entity[], number]>;
-}
-
 /**
- * Aplica skip/take a una consulta y devuelve su ejecutor.
+ * Aplica skip/take a una consulta y devuelve esa misma consulta, con su tipo
+ * concreto intacto.
  *
  * `offset` es el único cálculo de la paginación: `(page - 1) * limit`. No
  * ejecuta la consulta ni proyecta filas: eso queda en la implementación del
- * puerto, que ejecuta y arma la página con `toPage`. El tipo devuelto oculta el
- * resto del `QueryBuilder` para que nadie vuelva a paginar una consulta ya
- * paginada.
+ * puerto, que ejecuta y arma la página con `toPage`. Conservar el tipo recibido
+ * permite seguir encadenando filtros y orden sobre la consulta ya paginada.
  */
-export function applyPagination<Entity extends object>(
-  query: PaginableQuery<Entity>,
+export function applyPagination<Entity extends object, QB extends PaginableQuery<Entity>>(
+  query: QB,
   pagination: { page: number; limit: number },
-): ExecutableQuery<Entity> {
+): QB {
   const offset = (pagination.page - 1) * pagination.limit;
-  const paginada = query.limit(pagination.limit, offset);
 
-  return { getResultAndCount: () => paginada.getResultAndCount() };
+  query.limit(pagination.limit, offset);
+
+  return query;
 }

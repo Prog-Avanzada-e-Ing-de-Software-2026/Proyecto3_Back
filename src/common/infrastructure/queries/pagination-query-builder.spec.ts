@@ -47,14 +47,20 @@ describe('applyPagination', () => {
     expect(query.invocation).toEqual({ limit: 10, offset: 0 });
   });
 
+  it('[pagination] devuelve la misma consulta, no un envoltorio', () => {
+    const query = new FakeQuery([{ id: 1, name: 'uno' }], 1);
+
+    expect(applyPagination(query, { page: 2, limit: 5 })).toBe(query);
+  });
+
   it('[pagination] no ejecuta la consulta: la ejecuta quien la recibe', async () => {
     const query = new FakeQuery([{ id: 1, name: 'uno' }], 1);
 
-    const ejecutable = applyPagination(query, { page: 1, limit: 10 });
+    const paginada = applyPagination(query, { page: 1, limit: 10 });
 
     expect(query.ejecuciones).toBe(0);
 
-    const [rows, total] = await ejecutable.getResultAndCount();
+    const [rows, total] = await paginada.getResultAndCount();
 
     expect(query.ejecuciones).toBe(1);
     expect(rows).toEqual([{ id: 1, name: 'uno' }]);

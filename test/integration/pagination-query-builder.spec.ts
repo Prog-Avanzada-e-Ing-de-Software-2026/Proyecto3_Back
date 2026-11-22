@@ -88,6 +88,23 @@ describe('applyPagination', () => {
     expect(total).toBe(CANTIDAD);
   });
 
+  it('[pagination] conserva el query builder para seguir filtrando después de paginar', async () => {
+    await sembrar();
+
+    const [items, total] = await applyPagination(query(), { page: 1, limit: 5 })
+      .andWhere({ nombre: { $gte: nombre(6) } })
+      .getResultAndCount();
+
+    expect(items.map((permiso) => permiso.nombre)).toEqual([
+      nombre(6),
+      nombre(7),
+      nombre(8),
+      nombre(9),
+      nombre(10),
+    ]);
+    expect(total).toBe(6);
+  });
+
   it('[pagination] una página fuera de rango no trae filas y conserva el total', async () => {
     await sembrar();
 
