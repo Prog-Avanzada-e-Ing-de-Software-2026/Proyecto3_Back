@@ -35,8 +35,6 @@ const INDICES_ESPERADOS = [
   'ejercicio_planificado_plan_bloque_index',
   'ejercicio_realizado_ejercicio_index',
   'entrenamiento_alumno_fecha_index',
-  'entrenamiento_dia_del_plan_id_index',
-  'entrenamiento_en_curso_unique',
   'entrenamiento_plan_id_index',
   'material_nombre_lower_unique',
   'objetivo_plan_nombre_lower_unique',

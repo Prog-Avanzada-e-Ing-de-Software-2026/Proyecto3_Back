@@ -2,15 +2,12 @@ import { Migration } from '@mikro-orm/migrations';
 
 /**
  * Tablas de los agregados Plan y Entrenamiento y del catálogo de ejercicios,
- * más los índices que sostienen las búsquedas y filtros de las historias.
+ * más los índices que sostienen sus búsquedas y filtros.
  *
- * Los índices siguen las consultas que las HU documentan: historial y
- * solapamiento de planes por alumno y fechas (`HU 4`, `HU 5`, `RN-9`), historial
- * y asistencias por alumno y fecha (`HU 9`, `HU 11`), récord y evolución por
- * ejercicio (`HU 10`, `HU 12`, `HU 13`), filtro por categoría (`HU 26`) y
- * "en uso" del catálogo (`RN-37`). El único parcial de `entrenamiento` es la
- * garantía en base de que un alumno tenga un solo entrenamiento en curso
- * (`RN-20`).
+ * Los índices cubren el historial y el solapamiento de planes por alumno y
+ * fechas, el historial y las asistencias por alumno y fecha, el récord y la
+ * evolución por ejercicio, el filtro por categoría y la comprobación de "en
+ * uso" del catálogo.
  */
 const TABLAS_CON_AUDITORIA = [
   'objetivo_plan',
@@ -116,21 +113,12 @@ export class Migration20261122180000 extends Migration {
     );
 
     this.addSql(
-      `create table "entrenamiento" ("id" serial primary key, "fecha" timestamptz not null, "nro_semana" int not null, "estado" text not null, "comentario" text null, "alumno_id" int not null, "plan_id" int not null, "dia_del_plan_id" int not null, ${COLUMNAS_DE_AUDITORIA});`,
+      `create table "entrenamiento" ("id" serial primary key, "fecha" timestamptz not null, "nro_semana" int not null, "nro_dia_plan" int not null, "comentario" text null, "alumno_id" int not null, "plan_id" int not null, ${COLUMNAS_DE_AUDITORIA});`,
     );
     this.addSql(
       `create index "entrenamiento_alumno_fecha_index" on "entrenamiento" ("alumno_id", "fecha");`,
     );
     this.addSql(`create index "entrenamiento_plan_id_index" on "entrenamiento" ("plan_id");`);
-    this.addSql(
-      `create index "entrenamiento_dia_del_plan_id_index" on "entrenamiento" ("dia_del_plan_id");`,
-    );
-    this.addSql(
-      `create unique index "entrenamiento_en_curso_unique" on "entrenamiento" ("alumno_id") where "estado" = 'en_curso';`,
-    );
-    this.addSql(
-      `alter table "entrenamiento" add constraint "entrenamiento_estado_check" check ("estado" in ('en_curso', 'finalizado'));`,
-    );
 
     this.addSql(
       `create table "ejercicio_realizado" ("id" serial primary key, "ejercicio_id" int not null, "entrenamiento_id" int not null, ${COLUMNAS_DE_AUDITORIA});`,
@@ -194,9 +182,6 @@ export class Migration20261122180000 extends Migration {
     );
     this.addSql(
       `alter table "entrenamiento" add constraint "entrenamiento_plan_id_foreign" foreign key ("plan_id") references "plan" ("id") on delete restrict;`,
-    );
-    this.addSql(
-      `alter table "entrenamiento" add constraint "entrenamiento_dia_del_plan_id_foreign" foreign key ("dia_del_plan_id") references "dia_del_plan" ("id") on delete restrict;`,
     );
 
     this.addSql(

@@ -4,8 +4,8 @@ import { Entity, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/deco
 import { Ejercicio } from '../../../../catalogo/ejercicios/domain/entities/ejercicio.entity.js';
 
 /**
- * Medida en la que se expresa la cantidad de un ejercicio (`HU 29`, `RN-38`).
- * Raíz de un agregado de catálogo propio.
+ * Medida en la que se expresa la cantidad de un ejercicio. Raíz de un agregado
+ * de catálogo propio.
  */
 @Entity({ tableName: 'unidad' })
 @Unique({

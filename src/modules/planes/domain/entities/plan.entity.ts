@@ -25,12 +25,12 @@ import { EjercicioPlanificado } from './ejercicio-planificado.entity.js';
 
 /**
  * Raíz del agregado Plan: la planificación mensual que un profesor arma para un
- * alumno (`HU 1`, `RN-1`..`RN-15`). El estado (vigente, futuro, finalizado) no
- * se persiste: se calcula a partir de las fechas (`RN-8`).
+ * alumno. El estado (vigente, futuro, finalizado) no se persiste: se calcula a
+ * partir de las fechas.
  */
 @Entity({ tableName: 'plan' })
-// El número de plan es sucesivo por alumno (`HU 1`), pero la unicidad se resuelve
-// en el caso de uso: la base solo indexa la búsqueda del próximo número.
+// El número de plan es sucesivo por alumno, pero la unicidad se resuelve en el
+// caso de uso: la base solo indexa la búsqueda del próximo número.
 @Index({ name: 'plan_alumno_numero_index', properties: ['alumno', 'numeroPlan'] })
 @Index({ name: 'plan_alumno_fecha_desde_index', properties: ['alumno', 'fechaDesde'] })
 @Index({ name: 'plan_profesor_id_index', properties: ['profesor'] })

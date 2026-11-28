@@ -17,8 +17,8 @@ import { BLOQUES_PLAN } from '../catalogos.js';
 import type { BloquePlan } from '../catalogos.js';
 
 /**
- * Inclusión de un ejercicio en un bloque del plan, en una posición determinada
- * (`RN-5`). Cuelga del plan en movilidad y core, y del día en fuerza.
+ * Inclusión de un ejercicio en un bloque del plan, en una posición determinada.
+ * Cuelga del plan en movilidad y core, y del día en fuerza.
  */
 @Entity({ tableName: 'ejercicio_planificado' })
 @Index({ name: 'ejercicio_planificado_plan_bloque_index', properties: ['plan', 'bloque'] })

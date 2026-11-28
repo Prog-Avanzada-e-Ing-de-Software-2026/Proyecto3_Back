@@ -1,11 +1,8 @@
-import { Collection } from '@mikro-orm/core';
-import { Entity, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
-// oxlint-disable-next-line import/no-cycle -- el ejercicio declara el lado propietario de la relación.
-import { Ejercicio } from '../../../../catalogo/ejercicios/domain/entities/ejercicio.entity.js';
+import { Entity, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
 /**
- * Material del gimnasio que un ejercicio puede requerir (`HU 28`, `RN-37`).
- * Raíz de un agregado de catálogo propio.
+ * Material del gimnasio que un ejercicio puede requerir. Raíz de un agregado de
+ * catálogo propio.
  */
 @Entity({ tableName: 'material' })
 @Unique({
@@ -21,9 +18,6 @@ export class Material {
 
   @Property({ type: 'text', nullable: true })
   descripcion: string | null = null;
-
-  @OneToMany(() => Ejercicio, (ejercicio) => ejercicio.material)
-  ejercicios = new Collection<Ejercicio>(this);
 
   @Property({ columnType: 'timestamptz' })
   createdAt!: Date;

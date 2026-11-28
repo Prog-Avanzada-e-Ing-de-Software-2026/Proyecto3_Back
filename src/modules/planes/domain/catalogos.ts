@@ -1,6 +1,6 @@
 /**
- * Bloques en que se divide un plan (`RN-1`, `RN-2`). Se persiste el nombre del
- * bloque, no su posición: el orden de los bloques no es una decisión de negocio.
+ * Bloques en que se divide un plan. Se persiste el nombre del bloque, no su
+ * posición: el orden de los bloques no es una decisión de negocio.
  */
 export const BLOQUES_PLAN = ['movilidad', 'core', 'fuerza'] as const;
 

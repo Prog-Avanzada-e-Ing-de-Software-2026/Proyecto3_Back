@@ -97,6 +97,7 @@ Solo los cambios sin efecto en comportamiento, contratos, esquema o código pued
 - **Reglas de dominio:** se validan dentro de la raíz del agregado, no en controladores ni en DTOs. Un VO es inmutable; una entidad conserva identidad.
 - **Errores de dominio:** no exponer detalles de persistencia en la API. Los errores semánticos se traducen a HTTP en el límite de presentación, sin filtrar trazas ni detalles internos.
 - **Manejo de errores:** el tratamiento general está centralizado en un filtro global; `try/catch` es selectivo y solo traduce excepciones técnicas, recupera de un fallo esperable con alternativa concreta, agrega contexto sin ocultar la causa o compensa una operación no atómica. Un `catch` que solo registra y devuelve vacío está prohibido. Las excepciones del driver se traducen en `infrastructure/`; nunca llegan al cliente.
+- **Comentarios:** documentan solo la razón de una decisión, una excepción deliberada o una regla que el código no deja ver. No citan identificadores de reglas (`RN-nn`) ni de historias (`HU n`) salvo pedido explícito: esa trazabilidad pertenece al nombre del test (§10).
 - **Formato:** Prettier (`singleQuote`, `trailingComma: all`) y oxlint. No introducir reglas nuevas de lint sin justificarlo.
 - **Guardas de arquitectura en oxlint:** `.oxlintrc.json` hace cumplir automáticamente cuatro reglas, verificadas contra `yarn lint`:
   - `import/no-cycle` detecta ciclos entre módulos, síntoma de límites mal trazados (§5.4).
@@ -232,7 +233,7 @@ No crear `<capacidad>.service.ts` ni `*-query.service.ts` en `application/`, ni 
 - El DTO se importa solo como tipo (`import type`), así `application/` no arrastra `class-validator` ni Swagger en runtime, y nunca se persiste ni se entrega a un puerto (§5.7, §5.9). El caso de uso no vuelve a validar formato: eso sigue en el `ValidationPipe`.
 - Quien invoca el caso de uso fuera de HTTP —la carga inicial— construye el DTO con los mismos campos; tampoco inventa un tipo paralelo.
 - `domain/entities/<agregado>.input.ts` es **otra cosa**: el contrato de construcción de la entidad (`Rol.crear`), no el de la operación de aplicación. Que exista no habilita un Input de operación.
-- **Comentarios en el código:** solo lo que no se deduce leyendo el nombre y el tipo —la razón de una decisión, una excepción deliberada, una regla de negocio—. El resto se borra: no se documenta lo que el código ya dice.
+- **Comentarios en el código:** solo lo que no se deduce leyendo el nombre y el tipo —la razón de una decisión, una excepción deliberada, una regla de negocio—. El resto se borra: no se documenta lo que el código ya dice. Tampoco se citan identificadores `RN-nn` ni `HU n` en comentarios, JSDoc ni en las migraciones, salvo que se pida explícitamente; esa trazabilidad vive en el nombre del test (§10).
 
 **Dos artefactos, dos dueños.** El DTO es la entrada de la operación; la entidad, el objeto con invariantes. No se reemplazan entre sí y ninguno se salta:
 

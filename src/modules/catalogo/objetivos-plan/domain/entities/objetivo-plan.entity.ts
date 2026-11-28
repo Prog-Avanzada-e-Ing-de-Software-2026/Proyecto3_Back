@@ -4,8 +4,8 @@ import { Entity, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/deco
 import { Plan } from '../../../../planes/domain/entities/plan.entity.js';
 
 /**
- * Clasificación de los planes según lo que se busca lograr (`HU 2`, `RN-37`).
- * Raíz de un agregado de catálogo propio.
+ * Clasificación de los planes según lo que se busca lograr. Raíz de un agregado
+ * de catálogo propio.
  */
 @Entity({ tableName: 'objetivo_plan' })
 @Unique({

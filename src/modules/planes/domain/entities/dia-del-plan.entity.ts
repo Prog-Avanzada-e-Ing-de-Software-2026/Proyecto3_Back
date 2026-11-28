@@ -10,14 +10,12 @@ import {
 } from '@mikro-orm/decorators/legacy';
 // oxlint-disable-next-line import/no-cycle -- el plan declara la colección inversa de sus días.
 import { Plan } from './plan.entity.js';
-// oxlint-disable-next-line import/no-cycle -- el entrenamiento referencia al día del plan.
-import { Entrenamiento } from '../../../entrenamientos/domain/entities/entrenamiento.entity.js';
 // oxlint-disable-next-line import/no-cycle -- el ejercicio planificado declara el lado propietario de la relación.
 import { EjercicioPlanificado } from './ejercicio-planificado.entity.js';
 
 /**
- * Bloque de fuerza de una jornada del plan (`RN-2`, `RN-3`). Tiene identidad
- * propia dentro del plan y no existe fuera de él.
+ * Bloque de fuerza de una jornada del plan. Tiene identidad propia dentro del
+ * plan y no existe fuera de él.
  */
 @Entity({ tableName: 'dia_del_plan' })
 @Index({ name: 'dia_del_plan_plan_orden_index', properties: ['plan', 'orden'] })
@@ -36,9 +34,6 @@ export class DiaDelPlan {
 
   @OneToMany(() => EjercicioPlanificado, (ejercicioPlanificado) => ejercicioPlanificado.diaDelPlan)
   ejercicios = new Collection<EjercicioPlanificado>(this);
-
-  @OneToMany(() => Entrenamiento, (entrenamiento) => entrenamiento.diaDelPlan)
-  entrenamientos = new Collection<Entrenamiento>(this);
 
   @Property({ columnType: 'timestamptz' })
   createdAt!: Date;

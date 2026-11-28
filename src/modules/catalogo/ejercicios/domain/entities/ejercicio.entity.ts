@@ -15,15 +15,12 @@ import { CategoriaEjercicio } from '../../../../catalogo/categorias-ejercicio/do
 import { Material } from '../../../../catalogo/materiales/domain/entities/material.entity.js';
 // oxlint-disable-next-line import/no-cycle -- las entidades de catálogo declaran la colección inversa.
 import { Unidad } from '../../../../catalogo/unidades/domain/entities/unidad.entity.js';
-// oxlint-disable-next-line import/no-cycle -- los planes y entrenamientos referencian al ejercicio del catálogo.
-import { EjercicioPlanificado } from '../../../../planes/domain/entities/ejercicio-planificado.entity.js';
-// oxlint-disable-next-line import/no-cycle -- los planes y entrenamientos referencian al ejercicio del catálogo.
+// oxlint-disable-next-line import/no-cycle -- los entrenamientos referencian al ejercicio del catálogo.
 import { EjercicioRealizado } from '../../../../entrenamientos/domain/entities/ejercicio-realizado.entity.js';
 
 /**
  * Definición de un ejercicio del catálogo: qué se hace, con qué material y en
- * qué unidad se mide (`HU 26`, `RN-38`, `RN-39`). Raíz de un agregado de
- * catálogo propio.
+ * qué unidad se mide. Raíz de un agregado de catálogo propio.
  */
 @Entity({ tableName: 'ejercicio' })
 @Unique({
@@ -64,9 +61,6 @@ export class Ejercicio {
 
   @Property({ type: 'text', nullable: true })
   foto: string | null = null;
-
-  @OneToMany(() => EjercicioPlanificado, (ejercicioPlanificado) => ejercicioPlanificado.ejercicio)
-  ejerciciosPlanificados = new Collection<EjercicioPlanificado>(this);
 
   @OneToMany(() => EjercicioRealizado, (ejercicioRealizado) => ejercicioRealizado.ejercicio)
   ejerciciosRealizados = new Collection<EjercicioRealizado>(this);

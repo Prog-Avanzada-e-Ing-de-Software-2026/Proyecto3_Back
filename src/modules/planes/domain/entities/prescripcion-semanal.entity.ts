@@ -4,9 +4,9 @@ import { Entity, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-orm/deco
 import { Plan } from './plan.entity.js';
 
 /**
- * Cantidad a realizar de cada ejercicio en una semana del plan (`RN-6`, `RN-7`).
- * Todos los ejercicios comparten la progresión, por eso cuelga del plan y no de
- * un ejercicio planificado.
+ * Cantidad a realizar de cada ejercicio en una semana del plan. Todos los
+ * ejercicios comparten la progresión, por eso cuelga del plan y no de un
+ * ejercicio planificado.
  */
 @Entity({ tableName: 'prescripcion_semanal' })
 @Unique({ name: 'prescripcion_semanal_plan_semana_unique', properties: ['plan', 'nroSemana'] })

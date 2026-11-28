@@ -5,8 +5,8 @@ import { Entity, Index, ManyToOne, PrimaryKey, Property } from '@mikro-orm/decor
 import { EjercicioRealizado } from './ejercicio-realizado.entity.js';
 
 /**
- * Ejecución única de un ejercicio (`RN-22`, `RN-41`). La cantidad se interpreta
- * según la unidad del ejercicio; el peso es opcional y puede ser cero.
+ * Ejecución única de un ejercicio. La cantidad se interpreta según la unidad
+ * del ejercicio; el peso es opcional y puede ser cero.
  */
 @Entity({ tableName: 'serie' })
 @Index({ name: 'serie_ejercicio_realizado_index', properties: ['ejercicioRealizado'] })

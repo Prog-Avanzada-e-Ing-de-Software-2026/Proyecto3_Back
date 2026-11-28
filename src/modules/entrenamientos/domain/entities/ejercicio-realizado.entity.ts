@@ -18,8 +18,7 @@ import { Ejercicio } from '../../../catalogo/ejercicios/domain/entities/ejercici
 
 /**
  * Ejecución de un ejercicio dentro de un entrenamiento, con las series que el
- * alumno completó (`RN-21`, `RN-41`). Se edita y completa mientras el
- * entrenamiento está en curso.
+ * alumno completó. Se edita y completa durante el registro del entrenamiento.
  */
 @Entity({ tableName: 'ejercicio_realizado' })
 @Unique({
