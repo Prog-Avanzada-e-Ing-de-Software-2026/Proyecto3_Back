@@ -16,7 +16,7 @@ export interface PaginableQuery<Entity> {
  * puerto, que ejecuta y arma la página con `toPage`. Conservar el tipo recibido
  * permite seguir encadenando filtros y orden sobre la consulta ya paginada.
  */
-export function applyPagination<Entity extends object, QB extends PaginableQuery<Entity>>(
+export function paginationQueryBuilder<Entity extends object, QB extends PaginableQuery<Entity>>(
   query: QB,
   pagination: { page: number; limit: number },
 ): QB {

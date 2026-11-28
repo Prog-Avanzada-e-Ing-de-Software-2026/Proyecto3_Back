@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { applyPagination } from '../../src/common/infrastructure/queries/pagination-query-builder.js';
+import { paginationQueryBuilder } from '../../src/common/infrastructure/queries/pagination-query-builder.js';
 import { Permiso } from '../../src/modules/auth/domain/entities/permiso.entity.js';
 import { cerrarPostgres, iniciarPostgres, vaciarTablas } from '../support/postgres.js';
 import type { EntornoPostgres } from '../support/postgres.js';
@@ -48,11 +48,11 @@ afterAll(async () => {
   await cerrarPostgres(entorno);
 });
 
-describe('applyPagination', () => {
+describe('paginationQueryBuilder', () => {
   it('[pagination] devuelve la primera página con el total completo', async () => {
     await sembrar();
 
-    const [items, total] = await applyPagination(query(), { page: 1, limit: 5 }).getResultAndCount();
+    const [items, total] = await paginationQueryBuilder(query(), { page: 1, limit: 5 }).getResultAndCount();
 
     expect(items.map((permiso) => permiso.nombre)).toEqual([
       nombre(0),
@@ -67,7 +67,7 @@ describe('applyPagination', () => {
   it('[pagination] el offset saltea las filas de las páginas anteriores', async () => {
     await sembrar();
 
-    const [items, total] = await applyPagination(query(), { page: 2, limit: 5 }).getResultAndCount();
+    const [items, total] = await paginationQueryBuilder(query(), { page: 2, limit: 5 }).getResultAndCount();
 
     expect(items.map((permiso) => permiso.nombre)).toEqual([
       nombre(5),
@@ -82,7 +82,7 @@ describe('applyPagination', () => {
   it('[pagination] la última página trae solo las filas restantes', async () => {
     await sembrar();
 
-    const [items, total] = await applyPagination(query(), { page: 3, limit: 5 }).getResultAndCount();
+    const [items, total] = await paginationQueryBuilder(query(), { page: 3, limit: 5 }).getResultAndCount();
 
     expect(items.map((permiso) => permiso.nombre)).toEqual([nombre(10), nombre(11)]);
     expect(total).toBe(CANTIDAD);
@@ -91,7 +91,7 @@ describe('applyPagination', () => {
   it('[pagination] conserva el query builder para seguir filtrando después de paginar', async () => {
     await sembrar();
 
-    const [items, total] = await applyPagination(query(), { page: 1, limit: 5 })
+    const [items, total] = await paginationQueryBuilder(query(), { page: 1, limit: 5 })
       .andWhere({ nombre: { $gte: nombre(6) } })
       .getResultAndCount();
 
@@ -108,7 +108,7 @@ describe('applyPagination', () => {
   it('[pagination] una página fuera de rango no trae filas y conserva el total', async () => {
     await sembrar();
 
-    const [items, total] = await applyPagination(query(), { page: 4, limit: 5 }).getResultAndCount();
+    const [items, total] = await paginationQueryBuilder(query(), { page: 4, limit: 5 }).getResultAndCount();
 
     expect(items).toEqual([]);
     expect(total).toBe(CANTIDAD);

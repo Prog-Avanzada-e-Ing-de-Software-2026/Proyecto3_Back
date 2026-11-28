@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyPagination } from './pagination-query-builder.js';
+import { paginationQueryBuilder } from './pagination-query-builder.js';
 import type { PaginableQuery } from './pagination-query-builder.js';
 
 interface Row {
@@ -30,11 +30,11 @@ class FakeQuery implements PaginableQuery<Row> {
   }
 }
 
-describe('applyPagination', () => {
+describe('paginationQueryBuilder', () => {
   it('[pagination] traduce la página al skip y el límite al take', () => {
     const query = new FakeQuery([{ id: 11, name: 'once' }], 12);
 
-    applyPagination(query, { page: 3, limit: 5 });
+    paginationQueryBuilder(query, { page: 3, limit: 5 });
 
     expect(query.invocation).toEqual({ limit: 5, offset: 10 });
   });
@@ -42,7 +42,7 @@ describe('applyPagination', () => {
   it('[pagination] la primera página no saltea filas', () => {
     const query = new FakeQuery([{ id: 1, name: 'uno' }], 1);
 
-    applyPagination(query, { page: 1, limit: 10 });
+    paginationQueryBuilder(query, { page: 1, limit: 10 });
 
     expect(query.invocation).toEqual({ limit: 10, offset: 0 });
   });
@@ -50,13 +50,13 @@ describe('applyPagination', () => {
   it('[pagination] devuelve la misma consulta, no un envoltorio', () => {
     const query = new FakeQuery([{ id: 1, name: 'uno' }], 1);
 
-    expect(applyPagination(query, { page: 2, limit: 5 })).toBe(query);
+    expect(paginationQueryBuilder(query, { page: 2, limit: 5 })).toBe(query);
   });
 
   it('[pagination] no ejecuta la consulta: la ejecuta quien la recibe', async () => {
     const query = new FakeQuery([{ id: 1, name: 'uno' }], 1);
 
-    const paginada = applyPagination(query, { page: 1, limit: 10 });
+    const paginada = paginationQueryBuilder(query, { page: 1, limit: 10 });
 
     expect(query.ejecuciones).toBe(0);
 
@@ -71,7 +71,7 @@ describe('applyPagination', () => {
     const rows = [{ id: 1, name: 'uno' }];
     const query = new FakeQuery(rows, 1);
 
-    const [items] = await applyPagination(query, { page: 1, limit: 10 }).getResultAndCount();
+    const [items] = await paginationQueryBuilder(query, { page: 1, limit: 10 }).getResultAndCount();
 
     expect(items).toBe(rows);
   });
