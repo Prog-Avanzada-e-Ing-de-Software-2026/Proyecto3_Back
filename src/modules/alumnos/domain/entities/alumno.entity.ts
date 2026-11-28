@@ -1,4 +1,13 @@
-import { Entity, ManyToOne, OneToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
+import { Collection } from '@mikro-orm/core';
+import {
+  Entity,
+  Index,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+  PrimaryKey,
+  Property,
+} from '@mikro-orm/decorators/legacy';
 import { ErrorSemantico } from '../../../../common/domain/errors/error-semantico.js';
 import {
   exigirFechaCalendario,
@@ -8,6 +17,10 @@ import {
 import { Usuario } from '../../../auth/domain/entities/usuario.entity.js';
 // oxlint-disable-next-line import/no-cycle -- el profesor declara la colección inversa de solo lectura sobre esta relación.
 import { Profesor } from '../../../profesores/domain/entities/profesor.entity.js';
+// oxlint-disable-next-line import/no-cycle -- los planes y entrenamientos declaran el lado propietario de la relación.
+import { Plan } from '../../../planes/domain/entities/plan.entity.js';
+// oxlint-disable-next-line import/no-cycle -- los planes y entrenamientos declaran el lado propietario de la relación.
+import { Entrenamiento } from '../../../entrenamientos/domain/entities/entrenamiento.entity.js';
 import type { CrearAlumno } from './alumno.input.js';
 
 /**
@@ -15,6 +28,7 @@ import type { CrearAlumno } from './alumno.input.js';
  * es un atributo del dominio que se mantiene coherente con la baja lógica.
  */
 @Entity({ tableName: 'alumno' })
+@Index({ name: 'alumno_profesor_asignado_index', properties: ['profesorAsignado'] })
 export class Alumno {
   @PrimaryKey({ type: 'integer' })
   id!: number;
@@ -54,6 +68,12 @@ export class Alumno {
     deleteRule: 'restrict',
   })
   usuario!: Usuario;
+
+  @OneToMany(() => Plan, (plan) => plan.alumno)
+  planes = new Collection<Plan>(this);
+
+  @OneToMany(() => Entrenamiento, (entrenamiento) => entrenamiento.alumno)
+  entrenamientos = new Collection<Entrenamiento>(this);
 
   @Property({ columnType: 'timestamptz' })
   createdAt!: Date;

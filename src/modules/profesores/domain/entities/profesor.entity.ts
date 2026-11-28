@@ -8,6 +8,8 @@ import {
 } from '../../../../common/domain/validaciones.js';
 // oxlint-disable-next-line import/no-cycle -- la relación inversa de solo lectura cierra el ciclo del mapeo ORM, no una dependencia de módulo.
 import { Alumno } from '../../../alumnos/domain/entities/alumno.entity.js';
+// oxlint-disable-next-line import/no-cycle -- el plan declara el lado propietario de la relación.
+import { Plan } from '../../../planes/domain/entities/plan.entity.js';
 import { Usuario } from '../../../auth/domain/entities/usuario.entity.js';
 import type { CrearProfesor } from './profesor.input.js';
 
@@ -41,6 +43,9 @@ export class Profesor {
 
   @OneToMany(() => Alumno, (alumno) => alumno.profesorAsignado)
   alumnos = new Collection<Alumno>(this);
+
+  @OneToMany(() => Plan, (plan) => plan.profesor)
+  planes = new Collection<Plan>(this);
 
   @OneToOne(() => Usuario, {
     fieldName: 'usuario_id',

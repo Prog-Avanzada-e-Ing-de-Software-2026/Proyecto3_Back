@@ -10,7 +10,10 @@ import type { CrearRol } from './rol.input.js';
  * asignación de permisos: la colección solo se modifica por sus métodos.
  */
 @Entity({ tableName: 'rol' })
-@Unique({ name: 'rol_nombre_lower_unique', expression: 'lower("nombre")' })
+@Unique({
+  name: 'rol_nombre_lower_unique',
+  expression: 'create unique index "rol_nombre_lower_unique" on "rol" (lower("nombre"))',
+})
 export class Rol {
   @PrimaryKey({ type: 'integer' })
   id!: number;
