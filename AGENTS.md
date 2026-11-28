@@ -319,6 +319,15 @@ La paginación está resuelta en `common/` y **no se reimplementa por módulo**.
 - **El puerto de lectura recibe valores** —`{ page, limit }` y los filtros—, nunca el DTO (§5.9). Ni el `QueryBuilder` ni `paginationQueryBuilder` cruzan hacia `application/`.
 - Un listado paginado no obliga a un Query Object: el caso de uso y el puerto de lectura alcanzan, y el Query Object sigue siendo opcional (§5.8).
 
+### 5.12 Búsqueda por coincidencia parcial
+
+La búsqueda de texto por contenido (`%texto%`) está resuelta en `common/` y **no se reimplementa por módulo**.
+
+- **`partialMatch`** (`common/infrastructure/queries/partial-match.ts`) devuelve la condición: recibe el término y una o más columnas de texto y arma un `$or` con `$like` sobre `lower(unaccent(columna))`. Recorta el término, lo envuelve en comodines y escapa `%`, `_` y `\`; un término vacío devuelve `{}`, que no agrega cláusula.
+- **Normalización:** compara la base, así que ignora mayúsculas y diacríticos en la columna y en el patrón: `extension` encuentra `Extensión`. La extensión `unaccent` se crea en su migración.
+- **Columnas, no propiedades:** recibe el nombre de la columna en snake_case; un nombre camelCase falla con un error explícito. No resuelve joins: buscar en otra entidad es un Query Object.
+- **Rendimiento:** `%texto%` no usa btree. Si una búsqueda se vuelve pesada, el índice es un GIN `pg_trgm` sobre la misma expresión.
+- Devuelve un `QBFilterQuery`, así que compone con `find`/`findOne` y con `paginationQueryBuilder`; no ejecuta ni proyecta.
 
 ## 6. Auditoría de entidades
 
